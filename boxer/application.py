@@ -1,3 +1,5 @@
+import boxer.background
+
 class Application(object):
     """"root application object"""
 
@@ -7,6 +9,9 @@ class Application(object):
             name = "default application name"):
         self.name = name
         print("starting %s"%self)
+
+        self.background = boxer.background.Background()
+
 
 
     def message(self, message):
