@@ -17,16 +17,12 @@ class Application(object):
         self.name = name
         print("starting %s"%self)
 
-        # create window before anythign else
+        # create window before anything else
         self.window = _create_window(res_x, res_y)
         self.on_draw = self.window.event(self.on_draw)
 
+        # app components:
         self.background = boxer.background.Background()
-
-        # gl.glEnable(gl.GL_BLEND)
-        # gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        # gl.glDisable(gl.GL_DEPTH_TEST)
-        gl.glClearColor(0.2, 0.3, 0.3, 1)
 
 
     def message(self, message):
@@ -36,7 +32,12 @@ class Application(object):
 
     def on_draw(self):
         self.window.clear()
+        gl.glEnable(gl.GL_BLEND)
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        #----------------------
         self.background.draw()
+        #----------------------
+        gl.glDisable(gl.GL_BLEND)
 
 
 def _create_window(res_x, res_y):
@@ -47,7 +48,6 @@ def _create_window(res_x, res_y):
         depth_size = 16,
         double_buffer = True,
     )
-
     _window = pyglet.window.Window(
             res_x, res_y,
             caption = "boxer",
@@ -55,5 +55,4 @@ def _create_window(res_x, res_y):
             resizable = True,
             style = pyglet.window.Window.WINDOW_STYLE_DEFAULT           
         )
-
     return _window
