@@ -5,7 +5,8 @@ def main():
 	print("init main()")
 
 	app = boxer.application.Application(name = "boxer app")
-
+	
+	pyglet.app.run()
 
 
 if __name__ == "__main__":
