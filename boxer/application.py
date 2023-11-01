@@ -1,4 +1,5 @@
 import boxer.background
+import boxer.mouse
 
 import pyglet
 import pyglet.gl as gl
@@ -23,6 +24,10 @@ class Application(object):
 
         # app components:
         self.background = boxer.background.Background()
+        
+        self.mouse = boxer.mouse.Mouse()
+        self.window.push_handlers( self.mouse )
+        self.window.set_mouse_cursor(self.mouse)
 
 
     def message(self, message):

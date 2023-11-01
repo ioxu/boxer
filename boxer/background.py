@@ -8,12 +8,12 @@ class Background:
 
     def __init__(self,
                  name="background"):
+        self.batch = pyglet.graphics.Batch()
         self.name = name
-        self.colour = (0.5, 0.5, 0.5, 1.0)
+        self.colour = (80, 80, 128, 255)#(0.5, 0.5, 0.5, 1.0)
         self.image = pyglet.image.load('boxer/resources/background_grid_map.png')
         self.texture = pyglet.image.TileableTexture.create_for_image( self.image )
         self.position = pyglet.math.Vec2()
-        self.batch = pyglet.graphics.Batch()
         print("starting %s"%self)
 
         _program = boxer.shaders.get_default_shader()
@@ -37,12 +37,12 @@ class Background:
         # gl.glColor4f( *self.colour )
         # gl.glPushMatrix()
         # gl.glTranslatef(self.position.x, self.position.y, 0)
-        
         self.texture.blit_tiled(-1000000,-1000000,0,2000000,2000000)
         gl.glPointSize(100)
         self.batch.draw()
         
         # gl.glPopMatrix()
+
 
 
 
