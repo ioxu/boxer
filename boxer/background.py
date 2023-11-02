@@ -1,5 +1,6 @@
 import pyglet
 import pyglet.gl as gl
+import pyglet.image
 
 import boxer.shaders
 
@@ -10,25 +11,42 @@ class Background:
                  name="background"):
         self.batch = pyglet.graphics.Batch()
         self.name = name
-        self.colour = (80, 80, 128, 255)#(0.5, 0.5, 0.5, 1.0)
+        self.colour = (0.5, 0.5, 0.5, 1.0)
         self.image = pyglet.image.load('boxer/resources/background_grid_map.png')
         self.texture = pyglet.image.TileableTexture.create_for_image( self.image )
         self.position = pyglet.math.Vec2()
+
         print("starting %s"%self)
 
         _program = boxer.shaders.get_default_shader()
+        _textured_program = boxer.shaders.get_default_textured_shader()
 
-        # self.centre_tri = _program.vertex_list_indexed(4, gl.GL_TRIANGLES, [0,1,2,0,2,3], self.batch, None,
-        #                         position=('f', create_quad_vertex_list(250, 250, 0.0, 100.0, 100.0) ),
-        #                         colors = ('f', (1.0, 0.0, 0.0, 0.05,  0.0, 1.0, 0.0, 0.05,  0.0, 0.0, 1.0, 0.05,  1.0, 1.0, 0.0, 0.05) ))
+        # print("shader attributes:")
+        # print( _textured_program.attributes )
 
-        # self.centre_tri2 = _program.vertex_list_indexed(4, gl.GL_TRIANGLES, [0,1,2,0,2,3], self.batch, None,
-        #                         position=('f', create_quad_vertex_list(275, 275, 0.0, 100.0, 100.0) ),
-        #                         colors = ('f', (1.0, 0.0, 0.0, 0.25,  0.0, 1.0, 0.0, 0.25,  0.0, 0.0, 1.0, 0.25,  1.0, 1.0, 0.0, 0.25) ))
+        _bg_width = 2000000
+        _bg_height = _bg_width
+
+        _bg_verts = ( -_bg_width /2.0, -_bg_height / 2.0, 0.0,
+                        _bg_width /2.0, -_bg_height / 2.0, 0.0,
+                        _bg_width /2.0, _bg_height /2.0, 0.0,
+                        -_bg_width /2.0, _bg_height/2.0, 0.0 )
+
+        _bg_tex_coords = ( 0.0, 0.0, 0.0,
+                            _bg_width/self.texture.width, 0.0, 0.0,
+                            _bg_width/self.texture.width, _bg_height/self.texture.height, 0.0,
+                            0.0, _bg_height/self.texture.height, 0.0  )
+
+        self.background_triangles = _textured_program.vertex_list_indexed( 4, gl.GL_TRIANGLES, [0,1,2,0,2,3], self.batch, None,
+                                    position = ('f', _bg_verts ),
+                                    colors = ('f', self.colour * 4 ),
+                                    tex_coords = ('f', _bg_tex_coords) )
 
         self.centre_point = _program.vertex_list_indexed(1, gl.GL_POINTS, [0], batch = self.batch,
                                 position=('f', (0.0, 0.0, 0.0)),
                                 colors = ('f', (1.0, 0.0, 0.0, 0.15) ))
+
+
 
 
     def draw(self):
@@ -37,14 +55,9 @@ class Background:
         # gl.glColor4f( *self.colour )
         # gl.glPushMatrix()
         # gl.glTranslatef(self.position.x, self.position.y, 0)
-        self.texture.blit_tiled(-1000000,-1000000,0,2000000,2000000)
+        gl.glEnable(self.texture.target)
+        gl.glBindTexture(self.texture.target, self.texture.id)
         gl.glPointSize(100)
         self.batch.draw()
-        
+        gl.glBindTexture(self.texture.target, 0)
         # gl.glPopMatrix()
-
-
-
-
-def create_quad_vertex_list(x, y, z, width, height):
-    return x, y, z, x + width, y, z, x + width, y + height, z, x, y + height, z
