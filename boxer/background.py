@@ -3,6 +3,7 @@ import pyglet.gl as gl
 import pyglet.image
 
 import boxer.shaders
+import boxer.shapes
 
 class Background:
     """backround object for graph sheets"""
@@ -27,10 +28,7 @@ class Background:
         _bg_width = 2000000
         _bg_height = _bg_width
 
-        _bg_verts = ( -_bg_width /2.0, -_bg_height / 2.0, 0.0,
-                        _bg_width /2.0, -_bg_height / 2.0, 0.0,
-                        _bg_width /2.0, _bg_height /2.0, 0.0,
-                        -_bg_width /2.0, _bg_height/2.0, 0.0 )
+        _bg_verts = boxer.shapes.rectangle_centered_vertices( 0.0, 0.0, _bg_width, _bg_width )
 
         _bg_tex_coords = ( 0.0, 0.0, 0.0,
                             _bg_width/self.texture.width, 0.0, 0.0,
