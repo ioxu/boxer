@@ -49,13 +49,21 @@ _fragment_textured_source = """#version 330 core
     }
 """
 
+
 def get_default_shader():
+    """
+    default shader program with vertex colors
+    """
     _default_vert_shader = pyglet.graphics.shader.Shader(_vertex_source, 'vertex')
     _default_frag_shader = pyglet.graphics.shader.Shader(_fragment_source, 'fragment')
     program = pyglet.graphics.shader.ShaderProgram(_default_vert_shader, _default_frag_shader)
     return program
 
+
 def get_default_textured_shader():
+    """
+    default shader program with texturing, texture coords and vertex colors
+    """
     _default_vert_shader = pyglet.graphics.shader.Shader(_vertex_source, 'vertex')
     _default_frag_shader = pyglet.graphics.shader.Shader(_fragment_textured_source, 'fragment')
     program = pyglet.graphics.shader.ShaderProgram(_default_vert_shader, _default_frag_shader)
