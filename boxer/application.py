@@ -1,5 +1,6 @@
 import boxer.background
 import boxer.mouse
+import boxer.camera
 
 import pyglet
 import pyglet.gl as gl
@@ -21,6 +22,8 @@ class Application(object):
         # create window before anything else
         self.window = _create_window(res_x, res_y)
         self.on_draw = self.window.event(self.on_draw)
+        self.fps_display = pyglet.window.FPSDisplay(self.window)
+        self.fps_display.update_period = 0.2
 
         # app components:
         self.background = boxer.background.Background()
@@ -28,6 +31,8 @@ class Application(object):
         self.mouse = boxer.mouse.Mouse()
         self.window.push_handlers( self.mouse )
         self.window.set_mouse_cursor(self.mouse)
+
+        self.camera = boxer.camera.Camera( self.window )
 
 
     def message(self, message):
@@ -40,9 +45,14 @@ class Application(object):
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         #----------------------
+        self.camera.push()
+        #----------------------
         self.background.draw()
         #----------------------
+        self.camera.pop()
+        #----------------------
         gl.glDisable(gl.GL_BLEND)
+        self.fps_display.draw()
 
 
 def _create_window(res_x, res_y):
