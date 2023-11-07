@@ -53,6 +53,7 @@ class Mouse(pyglet.window.MouseCursor):
 
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
+        # mouse wheel seems to only be on scroll_y
         self.update_position(x,y)
 
 

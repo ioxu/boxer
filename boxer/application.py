@@ -20,7 +20,7 @@ class Application(object):
         print("starting %s"%self)
 
         # create window before anything else
-        self.window = _create_window(res_x, res_y)
+        self.window : pyglet.window.Window = _create_window(res_x, res_y)
         self.on_draw = self.window.event(self.on_draw)
         self.fps_display = pyglet.window.FPSDisplay(self.window)
         self.fps_display.update_period = 0.2
@@ -33,6 +33,7 @@ class Application(object):
         self.window.set_mouse_cursor(self.mouse)
 
         self.camera = boxer.camera.Camera( self.window )
+        self.window.push_handlers( self.camera )
 
 
     def message(self, message):

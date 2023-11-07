@@ -36,7 +36,7 @@ class Background:
 
         self.centre_point = _program.vertex_list_indexed(1, gl.GL_POINTS, [0], batch = self.batch,
                                 position=('f', (0.0, 0.0, 0.0)),
-                                colors = ('f', (1.0, 0.0, 0.0, 0.15) ))
+                                colors = ('f', (1.0, 0.0, 0.0, 0.5) ))
 
 
 
