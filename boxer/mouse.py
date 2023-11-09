@@ -37,7 +37,7 @@ class Mouse(pyglet.window.MouseCursor):
 
     def on_mouse_press(self, x, y, buttons, modifiers ):
         #print(self, self.mouse_press)
-        print("mouse.on_mouse_press %s"%buttons)
+        #print("mouse.on_mouse_press %s"%buttons)
         if buttons & mouse.MIDDLE:
             self.is_sheet_panning = True
 
