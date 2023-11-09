@@ -75,8 +75,8 @@ class Camera(object):
             self.mouse_pos_dx = dx
             self.mouse_pos_dy = dy
 
-            # self.update_position( self.position.x + self.mouse_pos_dx * (1/self.zoom) ,
-            #                     self.position.y + self.mouse_pos_dy * (1/self.zoom) )
+            self.update_position( self.position.x + self.mouse_pos_dx * (1/self.zoom) ,
+                                self.position.y + self.mouse_pos_dy * (1/self.zoom) )
             # self.is_panning = True
 
             # transform
@@ -84,21 +84,35 @@ class Camera(object):
                 pyglet.math.Vec3(self.mouse_pos_dx * (1/self.zoom) , self.mouse_pos_dy * (1/self.zoom), 0.0) )
             self.is_panning = True
 
+            # print("self.position %s"%self.position)
+            # print("self.transform origin %s"%str(self.transform.column(3)[:3]))
+
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         """
         camera zoom on mouse scroll
         """
-        #zz = self.zoom + scroll_y * self.zoom_rate * self.zoom
-
         zz = 1 + scroll_y * self.zoom_rate
 
-        print(zz, self.zoom)
         self.zoom = min(max(0.05,self.zoom * zz),10)
-        #self.transform = self.transform@pyglet.math.Mat4.scale( pyglet.math.Vec3(self.zoom, self.zoom, 1.0) ) #.from_scale( pyglet.math.Vec3(self.zoom, self.zoom, 1.0) )
-        self.transform = self.transform.scale( (zz, zz, 1.0) )
+        
+        offset = pyglet.math.Vec3( x, y, 0.0 )
+        # print("offset: %s"%offset)
+
+        offset_t = pyglet.math.Mat4.from_translation( -offset )
+        scaled_t = pyglet.math.Mat4.from_scale( pyglet.math.Vec3( zz, zz, 1.0 ) )
+        reoffset_t = pyglet.math.Mat4.from_translation( offset )
+
+        self.transform =reoffset_t @ scaled_t @ offset_t @ self.transform 
+
+        # print("transform: %s"%str( self.transform ))
+        # print("position: %s"%str( self.transform.column(3)[:3] ))
 
 
     def update_position(self, x, y ):
         self.position.x = x
         self.position.y = y
+
+# matrix things:
+# https://math.stackexchange.com/questions/237369/given-this-transformation-matrix-how-do-i-decompose-it-into-translation-rotati
+
