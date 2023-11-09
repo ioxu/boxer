@@ -17,7 +17,7 @@ class Camera(object):
         self.window : pyglet.window.Window = window
         self.position : pyglet.math.Vec2 = position
         
-        self.transform = pyglet.math.Mat4()
+        self.transform : pyglet.math.Mat4 = pyglet.math.Mat4()
 
         # zoom
         self.zoom : float =  1.0
@@ -38,14 +38,14 @@ class Camera(object):
 
         #pyglet.clock.schedule_interval(self.update, 1/144.0)
         self.global_time : float = 0.0
-        #print("window.view : %s"%str(self.window.view))
+
+        # strat with a centered camera
+        window_size = self.window.get_size()
+        print("camera.window.size = %s"%str(window_size))
+        self.transform = pyglet.math.Mat4.from_translation( pyglet.math.Vec3( window_size[0]/2.0, window_size[1]/2.0 , 0.0) )
 
 
     def push(self) -> None:
-        # cam_translation : pyglet.math.Mat4 = pyglet.math.Mat4.from_translation(pyglet.math.Vec3(self.position.x, self.position.y, 0.0))
-        # cam_zoom : pyglet.math.Mat4 = pyglet.math.Mat4.from_scale( pyglet.math.Vec3( self.zoom, self.zoom, 1.0 ) )
-        # self.window.view = cam_zoom@cam_translation
-
         self.window.view = self.transform
 
 
@@ -61,25 +61,30 @@ class Camera(object):
     #     self.position.x = math.sin( self.global_time * speed ) * mag
     #     self.position.y = math.cos( self.global_time * speed ) * mag
 
+    def get_position(self) -> pyglet.math.Vec3:
+        """
+        get the position of the camera
+        
+        returns the translation straight from the camera's Mat4 transform
+        """
+        return self.transform.column(3)[:3]
+
+
+    def on_mouse_motion(self,  x, y, dx, dy ):
+        pass
+
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers ):
         """
         camera pan on middle-mouse drag
         TODO : camera zoom on right-mouse drag
         """
-        #print("mouse.on_mouse_drag %s"%buttons)
-        #print("panning %s %s"%(x,y) )
         if buttons & mouse.MIDDLE:
             self.mouse_pos_x = x
             self.mouse_pos_y = y
             self.mouse_pos_dx = dx
             self.mouse_pos_dy = dy
 
-            self.update_position( self.position.x + self.mouse_pos_dx * (1/self.zoom) ,
-                                self.position.y + self.mouse_pos_dy * (1/self.zoom) )
-            # self.is_panning = True
-
-            # transform
             self.transform = self.transform@pyglet.math.Mat4.from_translation(
                 pyglet.math.Vec3(self.mouse_pos_dx * (1/self.zoom) , self.mouse_pos_dy * (1/self.zoom), 0.0) )
             self.is_panning = True
@@ -97,21 +102,11 @@ class Camera(object):
         self.zoom = min(max(0.05,self.zoom * zz),10)
         
         offset = pyglet.math.Vec3( x, y, 0.0 )
-        # print("offset: %s"%offset)
-
         offset_t = pyglet.math.Mat4.from_translation( -offset )
         scaled_t = pyglet.math.Mat4.from_scale( pyglet.math.Vec3( zz, zz, 1.0 ) )
         reoffset_t = pyglet.math.Mat4.from_translation( offset )
-
         self.transform =reoffset_t @ scaled_t @ offset_t @ self.transform 
 
-        # print("transform: %s"%str( self.transform ))
-        # print("position: %s"%str( self.transform.column(3)[:3] ))
-
-
-    def update_position(self, x, y ):
-        self.position.x = x
-        self.position.y = y
 
 # matrix things:
 # https://math.stackexchange.com/questions/237369/given-this-transformation-matrix-how-do-i-decompose-it-into-translation-rotati

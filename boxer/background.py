@@ -39,8 +39,6 @@ class Background:
                                 colors = ('f', (1.0, 0.0, 0.0, 0.5) ))
 
 
-
-
     def draw(self):
         # preserving old immediate mode transform statements for reference
         # TODO: use new Mat4 methods 
