@@ -5,6 +5,9 @@ import boxer.camera
 import pyglet
 import pyglet.gl as gl
 
+import imgui
+from imgui.integrations.pyglet import create_renderer
+
 
 class Application(object):
     """"root application object"""
@@ -35,6 +38,10 @@ class Application(object):
         self.camera = boxer.camera.Camera( self.window )
         self.window.push_handlers( self.camera )
 
+        # imgui
+        imgui.create_context()
+        self.imgui_renderer = create_renderer(self.window)
+
 
     def message(self, message):
         """display a message"""
@@ -54,6 +61,16 @@ class Application(object):
         #----------------------
         gl.glDisable(gl.GL_BLEND)
         self.fps_display.draw()
+
+        # ==== imgui draw ====
+        imgui.new_frame()
+    
+        # widgets:
+        imgui.show_demo_window()
+
+        imgui.render()
+        self.imgui_renderer.render(imgui.get_draw_data())
+        # =====================
 
 
 def _create_window(res_x, res_y):

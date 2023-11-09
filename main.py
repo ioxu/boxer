@@ -7,7 +7,7 @@ def main():
 	app = boxer.application.Application(name = "boxer app")
 	
 	pyglet.app.run()
-
+	app.imgui_renderer.shutdown()
 
 if __name__ == "__main__":
 	main()
