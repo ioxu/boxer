@@ -22,6 +22,10 @@ class Camera(object):
         # zoom
         self.zoom : float =  1.0
         self.zoom_rate : float = 0.1#0.02
+        self.zoom_min : float = 0.05
+        self.zoom_max : float = 10.0
+
+
         self.zoom_centre_x : float = 0.0
         self.zoom_centre_y : float = 0.0
         self.zoom_offset_x : float = 0.0
@@ -61,6 +65,7 @@ class Camera(object):
     #     self.position.x = math.sin( self.global_time * speed ) * mag
     #     self.position.y = math.cos( self.global_time * speed ) * mag
 
+
     def get_position(self) -> pyglet.math.Vec3:
         """
         get the position of the camera
@@ -99,8 +104,17 @@ class Camera(object):
         """
         zz = 1 + scroll_y * self.zoom_rate
 
-        self.zoom = min(max(0.05,self.zoom * zz),10)
-        
+        # limit zooming
+        update_zoom = self.zoom * zz
+        if update_zoom > self.zoom_max:
+            self.zoom = self.zoom_max
+            zz = 1.0
+        elif update_zoom < self.zoom_min:
+            self.zoom = self.zoom_min
+            zz = 1.0
+        else:
+            self.zoom *= zz
+
         offset = pyglet.math.Vec3( x, y, 0.0 )
         offset_t = pyglet.math.Mat4.from_translation( -offset )
         scaled_t = pyglet.math.Mat4.from_scale( pyglet.math.Vec3( zz, zz, 1.0 ) )
