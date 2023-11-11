@@ -107,7 +107,10 @@ class Application(object):
     def on_mouse_motion(self, x,y,ds,dy):
         
         # set mouse cursor if ImGui wants to capture the mouse:
-        # TODO: change all this to control my cursors _completely_
+        # must use a little bit of imgui logic here because imgui sets its own cursors
+        # so we need to convert imgui cursor ID to pyglet system mouse cursor ID.
+        # Wasn't able to reliably revert control to imgui to set its own cursor again. 
+        # TODO: need more control over custom cursors, anyway.
         if self._imgui_io.want_capture_mouse:
             # if self._imgui_io.config_flags & imgui.CONFIG_NO_MOUSE_CURSOR_CHANGE:
             #     self._imgui_io.config_flags -= imgui.CONFIG_NO_MOUSE_CURSOR_CHANGE            
@@ -118,12 +121,6 @@ class Application(object):
             # if not (self._imgui_io.config_flags & imgui.CONFIG_NO_MOUSE_CURSOR_CHANGE):
             #     self._imgui_io.config_flags += imgui.CONFIG_NO_MOUSE_CURSOR_CHANGE
             self.window.set_mouse_cursor(self.mouse)
-
-
-        #print("want mouse: %s"%self._imgui_io.want_capture_mouse)
-        #print("io.config_flags %s"%self._imgui_io.config_flags)
-        #print("NO_MOUSE_CURSOR_CHANGE %s" % imgui.CONFIG_NO_MOUSE_CURSOR_CHANGE)
-        #print("mouse cursor ID: %s"%imgui.get_mouse_cursor())
 
 
 
