@@ -23,7 +23,7 @@ class Camera(object):
         self.zoom : float =  1.0
         self.zoom_rate : float = 0.1#0.02
         self.zoom_min : float = 0.01
-        self.zoom_max : float = 4.0
+        self.zoom_max : float = 6.0
         self.last_zoom : float = 1.0
         # pan
         self.is_panning = False
@@ -31,7 +31,14 @@ class Camera(object):
         #pyglet.clock.schedule_interval(self.update, 1/144.0)
         self.global_time : float = 0.0
 
-        # strat with a centered camera
+        # start with a centered camera
+        self.reset()
+
+
+    def reset(self) -> None:
+        """
+        reset the cammera zoom ad translation to be centered on the origin of the worksheet
+        """
         window_size = self.window.get_size()
         print("camera.window.size = %s"%str(window_size))
         self.transform = pyglet.math.Mat4.from_translation( pyglet.math.Vec3( window_size[0]/2.0, window_size[1]/2.0 , 0.0) )
