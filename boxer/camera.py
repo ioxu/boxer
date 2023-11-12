@@ -15,8 +15,9 @@ class Camera(object):
         print("starting %s"%self)
 
         self.window : pyglet.window.Window = window
-        self.position : pyglet.math.Vec2 = position
-        
+        #self.position : pyglet.math.Vec2 = position
+        #self.position : pyglet.math.Vec2 = property( self.get_position, self.set_position )
+        #self.position = property( self.get_position, self.set_position )
         self.transform : pyglet.math.Mat4 = pyglet.math.Mat4()
 
         # zoom
@@ -33,6 +34,8 @@ class Camera(object):
 
         # start with a centered camera
         self.reset()
+
+
 
 
     def reset(self) -> None:
@@ -68,6 +71,18 @@ class Camera(object):
         returns the translation straight from the camera's Mat4 transform
         """
         return self.transform.column(3)[:3]
+
+
+    def set_position(self, pos : pyglet.math.Vec3):
+        """
+        set the position of the camera        
+        """
+        #self.transform.column(3) = (pos.x, pos.y, pos.z, pos.w)
+        #self.transform.column[3]
+        raise NotImplementedError
+
+
+    position = property( get_position, set_position )
 
 
     def on_mouse_motion(self,  x, y, dx, dy ):

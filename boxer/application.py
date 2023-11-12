@@ -10,7 +10,7 @@ import imgui
 from imgui.integrations.pyglet import create_renderer
 
 
-class Application(object):
+class Application(pyglet.event.EventDispatcher):
     """"root application object"""
 
     application_meta = {}
@@ -46,10 +46,13 @@ class Application(object):
         imgui.create_context()
         self._imgui_io = imgui.get_io()
         self.imgui_renderer = create_renderer(self.window)
+        self._imgui_io.config_flags += imgui.CONFIG_NO_MOUSE_CURSOR_CHANGE # stop imgui ffrom controlling mouse cursor
 
         # imgui tests
+        self._checkbox1_enabled = False
+        self.test_vec3_var = pyglet.math.Vec3()
+        self.push_handlers(on_parameter_changed=self.on_parameter_change)
 
-        self._imgui_io.config_flags += imgui.CONFIG_NO_MOUSE_CURSOR_CHANGE
 
     def message(self, message):
         """display a message"""
@@ -83,8 +86,49 @@ class Application(object):
 
 
         imgui.new_frame()
-        imgui.begin("Your first window!", True)
-        imgui.text("Hello world!")
+        imgui.set_next_window_size(210-5, self.window.height-10)
+        imgui.set_next_window_position(self.window.width-210, 5)
+        imgui.begin("PARAMETERS", closable=False,
+                    #flags= imgui.WINDOW_NO_NAV
+                    #imgui.WINDOW_NO_TITLE_BAR
+                    #imgui.WINDOW_NO_DECORATION
+                    )
+        
+        # imgui.text("PARAMETERS")
+        # _, self._checkbox1_enabled = imgui.checkbox("checkbox1", self._checkbox1_enabled)
+        # if self._checkbox1_enabled:
+        #     imgui.text("    - show stuff because checkbox")
+
+        expanded1, visible1 = imgui.collapsing_header("info")
+        if expanded1:
+            #imgui.begin_child( "debug", height=60, border=True )
+            imgui.text("mouse")
+            if imgui.is_item_hovered():
+                imgui.begin_tooltip()
+                imgui.text_unformatted("mouse info goes here, position, state etc...")
+                imgui.end_tooltip()
+            imgui.text("x:%s y:%s"%(str(self.mouse.position.x), str(self.mouse.position.y)))
+            imgui.separator()
+            imgui.text("camera")
+            cam_pos = self.camera.position
+            imgui.text("x:%0.2f y:%0.2f"%( cam_pos[0], cam_pos[1] ))
+            imgui.text("zoom:%0.2f"%self.camera.zoom)
+            #imgui.end_child()
+
+        #imgui.separator()
+
+        expanded2, visible2 = imgui.collapsing_header("selection")
+        if expanded2:
+            imgui.begin_child( "debug two", height=60, border=True )
+            imgui.text("name:")
+            imgui.same_line()
+            imgui.input_text("", "node_1")
+            test_vec3_var_changed, self.test_vec3_var = imgui.drag_float3("", *self.test_vec3_var, change_speed=0.001 )
+            if test_vec3_var_changed:
+                self.dispatch_event("on_parameter_changed", ["test_vec3_var_changed", self.test_vec3_var])
+            imgui.end_child()
+
+
         imgui.end()
 
         # widgets:
@@ -95,6 +139,8 @@ class Application(object):
         
         self.imgui_renderer.render(imgui.get_draw_data())
         #----------------------
+
+
 
 
     def on_key_press( self, symbol, modifiers ):
@@ -123,7 +169,18 @@ class Application(object):
             self.window.set_mouse_cursor(self.mouse)
 
 
+    # test event ###############################################################
+    def on_parameter_change(self, event_arg):
+        print(event_arg)
+        #print("%s %s"%[event_arg[0], str(event_arg[1:])])
+    ############################################################################
 
+
+# register events --------------------------------------------------------------
+Application.register_event_type("on_parameter_changed")
+
+
+# ------------------------------------------------------------------------------
 def _create_window(res_x, res_y):
     """window creator helper"""
     _window_config = gl.Config(
