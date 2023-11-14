@@ -53,11 +53,16 @@ class Application(pyglet.event.EventDispatcher):
         self.imgui_renderer = create_renderer(self.window)
         self._imgui_io.config_flags += imgui.CONFIG_NO_MOUSE_CURSOR_CHANGE # stop imgui ffrom controlling mouse cursor
 
+        # gui settings
+        self.parameter_panel_width = 210
+        self.parameter_panel_width_original = self.parameter_panel_width
+
         # imgui tests
         self._checkbox1_enabled = False
         self.test_vec3_var = pyglet.math.Vec3()
         self.test_vec3_var2 = pyglet.math.Vec3()
         self.push_handlers(on_parameter_changed=self.on_parameter_change)
+        self.test_node_name = "node_1"
 
 
     def message(self, message):
@@ -92,14 +97,20 @@ class Application(pyglet.event.EventDispatcher):
 
 
         imgui.new_frame()
-        imgui.set_next_window_size(210-5, self.window.height-10)
-        imgui.set_next_window_position(self.window.width-210, 5)
+        imgui.set_next_window_size(self.parameter_panel_width-5, self.window.height-10)
+        imgui.set_next_window_position(self.window.width-self.parameter_panel_width, 5)
         imgui.begin("PARAMETERS", closable=False,
                     #flags= imgui.WINDOW_NO_NAV
                     #imgui.WINDOW_NO_TITLE_BAR
                     #imgui.WINDOW_NO_DECORATION
                     )
         
+
+        # MAGIC NUMBER ---------------------------------------------------------
+        self.parameter_panel_width = imgui.get_content_region_available().x + 21
+        #-----------------------------------------------------------------------
+
+
         # imgui.text("PARAMETERS")
         # _, self._checkbox1_enabled = imgui.checkbox("checkbox1", self._checkbox1_enabled)
         # if self._checkbox1_enabled:
@@ -148,12 +159,50 @@ class Application(pyglet.event.EventDispatcher):
             
             imgui.text("name:")
             imgui.same_line()
-            imgui.input_text("", "node_1")
+
+
+            imgui.push_item_width(-1)
+            name_changed, self.test_node_name = imgui.input_text("", self.test_node_name,
+                callback=text_input_callback,
+                user_data="test_node_name_callback_user_data",
+                flags=imgui.INPUT_TEXT_AUTO_SELECT_ALL)
+            imgui.pop_item_width()
+            
+            if name_changed:
+                print( "name_changed: %s"%self.test_node_name )
+
+
+            # imgui.push_item_width(-1)
+            # name_changed, self.test_node_name = imgui.input_text("", self.test_node_name,
+            #     callback=text_input_callback,
+            #     user_data="test_node_name_callback_user_data",
+            #     flags=imgui.INPUT_TEXT_AUTO_SELECT_ALL|imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+            # imgui.pop_item_width()
+            
+            # if name_changed:
+            #     print( "name_changed: %s"%self.test_node_name )
+
+
+            # imgui.push_item_width(-1)
+            # if imgui.input_text("", self.test_node_name,
+            #             callback=text_input_callback,
+            #             user_data="test_node_name_callback_user_data",
+            #             #flags=imgui.INPUT_TEXT_AUTO_SELECT_ALL|imgui.INPUT_TEXT_ENTER_RETURNS_TRUE):
+            #             flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE):
+            #             #):
+
+            #     print("return : %s"%self.test_node_name)
+
+            # imgui.pop_item_width()
+
             test_vec3_var_changed, self.test_vec3_var = imgui.drag_float3("parm1", *self.test_vec3_var, change_speed=0.001 )
             if test_vec3_var_changed:
                 self.dispatch_event("on_parameter_changed", ["test_vec3_var_changed", self.test_vec3_var])
             imgui.push_item_width(-1)
+            
             _, self.test_vec3_var2 = imgui.drag_float3("3var", *self.test_vec3_var2, change_speed=0.001 )
+            if _:
+                print("changed value: %s"%str(self.test_vec3_var2))
             imgui.pop_item_width()
             imgui.end_child()
 
@@ -224,7 +273,7 @@ class Application(pyglet.event.EventDispatcher):
 
     # test event ###############################################################
     def on_parameter_change(self, event_arg):
-        print(event_arg)
+        print("dispatched event: 'on_parameter_change' %s"%event_arg)
         #print("%s %s"%[event_arg[0], str(event_arg[1:])])
     ############################################################################
 
@@ -232,6 +281,24 @@ class Application(pyglet.event.EventDispatcher):
 # register events --------------------------------------------------------------
 Application.register_event_type("on_parameter_changed")
 
+
+def text_input_callback(value):
+    print("callback: %s"%value)
+    #print("callback: %s"%str(dir(value)))
+    print("    buffer %s"%value.buffer)
+    print("    buffer_dirty %s"%value.buffer_dirty)
+    print("    buffer_size %s"%value.buffer_size)
+    print("    clear_selection %s"%value.clear_selection)
+    print("    event_char %s"%value.event_char)
+    print("    event_flag %s"%value.event_flag)
+    print("    event_key %s"%value.event_key)
+    print("    flags %s"%value.flags)
+    print("    has_selection() %s"%value.has_selection())
+    print("    select_all() %s"%value.select_all())
+    print("    selection_end %s"%value.selection_end)
+    print("    selection_start %s"%value.selection_start)
+    print("    user_data %s"%value.user_data)
+    pass
 
 # ------------------------------------------------------------------------------
 def _create_window(res_x, res_y):
