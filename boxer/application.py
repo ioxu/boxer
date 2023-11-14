@@ -28,6 +28,11 @@ class Application(pyglet.event.EventDispatcher):
         self.on_draw = self.window.event(self.on_draw)
         self.on_key_press = self.window.event(self.on_key_press)
         self.on_mouse_motion = self.window.event(self.on_mouse_motion)
+        # self.on_mouse_scroll = self.window.event(self.on_mouse_scroll)
+        # self.on_mouse_drag = self.window.event(self.on_mouse_drag)
+        # self.on_mouse_press = self.window.event(self.on_mouse_press)
+        # self.on_mouse_release = self.window.event(self.on_mouse_release)
+
         self.fps_display = pyglet.window.FPSDisplay(self.window)
         self.fps_display.update_period = 0.2
 
@@ -117,7 +122,10 @@ class Application(pyglet.event.EventDispatcher):
                 imgui.end_tooltip()
             imgui.text("x:%s y:%s"%(str(self.mouse.position.x), str(self.mouse.position.y)))
             imgui.separator()
-            imgui.text("camera")
+            if self.camera.enabled:
+                imgui.text("camera")
+            else:
+                imgui.text("camera (disabled)")
             cam_pos = self.camera.position
             imgui.text("x:%0.2f y:%0.2f"%( cam_pos[0], cam_pos[1] ))
             imgui.text("zoom:%0.2f"%self.camera.zoom)
@@ -141,10 +149,12 @@ class Application(pyglet.event.EventDispatcher):
             imgui.text("name:")
             imgui.same_line()
             imgui.input_text("", "node_1")
-            test_vec3_var_changed, self.test_vec3_var = imgui.drag_float3("", *self.test_vec3_var, change_speed=0.001 )
+            test_vec3_var_changed, self.test_vec3_var = imgui.drag_float3("parm1", *self.test_vec3_var, change_speed=0.001 )
             if test_vec3_var_changed:
                 self.dispatch_event("on_parameter_changed", ["test_vec3_var_changed", self.test_vec3_var])
-            _, self.test_vec3_var2 = imgui.drag_float3("", *self.test_vec3_var2, change_speed=0.001 )
+            imgui.push_item_width(-1)
+            _, self.test_vec3_var2 = imgui.drag_float3("3var", *self.test_vec3_var2, change_speed=0.001 )
+            imgui.pop_item_width()
             imgui.end_child()
 
 
@@ -164,8 +174,6 @@ class Application(pyglet.event.EventDispatcher):
         #----------------------
 
 
-
-
     def on_key_press( self, symbol, modifiers ):
         if symbol == key.R:
 			# reset camera
@@ -174,7 +182,6 @@ class Application(pyglet.event.EventDispatcher):
 
 
     def on_mouse_motion(self, x,y,ds,dy):
-        
         # set mouse cursor if ImGui wants to capture the mouse:
         # must use a little bit of imgui logic here because imgui sets its own cursors
         # so we need to convert imgui cursor ID to pyglet system mouse cursor ID.
@@ -186,10 +193,33 @@ class Application(pyglet.event.EventDispatcher):
             _im_mouse_cursor = imgui.get_mouse_cursor()
             _im_mouse_cursors = imgui.integrations.pyglet.PygletMixin.MOUSE_CURSORS
             self.window.set_mouse_cursor( self.window.get_system_mouse_cursor( _im_mouse_cursors.get(_im_mouse_cursor) ) )
+        
+            self.camera.disable()
         else:
             # if not (self._imgui_io.config_flags & imgui.CONFIG_NO_MOUSE_CURSOR_CHANGE):
             #     self._imgui_io.config_flags += imgui.CONFIG_NO_MOUSE_CURSOR_CHANGE
+            self.camera.enable()
             self.window.set_mouse_cursor(self.mouse)
+
+
+    # def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
+    #     if self._imgui_io.want_capture_mouse:
+    #         return pyglet.event.EVENT_HANDLED
+
+
+    # def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+    #     if self._imgui_io.want_capture_mouse:
+    #         return pyglet.event.EVENT_HANDLED
+
+
+    # def on_mouse_press(self, x, y, buttons, modifiers):
+    #     if self._imgui_io.want_capture_mouse:
+    #         return pyglet.event.EVENT_HANDLED
+
+
+    # def on_mouse_release(self, x, y, buttons, modifiers):
+    #     if self._imgui_io.want_capture_mouse:
+    #         return pyglet.event.EVENT_HANDLED
 
 
     # test event ###############################################################

@@ -20,6 +20,8 @@ class Camera(object):
         #self.position = property( self.get_position, self.set_position )
         self.transform : pyglet.math.Mat4 = pyglet.math.Mat4()
 
+        self.enabled = True
+
         # zoom
         self.zoom : float =  1.0
         self.zoom_rate : float = 0.1#0.02
@@ -36,6 +38,12 @@ class Camera(object):
         self.reset()
 
 
+    def enable(self) -> None:
+        self.enabled = True
+
+
+    def disable(self) -> None:
+        self.enabled = False
 
 
     def reset(self) -> None:
@@ -86,17 +94,20 @@ class Camera(object):
 
 
     def on_mouse_motion(self,  x, y, dx, dy ):
+        #if self.enabled:
         pass
 
-    
+
     def on_mouse_release(self, x, y, buttons, modifiers):
-        if buttons & mouse.MIDDLE:
-            self.is_panning = False
+        if self.enabled:
+            if buttons & mouse.MIDDLE:
+                self.is_panning = False
 
 
     def on_mouse_press(self, x, y, buttons, modifiers):
-        if buttons & mouse.MIDDLE:
-            self.is_panning = True
+        if self.enabled:
+            if buttons & mouse.MIDDLE:
+                self.is_panning = True
 
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers ):
@@ -104,35 +115,37 @@ class Camera(object):
         camera pan on middle-mouse drag
         TODO : camera zoom on right-mouse drag
         """
-        if buttons & mouse.MIDDLE:
-            self.transform = self.transform@pyglet.math.Mat4.from_translation(
-                pyglet.math.Vec3(dx * (1/self.zoom) , dy * (1/self.zoom), 0.0) )
-            
+        if self.enabled:
+            if buttons & mouse.MIDDLE:
+                self.transform = self.transform@pyglet.math.Mat4.from_translation(
+                    pyglet.math.Vec3(dx * (1/self.zoom) , dy * (1/self.zoom), 0.0) )
+
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         """
         camera zoom on mouse scroll
         """
-        zoom_dt = 1 + scroll_y * self.zoom_rate
-        # if the delta takes zoom outside the limits,
-        # then just use the last zoom amount rather than 
-        # clamp at the limit, because I can't work out how
-        # to keep the delta synchronised with the amount that
-        # the new zoom is over the limit in terms of a proportion of delta
-        self.last_zoom = self.zoom
-        update_zoom = self.zoom * zoom_dt
-        if update_zoom > self.zoom_max or update_zoom < self.zoom_min:
-            self.zoom = self.last_zoom
-            zoom_dt = 1.0
-        else:
-            self.zoom *= zoom_dt
+        if self.enabled:
+            zoom_dt = 1 + scroll_y * self.zoom_rate
+            # if the delta takes zoom outside the limits,
+            # then just use the last zoom amount rather than 
+            # clamp at the limit, because I can't work out how
+            # to keep the delta synchronised with the amount that
+            # the new zoom is over the limit in terms of a proportion of delta
+            self.last_zoom = self.zoom
+            update_zoom = self.zoom * zoom_dt
+            if update_zoom > self.zoom_max or update_zoom < self.zoom_min:
+                self.zoom = self.last_zoom
+                zoom_dt = 1.0
+            else:
+                self.zoom *= zoom_dt
 
-        # transforms
-        offset = pyglet.math.Vec3( x, y, 0.0 )
-        offset_t = pyglet.math.Mat4.from_translation( -offset )
-        scaled_t = pyglet.math.Mat4.from_scale( pyglet.math.Vec3( zoom_dt, zoom_dt, 1.0 ) )
-        reoffset_t = pyglet.math.Mat4.from_translation( offset )
-        self.transform =reoffset_t @ scaled_t @ offset_t @ self.transform 
+            # transforms
+            offset = pyglet.math.Vec3( x, y, 0.0 )
+            offset_t = pyglet.math.Mat4.from_translation( -offset )
+            scaled_t = pyglet.math.Mat4.from_scale( pyglet.math.Vec3( zoom_dt, zoom_dt, 1.0 ) )
+            reoffset_t = pyglet.math.Mat4.from_translation( offset )
+            self.transform =reoffset_t @ scaled_t @ offset_t @ self.transform 
 
 
 # matrix things:
