@@ -51,6 +51,7 @@ class Application(pyglet.event.EventDispatcher):
         # imgui tests
         self._checkbox1_enabled = False
         self.test_vec3_var = pyglet.math.Vec3()
+        self.test_vec3_var2 = pyglet.math.Vec3()
         self.push_handlers(on_parameter_changed=self.on_parameter_change)
 
 
@@ -99,9 +100,16 @@ class Application(pyglet.event.EventDispatcher):
         # if self._checkbox1_enabled:
         #     imgui.text("    - show stuff because checkbox")
 
+        imgui.push_style_color( imgui.COLOR_HEADER, 0.65, 0.25, 0.025 )
+        imgui.push_style_color( imgui.COLOR_HEADER_HOVERED, 0.85, 0.32, 0.05 )
+        imgui.push_style_color( imgui.COLOR_HEADER_ACTIVE, 0.95, 0.365, 0.07 )
         expanded1, visible1 = imgui.collapsing_header("info")
+        imgui.pop_style_color(3)
+        
         if expanded1:
             #imgui.begin_child( "debug", height=60, border=True )
+            imgui.push_style_color( imgui.COLOR_TEXT, 0.5, 0.5, 0.5 )
+            
             imgui.text("mouse")
             if imgui.is_item_hovered():
                 imgui.begin_tooltip()
@@ -115,21 +123,36 @@ class Application(pyglet.event.EventDispatcher):
             imgui.text("zoom:%0.2f"%self.camera.zoom)
             #imgui.end_child()
 
+            imgui.pop_style_color(1)
+
         #imgui.separator()
 
         expanded2, visible2 = imgui.collapsing_header("selection")
+        
+        #imgui.push_style_color(imgui.COLOR_BORDER, 0.2, 0.95, 0.3 )
+        imgui.push_style_var(imgui.STYLE_CHILD_BORDERSIZE, 2.0)
+        imgui.push_style_var(imgui.STYLE_CHILD_ROUNDING, 5.0)
+
         if expanded2:
-            imgui.begin_child( "debug two", height=60, border=True )
+            #imgui.begin_child( "debug two", height=60, border=True )
+
+            imgui.begin_child( "debug two", height=81 , border=True )
+            
             imgui.text("name:")
             imgui.same_line()
             imgui.input_text("", "node_1")
             test_vec3_var_changed, self.test_vec3_var = imgui.drag_float3("", *self.test_vec3_var, change_speed=0.001 )
             if test_vec3_var_changed:
                 self.dispatch_event("on_parameter_changed", ["test_vec3_var_changed", self.test_vec3_var])
+            _, self.test_vec3_var2 = imgui.drag_float3("", *self.test_vec3_var2, change_speed=0.001 )
             imgui.end_child()
 
 
+        #imgui.pop_style_color(1)
+        imgui.pop_style_var(2)
         imgui.end()
+
+
 
         # widgets:
         imgui.show_demo_window()
