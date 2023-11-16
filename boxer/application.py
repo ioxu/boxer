@@ -97,14 +97,41 @@ class Application(pyglet.event.EventDispatcher):
 
 
         imgui.new_frame()
-        imgui.set_next_window_size(self.parameter_panel_width-5, self.window.height-10)
-        imgui.set_next_window_position(self.window.width-self.parameter_panel_width, 5)
-        imgui.begin("PARAMETERS", closable=False,
+
+        # menu bar
+        with imgui.begin_main_menu_bar() as main_menu_bar:
+            if main_menu_bar.opened:
+                with imgui.begin_menu("File", True) as file_menu:
+                    if file_menu.opened:
+                        imgui.menu_item('New', 'Ctrl+N', False, True)
+                        imgui.menu_item('Open ...', 'Ctrl+O', False, True)
+                        imgui.separator()
+                        imgui.menu_item('Recent Files ..', 'Ctrl+R', False, True)
+                        imgui.separator()
+                        imgui.menu_item('Settings', None, False, True)
+                with imgui.begin_menu("Graph", True) as graph_menu:
+                    if graph_menu.opened:
+                        imgui.menu_item("Add Graph", 'Ctrl+G', False, True)
+                        imgui.menu_item("Merge Graph", 'Ctrl+M', False, True)
+                        imgui.menu_item("Split Graph", 'Ctrl+P', False, True)
+                        imgui.menu_item("Export Graph", 'Ctrl+P', False, True)
+                        imgui.separator()
+                        imgui.text("open graphs:")
+                        imgui.menu_item("graph_01", 'Ctrl+1', False, True)
+                        imgui.menu_item("graph_02", 'Ctrl+2', False, True)
+                        imgui.menu_item("spread_15", 'Ctrl+3', False, True)
+
+        # parameters pane
+        imgui.set_next_window_size(self.parameter_panel_width-5, self.window.height - 10 - 18)
+        imgui.set_next_window_position(self.window.width-self.parameter_panel_width, 18 + 5)
+        ret=imgui.begin("PARAMETERS", closable=False,
                     #flags= imgui.WINDOW_NO_NAV
                     #imgui.WINDOW_NO_TITLE_BAR
                     #imgui.WINDOW_NO_DECORATION
                     )
         
+        # print(ret)
+        # print(imgui.get_content_region_available().x)
 
         # MAGIC NUMBER ---------------------------------------------------------
         self.parameter_panel_width = imgui.get_content_region_available().x + 21
