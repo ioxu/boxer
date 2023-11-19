@@ -3,9 +3,28 @@ import pyglet
 import imgui
 import inspect
 
+#from tkinter import filedialog, Tk
+import tkinter.filedialog
+import tkinter
+
+
+def browse_save_file_path() -> str:
+    """open a file dialog to browse a filepath to save to"""
+    
+    root = tkinter.Tk()
+    root.withdraw()  # Hide the main window
+    file_path = tkinter.filedialog.asksaveasfilename(
+        defaultextension = ".json",
+        filetypes = [("JSON", "*.json"),('boxer project files', '*.bxr'), ('All files', '*.*')],
+        title = "Save As"
+    )
+    print("chosen file path: '%s'"%file_path)
+    root.destroy()    
+    return file_path
+
 
 # main application gui things --------------------------------------------------
-def main_menu_bar() -> None:
+def main_menu_bar( application_root ) -> None:
     """main menu bar"""
     with imgui.begin_main_menu_bar() as main_menu_bar:
         if main_menu_bar.opened:
@@ -13,21 +32,18 @@ def main_menu_bar() -> None:
                 if file_menu.opened:
                     imgui.menu_item('New', 'Ctrl+N', False, True)
                     imgui.menu_item('Open...', 'Ctrl+O', False, True)
-                    imgui.menu_item('Save', 'Ctrl+S', False, True)
-                    
-                    _clicked, _state = imgui.menu_item('Save As...', 'Shift+Ctrl+S', False, True)
-                    if _clicked:
-                        from tkinter import filedialog, Tk
+                    _save_clicked, _state = imgui.menu_item('Save', 'Ctrl+S', False, True)
+                    # ----------------------------------------------------------
+                    if _save_clicked:
+                        application_root.save_file()
+                    # ----------------------------------------------------------
 
-                        root = Tk()
-                        root.withdraw()  # Hide the main window
-                        file_path = filedialog.asksaveasfilename(
-                            defaultextension = ".bxr",
-                            filetypes = [('boxer project files', '*.bxr'), ('All files', '*.*')],
-                            title = "Save As"
-                        )
-                        print("Save As file '%s'"%file_path)
-                        root.destroy()
+                    _save_as_clicked, _state = imgui.menu_item('Save As...', 'Shift+Ctrl+S', False, True)
+                    # ----------------------------------------------------------
+                    if _save_as_clicked:
+                        file_path = browse_save_file_path()
+                        application_root.do_save_as_file( file_path )
+                    # ----------------------------------------------------------
 
                     imgui.separator()
                     imgui.menu_item('Recent Files ..', 'Ctrl+R', False, True)

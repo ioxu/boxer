@@ -19,7 +19,7 @@ class Application(pyglet.event.EventDispatcher):
     application_meta = {}
 
     def __init__(self,
-            name = "default application name",
+            name = "boxer",
             res_x = 900,
             res_y = 600):
         
@@ -56,6 +56,9 @@ class Application(pyglet.event.EventDispatcher):
         self.camera = boxer.camera.Camera( self.window )
         self.window.push_handlers( self.camera )
 
+        # serialisation
+        self.file_path = ""
+
         # imgui
         imgui.create_context()
         self._imgui_io = imgui.get_io()
@@ -80,6 +83,57 @@ class Application(pyglet.event.EventDispatcher):
             color = (255,255,255, 80),
             x = 10, y = 20
         )
+
+
+    def save_file(self,  save_as = False, browse = True ):
+        """save the project to a file
+        First checks if self.file_path is defined.
+        
+        `save_as` : bool
+            spawn a filebrowser even if self.file_path is defined.
+        `browse` : bool
+            spawn a filebrowser if necessary, otherwise pass.
+        """
+        
+        if self.file_path != "" and not save_as:
+            print("Ctrl-S to %s"%self.file_path)
+            self.do_save_as_file( self.file_path )
+        else:
+            if browse:
+                file_path = boxer.ui.browse_save_file_path()
+                self.do_save_as_file( file_path )
+            else:
+                pass
+
+    def do_save_as_file(self, file_path ) -> bool:
+        # TODO: sanitise file_path
+
+        import json
+        import datetime
+
+        app_dict = {
+            "utc-iso-timestamp":datetime.datetime.utcnow().isoformat(),
+            "timestamp":str(datetime.datetime.now()).split('.')[0],
+            "application": self.as_json(),
+            "graph":{
+                "name": self.test_graph_name,
+                "background": self.background.as_json()
+                }
+            }
+
+        json_data = json.dumps( app_dict, indent=4)
+
+        with open(file_path, "w") as outfile:
+            saved_bytes = outfile.write(json_data)
+        print("save_as_file(%s) done (%s bytes)"%(file_path, str(saved_bytes)))
+        self.file_path = file_path
+        self.window.set_caption(self.name + "  -  [" + self.file_path+"]")
+
+
+    def as_json(self)->dict:
+        return{
+            "name":self.name,
+        }
 
 
     def message(self, message):
@@ -116,7 +170,7 @@ class Application(pyglet.event.EventDispatcher):
         imgui.new_frame()
 
         # menu bar
-        boxer.ui.main_menu_bar()
+        boxer.ui.main_menu_bar( self )
 
         # parameters pane
         imgui.set_next_window_size(self.parameter_panel_width-5, self.window.height - 10 - 18)
@@ -140,9 +194,9 @@ class Application(pyglet.event.EventDispatcher):
         # if self._checkbox1_enabled:
         #     imgui.text("    - show stuff because checkbox")
 
-        imgui.push_style_color( imgui.COLOR_HEADER, 0.65, 0.25, 0.025 )
-        imgui.push_style_color( imgui.COLOR_HEADER_HOVERED, 0.85, 0.32, 0.05 )
-        imgui.push_style_color( imgui.COLOR_HEADER_ACTIVE, 0.95, 0.365, 0.07 )
+        imgui.push_style_color( imgui.COLOR_HEADER, 0.3, 0.3, 0.3 )
+        imgui.push_style_color( imgui.COLOR_HEADER_HOVERED, 0.4, 0.4, 0.4 )
+        imgui.push_style_color( imgui.COLOR_HEADER_ACTIVE, 0.5, 0.5, 0.5 )
         expanded1, visible1 = imgui.collapsing_header("info")
         imgui.pop_style_color(3)
         
@@ -234,8 +288,13 @@ class Application(pyglet.event.EventDispatcher):
         #imgui.pop_style_color(1)
         imgui.pop_style_var(2)
         
-        
+        imgui.push_style_color( imgui.COLOR_HEADER, 0.65, 0.25, 0.025 )
+        imgui.push_style_color( imgui.COLOR_HEADER_HOVERED, 0.85, 0.32, 0.05 )
+        imgui.push_style_color( imgui.COLOR_HEADER_ACTIVE, 0.95, 0.365, 0.07 )
         expanded3, visible3 = imgui.collapsing_header("graph")
+        imgui.pop_style_color(3)
+        
+        imgui.push_style_color( imgui.COLOR_FRAME_BACKGROUND, 0.65*0.6, 0.25*0.6, 0.02*0.6 )
         if expanded3:
             # expanded4, visible4 = imgui.collapsing_header("details", flags = imgui.TREE_NODE_FRAMED)            
             # if expanded4:
@@ -289,6 +348,7 @@ class Application(pyglet.event.EventDispatcher):
                 imgui.tree_pop()
 
             #imgui.pop_style_color()
+        imgui.pop_style_color(1)
 
         imgui.end()
 
@@ -311,6 +371,16 @@ class Application(pyglet.event.EventDispatcher):
             self.camera.reset()
         if symbol == key.ESCAPE:
             return pyglet.event.EVENT_HANDLED 
+        
+        # Save: Ctrl-S
+        if symbol == key.S: 
+            if modifiers & key.MOD_CTRL and modifiers & key.MOD_SHIFT:
+                print("Shift-Ctrl-S : Save As")
+                self.save_file( save_as = True)
+            elif modifiers & key.MOD_CTRL:
+                print("Ctrl-S : Save")
+                self.save_file()
+
 
 
     def on_mouse_motion(self, x,y,ds,dy):

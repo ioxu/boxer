@@ -82,3 +82,12 @@ class Background:
         self.batch.draw()
         gl.glBindTexture(self.texture.target, 0)
         # gl.glPopMatrix()
+
+
+    def as_json(self) -> dict:
+        return {
+            "name": self.name,
+            "type": str(type(self)),
+            "colour_one": self.colour_one,
+            "colour_two": self.colour_two,
+        }

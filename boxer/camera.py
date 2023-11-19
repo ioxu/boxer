@@ -114,7 +114,7 @@ class Camera(object):
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers ):
         """
         camera pan on middle-mouse drag
-        TODO : camera zoom on right-mouse drag
+        # TODO : camera zoom on right-mouse drag
         """
         if self.enabled:
             if buttons & mouse.MIDDLE:
