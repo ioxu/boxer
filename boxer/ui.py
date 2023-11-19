@@ -4,7 +4,7 @@ import inspect
 import imgui
 
 def object_tooltip_info(thing) -> None:
-    """returns a bunch of imgui commands to draw text info for an Any obejct"""
+    """returns a bunch of imgui commands to draw text info for an Any object"""
     for i in inspect.getmembers( thing ):
         if not i[0].startswith("__"):
             imgui.text( str(i) )

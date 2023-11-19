@@ -261,13 +261,21 @@ class Application(pyglet.event.EventDispatcher):
                 
             if imgui.tree_node("background", flags = imgui.TREE_NODE_DEFAULT_OPEN):
 
+                imgui.push_item_width(-1)
                 imgui.text("one")
                 imgui.same_line()
-                imgui.color_edit3("colour_one", 0.5, 0.5, 0.5, flags = imgui.COLOR_EDIT_FLOAT)
+                #_colour_one_changed, self.background.colour_one = imgui.color_edit3("colour_one", *self.background.colour_one, flags = imgui.COLOR_EDIT_FLOAT)
+                _colour_one_changed, _colour_one_value = imgui.color_edit3("colour_one", *self.background.colour_one, flags = imgui.COLOR_EDIT_FLOAT)
+                if _colour_one_changed:
+                    self.background.set_colour_one( _colour_one_value )
                 imgui.text("two")
                 imgui.same_line()
-                imgui.color_edit3("colour_two", 0.5, 0.5, 0.5, flags = imgui.COLOR_EDIT_FLOAT)
-                
+                #_colour_two_changed, self.background.colour_two = imgui.color_edit3("colour_two", *self.background.colour_two, flags = imgui.COLOR_EDIT_FLOAT)
+                _colour_two_changed, _colour_two_value = imgui.color_edit3("colour_two", *self.background.colour_two, flags = imgui.COLOR_EDIT_FLOAT)
+                if _colour_two_changed:
+                    self.background.set_colour_two( _colour_two_value )
+                imgui.pop_item_width()
+
                 imgui.text("image")
                 imgui.same_line()
                 imgui.image(self.background.texture.id,
