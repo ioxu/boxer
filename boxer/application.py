@@ -11,7 +11,7 @@ import imgui
 from imgui.integrations.pyglet import create_renderer
 
 from colour import Color
-
+import os
 
 class Application(pyglet.event.EventDispatcher):
     """"root application object"""
@@ -28,6 +28,11 @@ class Application(pyglet.event.EventDispatcher):
 
         # create window before anything else
         self.window : pyglet.window.Window = _create_window(res_x, res_y)
+        self.window.set_icon(
+            pyglet.image.load(os.path.join("boxer","resources", "icon-64.png")),
+            pyglet.image.load(os.path.join("boxer","resources", "icon-32.png")),
+            pyglet.image.load(os.path.join("boxer","resources", "icon-16.png")))
+
         self.on_draw = self.window.event(self.on_draw)
         self.on_key_press = self.window.event(self.on_key_press)
         self.on_mouse_motion = self.window.event(self.on_mouse_motion)
@@ -38,6 +43,7 @@ class Application(pyglet.event.EventDispatcher):
 
         self.fps_display = pyglet.window.FPSDisplay(self.window)
         self.fps_display.update_period = 0.2
+        self.fps_display.label.y = 60
 
         # app components:
         self.background = boxer.background.Background()
@@ -68,6 +74,13 @@ class Application(pyglet.event.EventDispatcher):
         self.test_node_name = "node_1"
         self.test_graph_name = "graph_01"
 
+        self.graph_label = pyglet.text.Label(
+            str(self.test_graph_name),
+            font_size = 30.0,
+            color = (255,255,255, 80),
+            x = 10, y = 20
+        )
+
 
     def message(self, message):
         """display a message"""
@@ -95,7 +108,7 @@ class Application(pyglet.event.EventDispatcher):
         # screen
         gl.glDisable(gl.GL_BLEND)
         self.fps_display.draw()
-
+        self.graph_label.draw()
         #----------------------
         # gui
 
@@ -103,30 +116,7 @@ class Application(pyglet.event.EventDispatcher):
         imgui.new_frame()
 
         # menu bar
-        with imgui.begin_main_menu_bar() as main_menu_bar:
-            if main_menu_bar.opened:
-                with imgui.begin_menu("File", True) as file_menu:
-                    if file_menu.opened:
-                        imgui.menu_item('New', 'Ctrl+N', False, True)
-                        imgui.menu_item('Open ...', 'Ctrl+O', False, True)
-                        imgui.separator()
-                        imgui.menu_item('Recent Files ..', 'Ctrl+R', False, True)
-                        imgui.separator()
-                        imgui.menu_item('Settings', None, False, True)
-                with imgui.begin_menu("Graph", True) as graph_menu:
-                    if graph_menu.opened:
-                        imgui.menu_item("Add Graph", 'Ctrl+G', False, True)
-                        imgui.menu_item("Merge Graph", 'Ctrl+M', False, True)
-                        imgui.menu_item("Split Graph", 'Ctrl+P', False, True)
-                        imgui.menu_item("Export Graph", 'Ctrl+P', False, True)
-                        imgui.separator()
-                        imgui.push_style_color( imgui.COLOR_TEXT, 0.5, 0.5, 0.5 )
-                        imgui.text("open graphs:")
-                        imgui.pop_style_color()
-                        imgui.menu_item("graph_01", 'Ctrl+1', False, True)
-                        imgui.menu_item("graph_02", 'Ctrl+2', False, True)
-                        imgui.menu_item("spread_15", 'Ctrl+3', False, True)
-
+        boxer.ui.main_menu_bar()
 
         # parameters pane
         imgui.set_next_window_size(self.parameter_panel_width-5, self.window.height - 10 - 18)
@@ -257,7 +247,8 @@ class Application(pyglet.event.EventDispatcher):
             name_changed, self.test_graph_name = imgui.input_text("name_input", self.test_graph_name,flags=imgui.INPUT_TEXT_AUTO_SELECT_ALL)
             imgui.pop_item_width()
             if name_changed:
-                print(self.test_graph_name)
+                #print(self.test_graph_name)
+                self.graph_label.text = str(self.test_graph_name)
                 
             if imgui.tree_node("background", flags = imgui.TREE_NODE_DEFAULT_OPEN):
 
@@ -318,6 +309,8 @@ class Application(pyglet.event.EventDispatcher):
 			# reset camera
             print("reset camera")
             self.camera.reset()
+        if symbol == key.ESCAPE:
+            return pyglet.event.EVENT_HANDLED 
 
 
     def on_mouse_motion(self, x,y,ds,dy):
