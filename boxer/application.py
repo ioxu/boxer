@@ -276,8 +276,8 @@ class Application(pyglet.event.EventDispatcher):
                     self.background.set_colour_two( _colour_two_value )
                 imgui.pop_item_width()
 
-                imgui.text("image")
-                imgui.same_line()
+                imgui.text("image:")
+                #imgui.same_line()
                 imgui.image(self.background.texture.id,
                     self.background.texture.width,
                     self.background.texture.height,

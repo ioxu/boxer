@@ -15,17 +15,14 @@ class Background:
         self.colour_one = (0.25, 0.25, 0.25)
         self.colour_two = (0.5, 0.5, 0.5)
 
-        #pyglet.image.Texture.default_min_filter = gl.GL_LINEAR_MIPMAP_NEAREST
-        #pyglet.image.Texture.default_min_filter = gl.GL_LINEAR_MIPMAP_LINEAR
-        #pyglet.image.Texture.default_min_filter = gl.GL_NEAREST
-
         self.image = pyglet.image.load('boxer/resources/background_grid_map.png')
-        #self.texture = pyglet.image.TileableTexture.create_for_image( self.image )
-        #print(self.image.get_mipmapped_texture())
-        self.texture : pyglet.image.Texture = self.image.get_texture()
+        self.texture : pyglet.image.Texture = pyglet.image.TileableTexture.create_for_image( self.image )
+        #self.texture : pyglet.image.Texture = self.image.get_texture()
  
-        #self.texture.default_min_filter = gl.GL_LINEAR_MIPMAP_LINEAR
-        #print(self.texture.width)
+        gl.glGenerateMipmap(gl.GL_TEXTURE_2D)
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER,
+                gl.GL_LINEAR_MIPMAP_LINEAR)
+        gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_LOD_BIAS, 0)
 
         self.position = pyglet.math.Vec2()
 
@@ -34,10 +31,10 @@ class Background:
         _program = boxer.shaders.get_default_shader()
         self.shader_program = boxer.shaders.get_texture_colour_mix_shader() #boxer.shaders.get_default_textured_shader()
 
-        print("boxer.background shader attributes:")
-        print("boxer.background shader: %s"%str(self.shader_program))
-        print( self.shader_program.attributes )
-        print("boxer.background shader uniforms: %s"%str(self.shader_program.uniforms.items() ))
+        # print("boxer.background shader attributes:")
+        # print("boxer.background shader: %s"%str(self.shader_program))
+        # print( self.shader_program.attributes )
+        # print("boxer.background shader uniforms: %s"%str(self.shader_program.uniforms.items() ))
 
         self.shader_program['color_one'] = (*self.colour_one, 1.0)
         self.shader_program['color_two'] = (*self.colour_two, 1.0)
@@ -69,12 +66,18 @@ class Background:
 
     def draw(self):
         # preserving old immediate mode transform statements for reference
-        # TODO: use new Mat4 methods 
         # gl.glColor4f( *self.colour )
         # gl.glPushMatrix()
         # gl.glTranslatef(self.position.x, self.position.y, 0)
+        
         gl.glEnable(self.texture.target)
         gl.glBindTexture(self.texture.target, self.texture.id)
+        
+        # gl.glGenerateMipmap(gl.GL_TEXTURE_2D)
+        # gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER,
+        #         gl.GL_LINEAR_MIPMAP_LINEAR)
+        # gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_LOD_BIAS, 0)
+            
         gl.glPointSize(100)
         self.batch.draw()
         gl.glBindTexture(self.texture.target, 0)
