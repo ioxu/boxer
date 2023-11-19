@@ -48,10 +48,11 @@ class Camera(object):
 
     def reset(self) -> None:
         """
-        reset the cammera zoom ad translation to be centered on the origin of the worksheet
+        reset the camera zoom and translation to be centered on the origin of the worksheet
         """
         window_size = self.window.get_size()
         print("camera.window.size = %s"%str(window_size))
+        self.zoom = 1.0
         self.transform = pyglet.math.Mat4.from_translation( pyglet.math.Vec3( window_size[0]/2.0, window_size[1]/2.0 , 0.0) )
 
 

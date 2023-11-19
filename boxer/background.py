@@ -14,8 +14,19 @@ class Background:
         self.name = name
         self.colour_one = (0.25, 0.25, 0.25)
         self.colour_two = (0.5, 0.5, 0.5)
+
+        #pyglet.image.Texture.default_min_filter = gl.GL_LINEAR_MIPMAP_NEAREST
+        #pyglet.image.Texture.default_min_filter = gl.GL_LINEAR_MIPMAP_LINEAR
+        #pyglet.image.Texture.default_min_filter = gl.GL_NEAREST
+
         self.image = pyglet.image.load('boxer/resources/background_grid_map.png')
-        self.texture = pyglet.image.TileableTexture.create_for_image( self.image )
+        #self.texture = pyglet.image.TileableTexture.create_for_image( self.image )
+        #print(self.image.get_mipmapped_texture())
+        self.texture : pyglet.image.Texture = self.image.get_texture()
+ 
+        #self.texture.default_min_filter = gl.GL_LINEAR_MIPMAP_LINEAR
+        #print(self.texture.width)
+
         self.position = pyglet.math.Vec2()
 
         print("starting %s"%self)
@@ -44,6 +55,7 @@ class Background:
         self.centre_point = _program.vertex_list_indexed(1, gl.GL_POINTS, [0], batch = self.batch,
                                 position=('f', (0.0, 0.0, 0.0)),
                                 colors = ('f', (1.0, 0.0, 0.0, 0.5) ))
+
 
     def set_colour_one(self, colour) -> None:
         self.colour_one = colour[:3]
