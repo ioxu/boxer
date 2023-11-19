@@ -1,6 +1,7 @@
 import boxer.background
 import boxer.mouse
 import boxer.camera
+import boxer.ui
 
 import pyglet
 import pyglet.gl as gl
@@ -8,6 +9,8 @@ from pyglet.window import key
 
 import imgui
 from imgui.integrations.pyglet import create_renderer
+
+from colour import Color
 
 
 class Application(pyglet.event.EventDispatcher):
@@ -63,6 +66,7 @@ class Application(pyglet.event.EventDispatcher):
         self.test_vec3_var2 = pyglet.math.Vec3()
         self.push_handlers(on_parameter_changed=self.on_parameter_change)
         self.test_node_name = "node_1"
+        self.test_graph_name = "graph_01"
 
 
     def message(self, message):
@@ -116,10 +120,13 @@ class Application(pyglet.event.EventDispatcher):
                         imgui.menu_item("Split Graph", 'Ctrl+P', False, True)
                         imgui.menu_item("Export Graph", 'Ctrl+P', False, True)
                         imgui.separator()
+                        imgui.push_style_color( imgui.COLOR_TEXT, 0.5, 0.5, 0.5 )
                         imgui.text("open graphs:")
+                        imgui.pop_style_color()
                         imgui.menu_item("graph_01", 'Ctrl+1', False, True)
                         imgui.menu_item("graph_02", 'Ctrl+2', False, True)
                         imgui.menu_item("spread_15", 'Ctrl+3', False, True)
+
 
         # parameters pane
         imgui.set_next_window_size(self.parameter_panel_width-5, self.window.height - 10 - 18)
@@ -236,6 +243,54 @@ class Application(pyglet.event.EventDispatcher):
 
         #imgui.pop_style_color(1)
         imgui.pop_style_var(2)
+        
+        
+        expanded3, visible3 = imgui.collapsing_header("graph")
+        if expanded3:
+            # expanded4, visible4 = imgui.collapsing_header("details", flags = imgui.TREE_NODE_FRAMED)            
+            # if expanded4:
+
+            #imgui.push_style_color( imgui.COLOR_TEXT, *Color(rgb=(1, 0, 0)).rgb )
+            imgui.text("name:")
+            imgui.same_line()
+            imgui.push_item_width(-1)
+            name_changed, self.test_graph_name = imgui.input_text("name_input", self.test_graph_name,flags=imgui.INPUT_TEXT_AUTO_SELECT_ALL)
+            imgui.pop_item_width()
+            if name_changed:
+                print(self.test_graph_name)
+                
+            if imgui.tree_node("background", flags = imgui.TREE_NODE_DEFAULT_OPEN):
+
+                imgui.text("one")
+                imgui.same_line()
+                imgui.color_edit3("colour_one", 0.5, 0.5, 0.5, flags = imgui.COLOR_EDIT_FLOAT)
+                imgui.text("two")
+                imgui.same_line()
+                imgui.color_edit3("colour_two", 0.5, 0.5, 0.5, flags = imgui.COLOR_EDIT_FLOAT)
+                
+                imgui.text("image")
+                imgui.same_line()
+                imgui.image(self.background.texture.id,
+                    self.background.texture.width,
+                    self.background.texture.height,
+                    border_color=(1, 0, 0, 1))
+
+                imgui.separator()
+                imgui.push_style_color( imgui.COLOR_TEXT, 0.5, 0.5, 0.5 )
+                imgui.text("object:")
+                imgui.pop_style_color(1)
+                imgui.text(str(self.background))
+                if imgui.is_item_hovered():
+                    with imgui.begin_tooltip():
+                        imgui.text('name: "%s"'%str(self.background.name))
+                        imgui.text("object: %s"%str(self.background))
+                        imgui.separator()
+                        boxer.ui.object_tooltip_info(self.background)
+
+                imgui.tree_pop()
+
+            #imgui.pop_style_color()
+
         imgui.end()
 
 
