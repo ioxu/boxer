@@ -1,8 +1,10 @@
 # imgui drawing things
 import pyglet
+import pyglet.gl as gl
 import imgui
 from imgui.integrations.pyglet import create_renderer
 import inspect
+import math
 
 #from tkinter import filedialog, Tk
 import tkinter.filedialog
@@ -13,6 +15,8 @@ class Ui(pyglet.event.EventDispatcher):
     """main Ui class"""
     def __init__(self,
             application_root = None):
+
+        print("Ui: starting ..")
         self.application_root = application_root
         # visibilities ---------------------------------------------------------
         self.main_menu_bar_visible = True
@@ -28,11 +32,29 @@ class Ui(pyglet.event.EventDispatcher):
         # stop imgui from controlling mouse cursor:
         self._imgui_io.config_flags += imgui.CONFIG_NO_MOUSE_CURSOR_CHANGE
 
+        io = imgui.get_io()
 
+        print("Ui: loading fonts ..")
+        self.font_default = io.fonts.add_font_from_file_ttf("boxer/resources/fonts/DejaVuSansCondensed.ttf", 14 )
+        self.font_t1 = io.fonts.add_font_from_file_ttf("boxer/resources/fonts/DejaVuSansCondensed.ttf", 22 )
+        self.imgui_renderer.refresh_font_texture()
+
+        print("Ui: loading icons ..")
+        cog_image = pyglet.image.load("boxer/resources/cog_16.png")
+        alert_image = pyglet.image.load("boxer/resources/alert_16.png")
+        notification_image = pyglet.image.load("boxer/resources/notification_16.png")
+
+        self.textures = {
+            "cog" : cog_image.get_texture(),
+            "alert" : alert_image.get_texture(),
+            "notification" : notification_image.get_texture()
+        }
+
+        self.time = 0.0
 
     def main_menu_bar(self ) -> None:
         """main menu bar"""
-        imgui.push_style_var(imgui.STYLE_FRAME_PADDING, imgui.Vec2(0.0, 10.0))
+        imgui.push_style_var(imgui.STYLE_FRAME_PADDING, imgui.Vec2(0.0, 5.0))#10.0))
         with imgui.begin_main_menu_bar() as main_menu_bar:
             imgui.pop_style_var(1)
             if main_menu_bar.opened:
@@ -40,18 +62,18 @@ class Ui(pyglet.event.EventDispatcher):
                     if file_menu.opened:
                         imgui.menu_item('New', 'Ctrl+N', False, True)
                         imgui.menu_item('Open...', 'Ctrl+O', False, True)
-                        # ----------------------------------------------------------
+                        # ------------------------------------------------------
                         _save_clicked, _state = imgui.menu_item('Save', 'Ctrl+S', False, True)
-                        # ----------------------------------------------------------
+                        # ------------------------------------------------------
                         if _save_clicked:
                             self.application_root.save_file()
-                        # ----------------------------------------------------------
+                        # ------------------------------------------------------
                         _save_as_clicked, _state = imgui.menu_item('Save As...', 'Shift+Ctrl+S', False, True)
-                        # ----------------------------------------------------------
+                        # ------------------------------------------------------
                         if _save_as_clicked:
                             file_path = browse_save_file_path()
                             self.application_root.save_to_file( file_path )
-                        # ----------------------------------------------------------
+                        # ------------------------------------------------------
                         imgui.separator()
                         imgui.menu_item('Recent Files ..', 'Ctrl+R', False, True)
                         imgui.separator()
@@ -94,6 +116,22 @@ class Ui(pyglet.event.EventDispatcher):
                 with imgui.begin_menu("Help", True) as help_menu:
                     if help_menu.opened:
                         imgui.menu_item("about boxer")
+                        
+                        imgui.image( self.textures["cog"].id, 16, 16, border_color=(1, 0, 0, 1)  )
+                        
+                        imgui.image(self.application_root.background.texture.id,
+                            self.application_root.background.texture.width,
+                            self.application_root.background.texture.height,
+                            border_color=(1, 0, 0, 1))
+
+                # test image_buttons
+                imgui.push_style_color(imgui.COLOR_BUTTON, 0.0, 0.0, 0.0, 0.0)
+                imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 1.0, 1.0, 1.0, 0.3)
+                imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 1.0, 1.0, 1.0, 0.2)
+                imgui.image_button( self.textures["cog"].id, 16, 16 )
+                imgui.image_button( self.textures["alert"].id, 16, 16, uv0=(0,1), uv1=(1,0) )
+                imgui.image_button( self.textures["notification"].id, 16, 16, uv0=(0,1), uv1=(1,0), tint_color=(1.0, 0.1, 0.1, math.sin(self.time*2.0)/2.0+0.65) )
+                imgui.pop_style_color(3)
 
 
     def  parameter_pane(self):
@@ -113,12 +151,6 @@ class Ui(pyglet.event.EventDispatcher):
         self.parameter_panel_width = imgui.get_content_region_available().x + 21
         #-----------------------------------------------------------------------
 
-
-        # imgui.text("PARAMETERS")
-        # _, self._checkbox1_enabled = imgui.checkbox("checkbox1", self._checkbox1_enabled)
-        # if self._checkbox1_enabled:
-        #     imgui.text("    - show stuff because checkbox")
-
         imgui.push_style_color( imgui.COLOR_HEADER, 0.3, 0.3, 0.3 )
         imgui.push_style_color( imgui.COLOR_HEADER_HOVERED, 0.4, 0.4, 0.4 )
         imgui.push_style_color( imgui.COLOR_HEADER_ACTIVE, 0.5, 0.5, 0.5 )
@@ -126,20 +158,25 @@ class Ui(pyglet.event.EventDispatcher):
         imgui.pop_style_color(3)
         
         if expanded1:
-            #imgui.begin_child( "debug", height=60, border=True )
+
             imgui.push_style_color( imgui.COLOR_TEXT, 0.5, 0.5, 0.5 )
             
+            imgui.push_font(self.font_t1)
             imgui.text("mouse")
+            imgui.pop_font()
+            
             if imgui.is_item_hovered():
                 imgui.begin_tooltip()
                 imgui.text_unformatted("mouse info goes here, position, state etc...")
                 imgui.end_tooltip()
             imgui.text("x:%s y:%s"%(str(self.application_root.mouse.position.x), str(self.application_root.mouse.position.y)))
             imgui.separator()
+            imgui.push_font(self.font_t1)
             if self.application_root.camera.enabled:
                 imgui.text("camera")
             else:
                 imgui.text("camera (disabled)")
+            imgui.pop_font()
             cam_pos = self.application_root.camera.position
             imgui.text("x:%0.2f y:%0.2f"%( cam_pos[0], cam_pos[1] ))
             imgui.text("zoom:%0.2f"%self.application_root.camera.zoom)
@@ -285,14 +322,18 @@ class Ui(pyglet.event.EventDispatcher):
 
 
     def draw(self):
+        self.time += 0.1
+
         imgui.new_frame()
 
+        imgui.push_font(self.font_default)
         if self.main_menu_bar_visible:
             self.main_menu_bar()
         if self.parameter_pane_visible:
             self.parameter_pane()
         if self.imgui_demo_visible:
             imgui.show_demo_window()
+        imgui.pop_font()
 
         imgui.render()
         imgui.end_frame()

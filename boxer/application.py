@@ -87,6 +87,12 @@ class Application(pyglet.event.EventDispatcher):
             x = 10, y = 20
         )
 
+        # self.test_decal = pyglet.resource.image('boxer/resources/test_decal.png')#pyglet.image.load( 'boxer/resources/test_decal.png' )
+        # gl.glGenerateMipmap(gl.GL_TEXTURE_2D)
+        # gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER,
+        #         gl.GL_LINEAR_MIPMAP_LINEAR)
+        # gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_LOD_BIAS, 0)
+
 
     def save_file(self,  save_as = False, browse = True ):
         """save the project to a file
@@ -166,9 +172,21 @@ class Application(pyglet.event.EventDispatcher):
         self.camera.pop()
         #----------------------
         # screen
-        gl.glDisable(gl.GL_BLEND)
+        #gl.glDisable(gl.GL_BLEND)
         self.fps_display.draw()
         self.graph_label.draw()
+        
+        # graphic
+        # gl.glEnable(gl.GL_BLEND)
+        # gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        # decal_scale = 0.2
+        # padding = 5
+        # self.test_decal.blit( \
+        #     self.window.width - (self.test_decal.width * decal_scale) - padding,
+        #     padding,
+        #     width = self.test_decal.width * decal_scale,
+        #     height = self.test_decal.height * decal_scale)
+        
         #----------------------
         # ui
         self.ui.draw()
@@ -192,7 +210,6 @@ class Application(pyglet.event.EventDispatcher):
             elif modifiers & key.MOD_CTRL:
                 print("Ctrl-S : Save")
                 self.save_file()
-
 
 
     def on_mouse_motion(self, x,y,ds,dy):
