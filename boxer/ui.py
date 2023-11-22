@@ -198,20 +198,34 @@ class Ui(pyglet.event.EventDispatcher):
             imgui.pop_font()
             
             if imgui.is_item_hovered():
-                imgui.begin_tooltip()
-                imgui.text_unformatted("mouse info goes here, position, state etc...")
-                imgui.end_tooltip()
+                with imgui.begin_tooltip():
+                    imgui.push_style_color( imgui.COLOR_TEXT, 1.0, 1.0, 1.0 )
+                    imgui.text("object: %s"%str(self.application_root.mouse))
+                    imgui.separator()
+                    object_tooltip_info(self.application_root.mouse)
+                    imgui.pop_style_color()
             imgui.text("x:%s y:%s"%(str(self.application_root.mouse.position.x), str(self.application_root.mouse.position.y)))
             imgui.separator()
+            # imgui.push_font(self.font_t1)
+            # if self.application_root.camera.enabled:
+            #     imgui.text("camera")
+            #     imgui.pop_font()
+            # else:
+            #     imgui.text("camera")
+            #     imgui.pop_font()
             imgui.push_font(self.font_t1)
-            if self.application_root.camera.enabled:
-                imgui.text("camera")
-                imgui.pop_font()
-            else:
-                imgui.text("camera")
-                imgui.pop_font()
-                imgui.same_line()
-                imgui.text("(input disabled)")
+            imgui.text("camera")
+            imgui.pop_font()
+            if imgui.is_item_hovered():
+                with imgui.begin_tooltip():
+                    imgui.push_style_color( imgui.COLOR_TEXT, 1.0, 1.0, 1.0 )
+                    imgui.text("object: %s"%str(self.application_root.camera))
+                    imgui.separator()
+                    object_tooltip_info(self.application_root.camera)
+                    imgui.pop_style_color()
+                
+                # imgui.same_line()
+                # imgui.text("(input disabled)")
             
             cam_pos = self.application_root.camera.position
             imgui.text("x:%0.2f y:%0.2f"%( cam_pos[0], cam_pos[1] ))
