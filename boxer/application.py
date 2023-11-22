@@ -29,9 +29,14 @@ class Application(pyglet.event.EventDispatcher):
         # create window before anything else
         self.window : pyglet.window.Window = _create_window(res_x, res_y)
         self.window.set_icon(
+            # pyglet.image.load("boxer/resources/icon-64.png"),
+            # pyglet.image.load("boxer/resources/icon-32.png"),
+            # pyglet.image.load("boxer/resources/icon-16.png"))
             pyglet.image.load(os.path.join("boxer","resources", "icon-64.png")),
             pyglet.image.load(os.path.join("boxer","resources", "icon-32.png")),
             pyglet.image.load(os.path.join("boxer","resources", "icon-16.png")))
+        self.fullscreen = False
+
 
         self.on_close = self.window.event(self.on_close)
         self.on_draw = self.window.event(self.on_draw)
@@ -210,6 +215,17 @@ class Application(pyglet.event.EventDispatcher):
             elif modifiers & key.MOD_CTRL:
                 print("Ctrl-S : Save")
                 self.save_file()
+
+        # Alt-Enter: toggle fullscreen
+        if symbol == key.ENTER:
+            if modifiers & key.MOD_ALT:
+                self.toggle_fullscreen()
+
+
+    def toggle_fullscreen(self) -> None:
+        self.fullscreen = not self.fullscreen
+        self.window.set_fullscreen( self.fullscreen )
+
 
 
     def on_mouse_motion(self, x,y,ds,dy):

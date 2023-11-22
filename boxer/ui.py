@@ -36,7 +36,7 @@ class Ui(pyglet.event.EventDispatcher):
 
         print("Ui: loading fonts ..")
         self.font_default = io.fonts.add_font_from_file_ttf("boxer/resources/fonts/DejaVuSansCondensed.ttf", 14 )
-        self.font_t1 = io.fonts.add_font_from_file_ttf("boxer/resources/fonts/DejaVuSansCondensed.ttf", 22 )
+        self.font_t1 = io.fonts.add_font_from_file_ttf("boxer/resources/fonts/DejaVuSansCondensed.ttf", 23 )
         self.imgui_renderer.refresh_font_texture()
 
         print("Ui: loading icons ..")
@@ -51,6 +51,11 @@ class Ui(pyglet.event.EventDispatcher):
         }
 
         self.time = 0.0
+        
+        # border size for windows
+        self.style = imgui.get_style()
+        self.style.window_border_size = 0.0
+
 
     def main_menu_bar(self ) -> None:
         """main menu bar"""
@@ -110,8 +115,10 @@ class Ui(pyglet.event.EventDispatcher):
                         _demo_clicked, _demo_state = imgui.menu_item("Dear ImGui Demo", selected = self.imgui_demo_visible)
                         if _demo_clicked:
                             self.imgui_demo_visible = not self.imgui_demo_visible
-
-
+                        imgui.separator()
+                        _fullscreen_clicked, _fullscreen_state = imgui.menu_item( "fullscreen", selected = self.application_root.fullscreen )
+                        if _fullscreen_clicked:
+                            self.application_root.toggle_fullscreen()
 
                 with imgui.begin_menu("Help", True) as help_menu:
                     if help_menu.opened:
@@ -125,6 +132,7 @@ class Ui(pyglet.event.EventDispatcher):
                             border_color=(1, 0, 0, 1))
 
                 # test image_buttons
+                imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(-2.0, 0.0))
                 imgui.push_style_color(imgui.COLOR_BUTTON, 0.0, 0.0, 0.0, 0.0)
                 imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 1.0, 1.0, 1.0, 0.3)
                 imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 1.0, 1.0, 1.0, 0.2)
@@ -132,28 +140,39 @@ class Ui(pyglet.event.EventDispatcher):
                 imgui.image_button( self.textures["alert"].id, 16, 16, uv0=(0,1), uv1=(1,0) )
                 imgui.image_button( self.textures["notification"].id, 16, 16, uv0=(0,1), uv1=(1,0), tint_color=(1.0, 0.1, 0.1, math.sin(self.time*2.0)/2.0+0.65) )
                 imgui.pop_style_color(3)
-
+                imgui.pop_style_var(1)
 
     def  parameter_pane(self):
         # parameters pane
-        imgui.set_next_window_size(self.parameter_panel_width-5, self.application_root.window.height - 10 - 18)
-        imgui.set_next_window_position(self.application_root.window.width-self.parameter_panel_width, 18 + 5)
-        ret=imgui.begin("PARAMETERS", closable=False,
+        #imgui.set_next_window_size(self.parameter_panel_width-5, self.application_root.window.height - 10 - 18)
+        imgui.set_next_window_size(self.parameter_panel_width , self.application_root.window.height - 19)
+        imgui.set_next_window_position(self.application_root.window.width-self.parameter_panel_width , 19 + 5)
+
+        imgui.push_style_color( imgui.COLOR_WINDOW_BACKGROUND, 0.02, 0.02, 0.02, 0.75 )
+        #imgui.push_style_color( imgui.COLOR_TITLE_BACKGROUND, 0.0, 0.0, 1.0 )
+        imgui.push_style_color( imgui.COLOR_TITLE_BACKGROUND_ACTIVE, 0.02, 0.02, 0.02, 0.75 )
+        imgui.push_style_color( imgui.COLOR_TITLE_BACKGROUND_COLLAPSED, 0.0, 0.0, 0.0, 0.5 )
+        _parameters_expanded, _parameters_opened=imgui.begin("PARAMETERS", closable=True,
+                    #flags=imgui.WINDOW_MENU_BAR
                     #flags= imgui.WINDOW_NO_NAV
                     #imgui.WINDOW_NO_TITLE_BAR
                     #imgui.WINDOW_NO_DECORATION
                     )
-        
+        imgui.pop_style_color(3)
+        if not _parameters_opened:
+            print("parameters NOT opened")
+            self.parameter_pane_visible = False
+
         # print(ret)
         # print(imgui.get_content_region_available().x)
 
         # MAGIC NUMBER ---------------------------------------------------------
-        self.parameter_panel_width = imgui.get_content_region_available().x + 21
+        #self.parameter_panel_width = imgui.get_content_region_available().x + 21
         #-----------------------------------------------------------------------
 
-        imgui.push_style_color( imgui.COLOR_HEADER, 0.3, 0.3, 0.3 )
-        imgui.push_style_color( imgui.COLOR_HEADER_HOVERED, 0.4, 0.4, 0.4 )
-        imgui.push_style_color( imgui.COLOR_HEADER_ACTIVE, 0.5, 0.5, 0.5 )
+        imgui.push_style_color( imgui.COLOR_HEADER, 0.02, 0.02, 0.02, 0.0 )#0.3, 0.3, 0.3 )
+        imgui.push_style_color( imgui.COLOR_HEADER_HOVERED, 0.6, 0.6, 0.6, 0.1 )#0.4, 0.4, 0.4 )
+        imgui.push_style_color( imgui.COLOR_HEADER_ACTIVE, 0.02, 0.02, 0.02, 0.0 )#0.5, 0.5, 0.5 )
         expanded1, visible1 = imgui.collapsing_header("info")
         imgui.pop_style_color(3)
         
@@ -174,9 +193,13 @@ class Ui(pyglet.event.EventDispatcher):
             imgui.push_font(self.font_t1)
             if self.application_root.camera.enabled:
                 imgui.text("camera")
+                imgui.pop_font()
             else:
-                imgui.text("camera (disabled)")
-            imgui.pop_font()
+                imgui.text("camera")
+                imgui.pop_font()
+                imgui.same_line()
+                imgui.text("(input disabled)")
+            
             cam_pos = self.application_root.camera.position
             imgui.text("x:%0.2f y:%0.2f"%( cam_pos[0], cam_pos[1] ))
             imgui.text("zoom:%0.2f"%self.application_root.camera.zoom)
@@ -186,8 +209,12 @@ class Ui(pyglet.event.EventDispatcher):
 
         #imgui.separator()
 
+        imgui.push_style_color( imgui.COLOR_HEADER, 0.02, 0.02, 0.02, 0.0 )#0.65, 0.25, 0.025 )
+        imgui.push_style_color( imgui.COLOR_HEADER_HOVERED, 0.6, 0.6, 0.6, 0.1 )# 0.85, 0.32, 0.05 )
+        imgui.push_style_color( imgui.COLOR_HEADER_ACTIVE, 0.02, 0.02, 0.02, 0.0 )# 0.95, 0.365, 0.07 )
         expanded2, visible2 = imgui.collapsing_header("selection")
-        
+        imgui.pop_style_color(3)
+
         #imgui.push_style_color(imgui.COLOR_BORDER, 0.2, 0.95, 0.3 )
         imgui.push_style_var(imgui.STYLE_CHILD_BORDERSIZE, 2.0)
         imgui.push_style_var(imgui.STYLE_CHILD_ROUNDING, 5.0)
@@ -254,9 +281,9 @@ class Ui(pyglet.event.EventDispatcher):
         #imgui.pop_style_color(1)
         imgui.pop_style_var(2)
         
-        imgui.push_style_color( imgui.COLOR_HEADER, 0.65, 0.25, 0.025 )
-        imgui.push_style_color( imgui.COLOR_HEADER_HOVERED, 0.85, 0.32, 0.05 )
-        imgui.push_style_color( imgui.COLOR_HEADER_ACTIVE, 0.95, 0.365, 0.07 )
+        imgui.push_style_color( imgui.COLOR_HEADER, 0.02, 0.02, 0.02, 0.0 )#0.65, 0.25, 0.025 )
+        imgui.push_style_color( imgui.COLOR_HEADER_HOVERED, 0.6, 0.6, 0.6, 0.1 )# 0.85, 0.32, 0.05 )
+        imgui.push_style_color( imgui.COLOR_HEADER_ACTIVE, 0.02, 0.02, 0.02, 0.0 )# 0.95, 0.365, 0.07 )
         expanded3, visible3 = imgui.collapsing_header("graph")
         imgui.pop_style_color(3)
         
