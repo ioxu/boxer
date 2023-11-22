@@ -55,6 +55,13 @@ class Ui(pyglet.event.EventDispatcher):
         # border size for windows
         self.style = imgui.get_style()
         self.style.window_border_size = 0.0
+        # self.style.window_padding = (5.0, 5.0)
+        self.style.frame_rounding = 5.0
+        self.style.popup_rounding = 6.0
+        # self.style.window_rounding = 6.0
+        self.style.tab_rounding = 6.0
+        self.style.grab_rounding = 6.0
+        self.style.child_rounding = 6.0
 
 
     def main_menu_bar(self ) -> None:
@@ -132,15 +139,21 @@ class Ui(pyglet.event.EventDispatcher):
                             border_color=(1, 0, 0, 1))
 
                 # test image_buttons
-                imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(-2.0, 0.0))
+                #imgui.push_style_var(imgui.STYLE_FRAME_PADDING, imgui.Vec2( 5.0, 3.0 ))#10.0))
+                imgui.push_style_var(imgui.STYLE_FRAME_ROUNDING, 5.0)
+                imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(-1.0, 0.0))
                 imgui.push_style_color(imgui.COLOR_BUTTON, 0.0, 0.0, 0.0, 0.0)
                 imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 1.0, 1.0, 1.0, 0.3)
                 imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 1.0, 1.0, 1.0, 0.2)
+                cp = imgui.get_cursor_pos()
+                imgui.set_cursor_pos(imgui.Vec2(cp[0], cp[1] + 1.0) )
                 imgui.image_button( self.textures["cog"].id, 16, 16 )
                 imgui.image_button( self.textures["alert"].id, 16, 16, uv0=(0,1), uv1=(1,0) )
                 imgui.image_button( self.textures["notification"].id, 16, 16, uv0=(0,1), uv1=(1,0), tint_color=(1.0, 0.1, 0.1, math.sin(self.time*2.0)/2.0+0.65) )
                 imgui.pop_style_color(3)
-                imgui.pop_style_var(1)
+                imgui.pop_style_var(1) # item spacing
+                imgui.pop_style_var(1) # rounded buttons
+                #imgui.pop_style_var(1) # frame padding
 
     def  parameter_pane(self):
         # parameters pane
