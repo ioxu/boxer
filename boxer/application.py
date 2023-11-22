@@ -138,7 +138,8 @@ class Application(pyglet.event.EventDispatcher):
             "application": self.as_json(),
             "graph":{
                 "name": self.test_graph_name,
-                "background": self.background.as_json()
+                "background": self.background.as_json(),
+                "camera": self.camera.as_json()
                 }
             }
 
@@ -225,7 +226,6 @@ class Application(pyglet.event.EventDispatcher):
     def toggle_fullscreen(self) -> None:
         self.fullscreen = not self.fullscreen
         self.window.set_fullscreen( self.fullscreen )
-
 
 
     def on_mouse_motion(self, x,y,ds,dy):

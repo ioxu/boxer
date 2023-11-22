@@ -38,6 +38,14 @@ class Camera(object):
         self.reset()
 
 
+    def as_json(self) -> dict:
+        return {
+            "transform": self.transform,
+            "position": self.get_position(),
+            "zoom": self.zoom,
+        }
+
+
     def enable(self) -> None:
         self.enabled = True
 

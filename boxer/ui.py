@@ -222,7 +222,7 @@ class Ui(pyglet.event.EventDispatcher):
         if expanded2:
             #imgui.begin_child( "debug two", height=60, border=True )
 
-            imgui.begin_child( "debug two", height=81 , border=True )
+            imgui.begin_child( "debug two", height=85 , border=True )
             
             imgui.text("name:")
             imgui.same_line()
