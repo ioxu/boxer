@@ -11,7 +11,8 @@ import imgui
 # from imgui.integrations.pyglet import create_renderer
 
 from colour import Color
-import os
+import os, math, types
+
 
 class Application(pyglet.event.EventDispatcher):
     """"root application object"""
@@ -174,6 +175,27 @@ class Application(pyglet.event.EventDispatcher):
         self.camera.push()
         #----------------------
         self.background.draw()
+
+
+        line_width = 3.0 * self.camera.zoom
+        gl.glLineWidth(line_width)
+
+        c = (255, 255, 255, 50)
+        boxer.shapes.Arc( 0.0, 35.0, 35, segments=128, angle = math.tau*0.25, start_angle=math.tau*-0.25, color = c).draw()
+        pyglet.shapes.Line(  35.0, 35.0, 35.0, 135.0, color=c, width=3.0).draw()
+        boxer.shapes.Arc( 35.0*2.0, 135.0, 35, segments=128, angle = math.tau*-0.25, start_angle=math.tau*-0.5, color = c).draw()
+        boxer.shapes.Arc( -50.0, -50.0, 50, segments=64,  color=c ).draw()  
+        pyglet.shapes.BezierCurve((0,0), (0,200), (200,200), (200, 400), segments=32, color=c).draw()
+        pyglet.shapes.BezierCurve((0,0), (0,200), (300,200), (300, 400), segments=32, color=c).draw()
+
+        c = (199, 71, 71, 153)
+        gl.glLineWidth(30.0* self.camera.zoom)
+        pyglet.shapes.BezierCurve((0,0), (0,200), (-400,200), (-400, 400), segments=64, color=c).draw()
+        c = (223, 167, 1, 153)
+        gl.glLineWidth(10.0* self.camera.zoom)
+        pyglet.shapes.BezierCurve((-10,0), (-10,200-10), (-410,200-10), (-410, 400), segments=64, color=c).draw()
+
+
         #----------------------
         self.camera.pop()
         #----------------------
@@ -285,7 +307,7 @@ def _create_window(res_x, res_y):
     """window creator helper"""
     _window_config = gl.Config(
         sample_buffers = 1,
-        samples = 4,
+        samples = 16,
         depth_size = 16,
         double_buffer = True,
     )
@@ -301,3 +323,8 @@ def _create_window(res_x, res_y):
 
         )
     return _window
+
+
+# ------------------------------------------------------------------------------
+def to_255i(in_tuple : tuple)->tuple:
+    return tuple([int(i*255) for i in in_tuple])

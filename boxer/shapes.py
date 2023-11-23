@@ -1,3 +1,5 @@
+import pyglet.shapes
+
 
 def rectangle_centered_vertices( centre_x:float, centre_y:float, width:float, height:float ) -> tuple:
     """
@@ -52,3 +54,14 @@ def quad_texcoords( scale_u : float = 1.0, scale_v : float = 1.0, offset_u : flo
              1.0 * scale_u + offset_u, 0.0 + offset_v, 0.0,
              1.0 * scale_u + offset_u, 1.0 * scale_v + offset_v, 0.0,
              0.0 + offset_u, 1.0 * scale_v + offset_v, 0.0)
+
+
+
+class Arc( pyglet.shapes.Arc ):
+    """pyglet.shapes.Arc doesn't draw properly??
+    """
+    def draw(self):
+        self._group.set_state_recursive()
+        self._vertex_list.draw(self._draw_mode)
+        self._group.unset_state_recursive()
+
