@@ -1,5 +1,31 @@
 import pyglet.shapes
 
+# custom boxer shapes
+# (batch and group control)
+# (vertex lists)
+# (shaders)
+
+# box
+# rounded box
+# bezier
+# arc
+# circle
+# elipse
+# speech bubble
+
+# geometry forms:
+# gl lines
+# triangle strpis with width and UVs, textureable
+
+
+class Arc( pyglet.shapes.Arc ):
+    """pyglet.shapes.Arc doesn't draw properly??
+    """
+    def draw(self):
+        self._group.set_state_recursive()
+        self._vertex_list.draw(self._draw_mode)
+        self._group.unset_state_recursive()
+
 
 def rectangle_centered_vertices( centre_x:float, centre_y:float, width:float, height:float ) -> tuple:
     """
@@ -56,12 +82,4 @@ def quad_texcoords( scale_u : float = 1.0, scale_v : float = 1.0, offset_u : flo
              0.0 + offset_u, 1.0 * scale_v + offset_v, 0.0)
 
 
-
-class Arc( pyglet.shapes.Arc ):
-    """pyglet.shapes.Arc doesn't draw properly??
-    """
-    def draw(self):
-        self._group.set_state_recursive()
-        self._vertex_list.draw(self._draw_mode)
-        self._group.unset_state_recursive()
 

@@ -13,6 +13,20 @@ import tkinter
 # main application gui things --------------------------------------------------
 class Ui(pyglet.event.EventDispatcher):
     """main Ui class"""
+
+    print("Ui: loading icons ..")
+    cog_image = pyglet.image.load("boxer/resources/cog_16.png")
+    alert_image = pyglet.image.load("boxer/resources/alert_16.png")
+    notification_image = pyglet.image.load("boxer/resources/notification_16.png")
+    code_object_image = pyglet.image.load("boxer/resources/object_16.png")
+
+    textures = {
+        "cog" : cog_image.get_texture(),
+        "alert" : alert_image.get_texture(),
+        "notification" : notification_image.get_texture(),
+        "code_object" : code_object_image.get_texture()
+    }
+
     def __init__(self,
             application_root = None):
 
@@ -38,17 +52,6 @@ class Ui(pyglet.event.EventDispatcher):
         self.font_default = io.fonts.add_font_from_file_ttf("boxer/resources/fonts/DejaVuSansCondensed.ttf", 14 )
         self.font_t1 = io.fonts.add_font_from_file_ttf("boxer/resources/fonts/DejaVuSansCondensed.ttf", 23 )
         self.imgui_renderer.refresh_font_texture()
-
-        print("Ui: loading icons ..")
-        cog_image = pyglet.image.load("boxer/resources/cog_16.png")
-        alert_image = pyglet.image.load("boxer/resources/alert_16.png")
-        notification_image = pyglet.image.load("boxer/resources/notification_16.png")
-
-        self.textures = {
-            "cog" : cog_image.get_texture(),
-            "alert" : alert_image.get_texture(),
-            "notification" : notification_image.get_texture()
-        }
 
         self.time = 0.0
         
@@ -192,37 +195,32 @@ class Ui(pyglet.event.EventDispatcher):
         if expanded1:
 
             imgui.push_style_color( imgui.COLOR_TEXT, 0.5, 0.5, 0.5 )
-            
+            tooltip_object_hover_icon( self.application_root.mouse, v_offset=5.0 )
+            imgui.same_line()
             imgui.push_font(self.font_t1)
             imgui.text("mouse")
             imgui.pop_font()
-            
-            if imgui.is_item_hovered():
-                with imgui.begin_tooltip():
-                    imgui.push_style_color( imgui.COLOR_TEXT, 1.0, 1.0, 1.0 )
-                    imgui.text("object: %s"%str(self.application_root.mouse))
-                    imgui.separator()
-                    object_tooltip_info(self.application_root.mouse)
-                    imgui.pop_style_color()
+            # if imgui.is_item_hovered():
+            #     with imgui.begin_tooltip():
+            #         imgui.push_style_color( imgui.COLOR_TEXT, 1.0, 1.0, 1.0 )
+            #         imgui.text("object: %s"%str(self.application_root.mouse))
+            #         imgui.separator()
+            #         tooltip_obect_info(self.application_root.mouse)
+            #         imgui.pop_style_color()
             imgui.text("x:%s y:%s"%(str(self.application_root.mouse.position.x), str(self.application_root.mouse.position.y)))
             imgui.separator()
-            # imgui.push_font(self.font_t1)
-            # if self.application_root.camera.enabled:
-            #     imgui.text("camera")
-            #     imgui.pop_font()
-            # else:
-            #     imgui.text("camera")
-            #     imgui.pop_font()
+            tooltip_object_hover_icon(self.application_root.camera, v_offset=5.0)
+            imgui.same_line()
             imgui.push_font(self.font_t1)
             imgui.text("camera")
             imgui.pop_font()
-            if imgui.is_item_hovered():
-                with imgui.begin_tooltip():
-                    imgui.push_style_color( imgui.COLOR_TEXT, 1.0, 1.0, 1.0 )
-                    imgui.text("object: %s"%str(self.application_root.camera))
-                    imgui.separator()
-                    object_tooltip_info(self.application_root.camera)
-                    imgui.pop_style_color()
+            # if imgui.is_item_hovered():
+            #     with imgui.begin_tooltip():
+            #         imgui.push_style_color( imgui.COLOR_TEXT, 1.0, 1.0, 1.0 )
+            #         imgui.text("object: %s"%str(self.application_root.camera))
+            #         imgui.separator()
+            #         tooltip_obect_info(self.application_root.camera)
+            #         imgui.pop_style_color()
                 
                 # imgui.same_line()
                 # imgui.text("(input disabled)")
@@ -360,13 +358,9 @@ class Ui(pyglet.event.EventDispatcher):
                 imgui.push_style_color( imgui.COLOR_TEXT, 0.5, 0.5, 0.5 )
                 imgui.text("object:")
                 imgui.pop_style_color(1)
+                tooltip_object_hover_icon(self.application_root.background)
+                imgui.same_line()
                 imgui.text(str(self.application_root.background))
-                if imgui.is_item_hovered():
-                    with imgui.begin_tooltip():
-                        imgui.text('name: "%s"'%str(self.application_root.background.name))
-                        imgui.text("object: %s"%str(self.application_root.background))
-                        imgui.separator()
-                        object_tooltip_info(self.application_root.background)
 
                 imgui.tree_pop()
 
@@ -441,8 +435,32 @@ def browse_save_file_path() -> str:
     return file_path
 
 
-def object_tooltip_info(thing) -> None:
+def tooltip_object_hover_icon( thing, v_offset:float=0.0 ) -> None:
+    """displays a little 16x16 icon to serve as a mouse-hover tagert for object tooltips
+    
+    :args:
+
+        `v_offset` : `float`
+            Sets cursor in a group to set the y position. 
+    """
+    imgui.begin_group()
+    #imgui.dummy(0.0, v_offset)
+    imgui.set_cursor_pos_y(imgui.get_cursor_pos_y()+v_offset)
+    imgui.image( Ui.textures["code_object"].id, 16, 16, uv0=(0,1), uv1=(1,0), tint_color=(1.0, 0.55, 0.0, 1.0))
+    imgui.end_group()
+
+    if imgui.is_item_hovered():
+        with imgui.begin_tooltip():
+            tooltip_obect_info( thing )
+
+
+def tooltip_obect_info( thing ) -> None:
     """returns a bunch of imgui commands to draw text info for an Any object"""
+    imgui.push_style_color( imgui.COLOR_TEXT, 1.0, 1.0, 1.0 )
+    if hasattr(thing, "name"):
+        imgui.text('name: "%s"'%str(thing.name))
+    imgui.text("object: %s"%str(thing))
+    imgui.separator()
     for i in inspect.getmembers( thing ):
         if not i[0].startswith("__"):
             imgui.text( str(i) )
@@ -450,3 +468,4 @@ def object_tooltip_info(thing) -> None:
             imgui.push_style_color( imgui.COLOR_TEXT, 0.5, 0.5, 0.5 )
             imgui.text(str(type(i[1])))
             imgui.pop_style_color(1)
+    imgui.pop_style_color(1)
