@@ -195,9 +195,17 @@ class Ui(pyglet.event.EventDispatcher):
         if expanded1:
 
             imgui.push_style_color( imgui.COLOR_TEXT, 0.5, 0.5, 0.5 )
-            tooltip_object_hover_icon( self.application_root.mouse, v_offset=5.0 )
-            imgui.same_line()
+            
+            tooltip_object_hover_icon( self.application_root, v_offset=5.0 )
             imgui.push_font(self.font_t1)
+            imgui.same_line()
+            imgui.text("application")
+            imgui.pop_font()
+            imgui.separator()
+
+            tooltip_object_hover_icon( self.application_root.mouse, v_offset=5.0 )
+            imgui.push_font(self.font_t1)
+            imgui.same_line()
             imgui.text("mouse")
             imgui.pop_font()
             # if imgui.is_item_hovered():

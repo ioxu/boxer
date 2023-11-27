@@ -41,7 +41,7 @@ class Background:
 
         _bg_width = 2000000
         _bg_height = _bg_width
-        _bg_verts = boxer.shapes.rectangle_centered_vertices( 0.0, 0.0, _bg_width, _bg_width )
+        _bg_verts = boxer.shapes.rectangle_centered_vertices( -0.5, 0.5, _bg_width, _bg_width )
         _bg_tex_coords = boxer.shapes.quad_texcoords( _bg_width/self.texture.width, _bg_height/self.texture.height, 0.0, 0.0 )
         self.background_triangles = self.shader_program.vertex_list_indexed( 4, gl.GL_TRIANGLES, (0,1,2,0,2,3), self.batch, None,
                                     position = ('f', _bg_verts ),
