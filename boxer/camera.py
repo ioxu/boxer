@@ -9,7 +9,7 @@ import math
 import boxer.shaping
 
 
-class Camera(object):
+class Camera(pyglet.event.EventDispatcher):
     def __init__(self, window : pyglet.window.Window,
                 position : pyglet.math.Vec2 = pyglet.math.Vec2(0.0, 0.0)):
         print("starting %s"%self)
@@ -129,6 +129,8 @@ class Camera(object):
                 self.transform = self.transform@pyglet.math.Mat4.from_translation(
                     pyglet.math.Vec3(dx * (1/self.zoom) , dy * (1/self.zoom), 0.0) )
 
+                self.dispatch_event("transform_changed", self.transform)
+
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         """
@@ -155,8 +157,16 @@ class Camera(object):
             scaled_t = pyglet.math.Mat4.from_scale( pyglet.math.Vec3( zoom_dt, zoom_dt, 1.0 ) )
             reoffset_t = pyglet.math.Mat4.from_translation( offset )
             self.transform =reoffset_t @ scaled_t @ offset_t @ self.transform 
+            
+            self.dispatch_event("transform_changed", self.transform)
+
+
+    def start(self) -> None:
+        self.dispatch_event("transform_changed", self.transform)
 
 
 # matrix things:
 # https://math.stackexchange.com/questions/237369/given-this-transformation-matrix-how-do-i-decompose-it-into-translation-rotati
 
+# events
+Camera.register_event_type("transform_changed")

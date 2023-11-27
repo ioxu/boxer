@@ -456,6 +456,7 @@ def tooltip_object_hover_icon( thing, v_offset:float=0.0 ) -> None:
 
 def tooltip_obect_info( thing ) -> None:
     """returns a bunch of imgui commands to draw text info for an Any object"""
+    imgui.image( Ui.textures["code_object"].id, 16, 16, uv0=(0,1), uv1=(1,0), tint_color=(1.0, 0.55, 0.0, 1.0))
     imgui.push_style_color( imgui.COLOR_TEXT, 1.0, 1.0, 1.0 )
     if hasattr(thing, "name"):
         imgui.text('name: "%s"'%str(thing.name))
@@ -468,4 +469,11 @@ def tooltip_obect_info( thing ) -> None:
             imgui.push_style_color( imgui.COLOR_TEXT, 0.5, 0.5, 0.5 )
             imgui.text(str(type(i[1])))
             imgui.pop_style_color(1)
+    
+    # imgui.separator()
+    # import gc
+    # for o in gc.get_referrers(thing):
+    #     for r in gc.get_referrers( o ):
+    #         imgui.text("referrer: %s"%r)
+
     imgui.pop_style_color(1)

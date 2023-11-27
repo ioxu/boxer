@@ -1,6 +1,7 @@
 import pyglet
 import pyglet.gl as gl
 from pyglet.window import mouse
+import boxer.shaping
 #import boxer.shaders
 
 class Mouse(pyglet.window.MouseCursor):
@@ -26,6 +27,8 @@ class Mouse(pyglet.window.MouseCursor):
                                     )
 
         self.pointer = pyglet.shapes.Circle(0,0,5,16, (255, 0, 0, 128), batch = None)
+
+        self._camera_transform : pyglet.math.Mat4 = pyglet.math.Mat4()
 
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers ):
@@ -64,8 +67,10 @@ class Mouse(pyglet.window.MouseCursor):
         self.pointer.x = x
         self.pointer.y = y
 
-        # TODO : calc world position using window.view matrix
-        #self.world_position = ???
+        # calc world position
+        spos = pyglet.math.Mat4.from_translation( pyglet.math.Vec3( self.position.x, self.position.y, 0.0 ) )
+        wpos = ( ~self._camera_transform @ spos ).column(3)[:3]
+        self.world_position.x, self.world_position.y, self.world_position.z = wpos[0], wpos[1], wpos[2]
 
 
     def draw(self, x, y):
@@ -78,10 +83,20 @@ class Mouse(pyglet.window.MouseCursor):
 
         self.label_screen_position.x = x+5
         self.label_screen_position.y = y+5
-        self.label_screen_position.text = "s: %s, %s"%(x,y)
+        self.label_screen_position.text = "s: %s, %s"%(self.position.x, self.position.y)
         self.label_screen_position.draw()
 
         self.label_world_position.x = x+5
         self.label_world_position.y = y-7
-        self.label_world_position.text = "w: %s, %s"%("WORLDX","WORLDY")
+        self.label_world_position.text = "w: %0.1f, %0.1f"%(self.world_position.x, self.world_position.y)
         self.label_world_position.draw()
+
+
+    def on_camera_transform_changed(self, transform : pyglet.math.Mat4 ) -> None:
+        """desgined to recieve signal 'transform_changed' as emitted by Camera
+        connect with 
+            self.camera.push_handlers(transform_changed=self.mouse.on_camera_transform_changed)
+        """
+        print("mouse.camera_transform."+str(transform.column(3)[:3]))
+        self._camera_transform = transform
+

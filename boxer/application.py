@@ -62,6 +62,8 @@ class Application(pyglet.event.EventDispatcher):
 
         self.camera = boxer.camera.Camera( self.window )
         self.window.push_handlers( self.camera )
+        self.camera.push_handlers(transform_changed=self.mouse.on_camera_transform_changed)
+        self.camera.start()
 
         # serialisation
         self.file_path = ""
@@ -98,6 +100,9 @@ class Application(pyglet.event.EventDispatcher):
         # gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER,
         #         gl.GL_LINEAR_MIPMAP_LINEAR)
         # gl.glTexParameterf(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_LOD_BIAS, 0)
+
+        # import sys
+        # print("%s %s"%(self, sys.getsizeof(self)))
 
 
     def save_file(self,  save_as = False, browse = True ):
