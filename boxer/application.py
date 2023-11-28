@@ -58,7 +58,7 @@ class Application(pyglet.event.EventDispatcher):
         self.mouse = boxer.mouse.Mouse()
         self.window.push_handlers( self.mouse )
         self.window.set_mouse_cursor(self.mouse)
-        #self.system_mouse_cursor = pyglet.window.DefaultMouseCursor()
+        # self.system_mouse_cursor = pyglet.window.DefaultMouseCursor()
 
         self.camera = boxer.camera.Camera( self.window )
         self.window.push_handlers( self.camera )
@@ -175,12 +175,18 @@ class Application(pyglet.event.EventDispatcher):
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
+
+        gl.glViewport(int(self.window.width/2.0), 0, int(self.window.width/2.0), self.window.height  )
+        self.background.draw()
+
+        gl.glViewport(0, 0, int(self.window.width/2.0)-1, self.window.height  )
+
         #----------------------
         # camera
         self.camera.push()
         #----------------------
-        self.background.draw()
 
+        self.background.draw()
 
         line_width = 3.0 * self.camera.zoom
         gl.glLineWidth(line_width)
@@ -205,7 +211,8 @@ class Application(pyglet.event.EventDispatcher):
         self.camera.pop()
         #----------------------
         # screen
-        #gl.glDisable(gl.GL_BLEND)
+        
+        gl.glViewport(0,0,self.window.width, self.window.height)
         self.fps_display.draw()
         self.graph_label.draw()
         
@@ -224,6 +231,7 @@ class Application(pyglet.event.EventDispatcher):
         # ui
         self.ui.draw()
         #----------------------
+
 
 
     def on_key_press( self, symbol, modifiers ):

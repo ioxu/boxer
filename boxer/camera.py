@@ -65,7 +65,7 @@ class Camera(pyglet.event.EventDispatcher):
 
 
     def push(self) -> None:
-        self.window.view = self.transform
+        self.window.view = self.transform @ pyglet.math.Mat4().from_scale( pyglet.math.Vec3(2.0, 1.0, 1.0) )
 
 
     def pop(self) -> None:
@@ -162,6 +162,7 @@ class Camera(pyglet.event.EventDispatcher):
 
 
     def start(self) -> None:
+        """declare camera ready to use"""
         self.dispatch_event("transform_changed", self.transform)
 
 

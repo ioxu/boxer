@@ -97,6 +97,5 @@ class Mouse(pyglet.window.MouseCursor):
         connect with 
             self.camera.push_handlers(transform_changed=self.mouse.on_camera_transform_changed)
         """
-        print("mouse.camera_transform."+str(transform.column(3)[:3]))
         self._camera_transform = transform
 
