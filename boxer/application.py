@@ -78,7 +78,7 @@ class Application(pyglet.event.EventDispatcher):
         # self._imgui_io.config_flags += imgui.CONFIG_NO_MOUSE_CURSOR_CHANGE # stop imgui ffrom controlling mouse cursor
 
         # gui settings
-        # self.parameter_panel_width = 210
+        # self.parameter_panel_width = 510
         # self.parameter_panel_width_original = self.parameter_panel_width
 
         # imgui tests
@@ -213,6 +213,31 @@ class Application(pyglet.event.EventDispatcher):
         # screen
         
         gl.glViewport(0,0,self.window.width, self.window.height)
+
+        c = (255, 230, 0, 90)
+        lwidth = 4
+        menu_height = 25
+        h_linewidth = lwidth/2.0
+        if self.window._mouse_x < self.window.width/2:
+            line1 = pyglet.shapes.Line(h_linewidth, h_linewidth, h_linewidth, self.window.height-h_linewidth-menu_height, width = lwidth, color = c)
+            line2 = pyglet.shapes.Line(h_linewidth, self.window.height-h_linewidth-menu_height, self.window.width/2-1-h_linewidth, self.window.height-h_linewidth-menu_height, width = lwidth, color = c)
+            line3 = pyglet.shapes.Line(self.window.width/2-1-h_linewidth, self.window.height-h_linewidth-menu_height, self.window.width/2-1-h_linewidth, h_linewidth, width = lwidth, color = c)
+            line4 = pyglet.shapes.Line(self.window.width/2-1-h_linewidth, h_linewidth, h_linewidth, h_linewidth, width = lwidth, color = c)
+            line1.draw()
+            line2.draw()
+            line3.draw()
+            line4.draw()
+        else:
+            line1 = pyglet.shapes.Line(self.window.width/2+h_linewidth, h_linewidth, self.window.width/2+h_linewidth, self.window.height-h_linewidth-menu_height, width = lwidth, color = c)
+            line2 = pyglet.shapes.Line(self.window.width/2+h_linewidth, self.window.height-h_linewidth-menu_height, self.window.width-h_linewidth, self.window.height-h_linewidth-menu_height, width = lwidth, color = c)
+            line3 = pyglet.shapes.Line(self.window.width-h_linewidth, self.window.height-h_linewidth-menu_height, self.window.width-h_linewidth, h_linewidth, width = lwidth, color = c)
+            line4 = pyglet.shapes.Line(self.window.width-h_linewidth, h_linewidth, self.window.width/2+h_linewidth, h_linewidth, width = lwidth, color = c)
+            line1.draw()
+            line2.draw()
+            line3.draw()
+            line4.draw()
+
+
         self.fps_display.draw()
         self.graph_label.draw()
         
