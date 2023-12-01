@@ -6,11 +6,12 @@ import boxer.shaping
 
 class Mouse(pyglet.window.MouseCursor):
     def __init__(self):
+        print("starting %s"%self)
+
         self.is_sheet_panning = False
         self.position = pyglet.math.Vec2()
         self.world_position = pyglet.math.Vec3()
-
-        print("starting %s"%self)
+        self.captured_by_ui = False
 
         self.label_screen_position = pyglet.text.Label( "s: ",
                                         font_name='Verdana',
@@ -29,7 +30,7 @@ class Mouse(pyglet.window.MouseCursor):
         self.pointer = pyglet.shapes.Circle(0,0,5,16, (255, 0, 0, 128), batch = None)
 
         self._camera_transform : pyglet.math.Mat4 = pyglet.math.Mat4()
-
+        self.camera_zoom : float = 1.0
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers ):
         #print("mouse.on_mouse_drag %s"%buttons)
@@ -98,4 +99,5 @@ class Mouse(pyglet.window.MouseCursor):
             self.camera.push_handlers(transform_changed=self.mouse.on_camera_transform_changed)
         """
         self._camera_transform = transform
+        self.camera_zoom =transform.column(0)[0]
 

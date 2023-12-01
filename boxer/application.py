@@ -2,6 +2,7 @@ import boxer.background
 import boxer.mouse
 import boxer.camera
 import boxer.ui
+import boxer.handles
 
 import pyglet
 import pyglet.gl as gl
@@ -13,6 +14,9 @@ import imgui
 from colour import Color
 import os, math, types
 
+#----------------
+import random
+#----------------
 
 class Application(pyglet.event.EventDispatcher):
     """"root application object"""
@@ -104,6 +108,19 @@ class Application(pyglet.event.EventDispatcher):
         # import sys
         # print("%s %s"%(self, sys.getsizeof(self)))
 
+        self.test_handles = []
+        self.test_handles_batch = pyglet.graphics.Batch()
+        
+        for i in range(50):
+            rx = random.random()*600
+            ry = random.random()*600 -150
+            handle = boxer.handles.PointHandle( pyglet.math.Vec2( rx, ry ), mouse = self.mouse, debug = True, batch = self.test_handles_batch )
+            self.test_handles.append( handle )
+            self.window.push_handlers( on_mouse_motion = handle.on_mouse_motion )
+            self.window.push_handlers( on_mouse_press = handle.on_mouse_press )
+            self.window.push_handlers( on_mouse_release = handle.on_mouse_release )
+            self.window.push_handlers( on_mouse_drag = handle.on_mouse_drag )
+
 
     def save_file(self,  save_as = False, browse = True ):
         """save the project to a file
@@ -176,10 +193,10 @@ class Application(pyglet.event.EventDispatcher):
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
 
-        gl.glViewport(int(self.window.width/2.0), 0, int(self.window.width/2.0), self.window.height  )
-        self.background.draw()
+        # gl.glViewport(int(self.window.width/2.0), 0, int(self.window.width/2.0), self.window.height  )
+        # self.background.draw()
 
-        gl.glViewport(0, 0, int(self.window.width/2.0)-1, self.window.height  )
+        # gl.glViewport(0, 0, int(self.window.width/2.0)-1, self.window.height  )
 
         #----------------------
         # camera
@@ -188,6 +205,11 @@ class Application(pyglet.event.EventDispatcher):
 
         self.background.draw()
 
+
+        
+        
+        
+        
         line_width = 3.0 * self.camera.zoom
         gl.glLineWidth(line_width)
 
@@ -207,35 +229,41 @@ class Application(pyglet.event.EventDispatcher):
         pyglet.shapes.BezierCurve((-10,0), (-10,200-10), (-410,200-10), (-410, 400), segments=64, color=c).draw()
 
 
+
+        gl.glLineWidth(2.0* self.camera.zoom)
+        self.test_handles_batch.draw()
+
+
+
         #----------------------
         self.camera.pop()
         #----------------------
         # screen
         
-        gl.glViewport(0,0,self.window.width, self.window.height)
+        # gl.glViewport(0,0,self.window.width, self.window.height)
 
-        c = (255, 230, 0, 90)
-        lwidth = 4
-        menu_height = 25
-        h_linewidth = lwidth/2.0
-        if self.window._mouse_x < self.window.width/2:
-            line1 = pyglet.shapes.Line(h_linewidth, h_linewidth, h_linewidth, self.window.height-h_linewidth-menu_height, width = lwidth, color = c)
-            line2 = pyglet.shapes.Line(h_linewidth, self.window.height-h_linewidth-menu_height, self.window.width/2-1-h_linewidth, self.window.height-h_linewidth-menu_height, width = lwidth, color = c)
-            line3 = pyglet.shapes.Line(self.window.width/2-1-h_linewidth, self.window.height-h_linewidth-menu_height, self.window.width/2-1-h_linewidth, h_linewidth, width = lwidth, color = c)
-            line4 = pyglet.shapes.Line(self.window.width/2-1-h_linewidth, h_linewidth, h_linewidth, h_linewidth, width = lwidth, color = c)
-            line1.draw()
-            line2.draw()
-            line3.draw()
-            line4.draw()
-        else:
-            line1 = pyglet.shapes.Line(self.window.width/2+h_linewidth, h_linewidth, self.window.width/2+h_linewidth, self.window.height-h_linewidth-menu_height, width = lwidth, color = c)
-            line2 = pyglet.shapes.Line(self.window.width/2+h_linewidth, self.window.height-h_linewidth-menu_height, self.window.width-h_linewidth, self.window.height-h_linewidth-menu_height, width = lwidth, color = c)
-            line3 = pyglet.shapes.Line(self.window.width-h_linewidth, self.window.height-h_linewidth-menu_height, self.window.width-h_linewidth, h_linewidth, width = lwidth, color = c)
-            line4 = pyglet.shapes.Line(self.window.width-h_linewidth, h_linewidth, self.window.width/2+h_linewidth, h_linewidth, width = lwidth, color = c)
-            line1.draw()
-            line2.draw()
-            line3.draw()
-            line4.draw()
+        # c = (255, 230, 0, 90)
+        # lwidth = 4
+        # menu_height = 25
+        # h_linewidth = lwidth/2.0
+        # if self.window._mouse_x < self.window.width/2:
+        #     line1 = pyglet.shapes.Line(h_linewidth, h_linewidth, h_linewidth, self.window.height-h_linewidth-menu_height, width = lwidth, color = c)
+        #     line2 = pyglet.shapes.Line(h_linewidth, self.window.height-h_linewidth-menu_height, self.window.width/2-1-h_linewidth, self.window.height-h_linewidth-menu_height, width = lwidth, color = c)
+        #     line3 = pyglet.shapes.Line(self.window.width/2-1-h_linewidth, self.window.height-h_linewidth-menu_height, self.window.width/2-1-h_linewidth, h_linewidth, width = lwidth, color = c)
+        #     line4 = pyglet.shapes.Line(self.window.width/2-1-h_linewidth, h_linewidth, h_linewidth, h_linewidth, width = lwidth, color = c)
+        #     line1.draw()
+        #     line2.draw()
+        #     line3.draw()
+        #     line4.draw()
+        # else:
+        #     line1 = pyglet.shapes.Line(self.window.width/2+h_linewidth, h_linewidth, self.window.width/2+h_linewidth, self.window.height-h_linewidth-menu_height, width = lwidth, color = c)
+        #     line2 = pyglet.shapes.Line(self.window.width/2+h_linewidth, self.window.height-h_linewidth-menu_height, self.window.width-h_linewidth, self.window.height-h_linewidth-menu_height, width = lwidth, color = c)
+        #     line3 = pyglet.shapes.Line(self.window.width-h_linewidth, self.window.height-h_linewidth-menu_height, self.window.width-h_linewidth, h_linewidth, width = lwidth, color = c)
+        #     line4 = pyglet.shapes.Line(self.window.width-h_linewidth, h_linewidth, self.window.width/2+h_linewidth, h_linewidth, width = lwidth, color = c)
+        #     line1.draw()
+        #     line2.draw()
+        #     line3.draw()
+        #     line4.draw()
 
 
         self.fps_display.draw()
@@ -300,11 +328,20 @@ class Application(pyglet.event.EventDispatcher):
             _im_mouse_cursor = imgui.get_mouse_cursor()
             _im_mouse_cursors = imgui.integrations.pyglet.PygletMixin.MOUSE_CURSORS
             self.window.set_mouse_cursor( self.window.get_system_mouse_cursor( _im_mouse_cursors.get(_im_mouse_cursor) ) )
-        
+            if not self.mouse.captured_by_ui:
+                self.dispatch_event("ui_mouse_entered")
+                # TODO : tmp
+                print("[event] Application.ui_mouse_entered")
+            self.mouse.captured_by_ui = True
             self.camera.disable()
         else:
             # if not (self._imgui_io.config_flags & imgui.CONFIG_NO_MOUSE_CURSOR_CHANGE):
             #     self._imgui_io.config_flags += imgui.CONFIG_NO_MOUSE_CURSOR_CHANGE
+            if self.mouse.captured_by_ui:
+                self.dispatch_event("ui_mouse_exited")
+                # TODO : tmp
+                print("[event] Application.ui_mouse_exited")
+            self.mouse.captured_by_ui = False
             self.camera.enable()
             self.window.set_mouse_cursor(self.mouse)
 
@@ -339,6 +376,11 @@ class Application(pyglet.event.EventDispatcher):
         print("%s on_close"%self)
         self.ui.on_close()
 
+
+# ------------------------------------------------------------------------------
+# Application events
+Application.register_event_type("ui_mouse_entered")
+Application.register_event_type("ui_mouse_exited")
 
 # ------------------------------------------------------------------------------
 def _create_window(res_x, res_y):
