@@ -32,6 +32,7 @@ class Mouse(pyglet.window.MouseCursor):
         self._camera_transform : pyglet.math.Mat4 = pyglet.math.Mat4()
         self.camera_zoom : float = 1.0
 
+
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers ):
         #print("mouse.on_mouse_drag %s"%buttons)
         self.update_position(x,y)

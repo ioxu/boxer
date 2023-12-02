@@ -47,10 +47,10 @@ class Application(pyglet.event.EventDispatcher):
         self.on_draw = self.window.event(self.on_draw)
         self.on_key_press = self.window.event(self.on_key_press)
         self.on_mouse_motion = self.window.event(self.on_mouse_motion)
+        self.on_mouse_release = self.window.event(self.on_mouse_release)
         # self.on_mouse_scroll = self.window.event(self.on_mouse_scroll)
         # self.on_mouse_drag = self.window.event(self.on_mouse_drag)
         # self.on_mouse_press = self.window.event(self.on_mouse_press)
-        # self.on_mouse_release = self.window.event(self.on_mouse_release)
 
         self.fps_display = pyglet.window.FPSDisplay(self.window)
         self.fps_display.update_period = 0.2
@@ -111,15 +111,35 @@ class Application(pyglet.event.EventDispatcher):
         self.test_handles = []
         self.test_handles_batch = pyglet.graphics.Batch()
         
-        for i in range(50):
+        for i in range(1):
             rx = random.random()*600
             ry = random.random()*600 -150
-            handle = boxer.handles.PointHandle( pyglet.math.Vec2( rx, ry ), mouse = self.mouse, debug = True, batch = self.test_handles_batch )
+            handle = boxer.handles.PointHandle(\
+                pyglet.math.Vec2( rx, ry ),
+                mouse = self.mouse,
+                debug = True,
+                space = boxer.handles.Handle.SPACE_WORLD,
+                batch = self.test_handles_batch )
             self.test_handles.append( handle )
             self.window.push_handlers( on_mouse_motion = handle.on_mouse_motion )
             self.window.push_handlers( on_mouse_press = handle.on_mouse_press )
             self.window.push_handlers( on_mouse_release = handle.on_mouse_release )
             self.window.push_handlers( on_mouse_drag = handle.on_mouse_drag )
+
+
+        self.test_screen_handles = []
+        self.test_screen_handles_batch = pyglet.graphics.Batch()
+        handle = boxer.handles.PointHandle(
+            pyglet.math.Vec2( 100, 100 ),
+            mouse = self.mouse,
+            debug = True,
+            space = boxer.handles.Handle.SPACE_SCREEN,
+            batch = self.test_screen_handles_batch )
+        self.test_screen_handles.append( handle )
+        self.window.push_handlers( on_mouse_motion = handle.on_mouse_motion )
+        self.window.push_handlers( on_mouse_press = handle.on_mouse_press )
+        self.window.push_handlers( on_mouse_release = handle.on_mouse_release )
+        self.window.push_handlers( on_mouse_drag = handle.on_mouse_drag )      
 
 
     def save_file(self,  save_as = False, browse = True ):
@@ -240,6 +260,9 @@ class Application(pyglet.event.EventDispatcher):
         #----------------------
         # screen
         
+        gl.glLineWidth(2.0)
+        self.test_screen_handles_batch.draw()
+
         # gl.glViewport(0,0,self.window.width, self.window.height)
 
         # c = (255, 230, 0, 90)
@@ -288,7 +311,7 @@ class Application(pyglet.event.EventDispatcher):
 
 
     def on_key_press( self, symbol, modifiers ):
-        if symbol == key.R:
+        if symbol == key.R and not self._imgui_io.want_capture_mouse:
 			# reset camera
             print("reset camera")
             self.camera.reset()
@@ -361,9 +384,18 @@ class Application(pyglet.event.EventDispatcher):
     #         return pyglet.event.EVENT_HANDLED
 
 
-    # def on_mouse_release(self, x, y, buttons, modifiers):
+    def on_mouse_release(self, x, y, buttons, modifiers):
+    #     print("on_mouse_release self._imgui_io.want_capture_mouse %s"%self._imgui_io.want_capture_mouse)
     #     if self._imgui_io.want_capture_mouse:
-    #         return pyglet.event.EVENT_HANDLED
+    # #         return pyglet.event.EVENT_HANDLED
+    #         if not self.mouse.captured_by_ui:
+    #             self.dispatch_event("ui_mouse_entered")
+    #             # TODO : tmp
+    #             print("[event] Application.ui_mouse_entered")
+    #         self.mouse.captured_by_ui = True
+    #         self.camera.disable()
+        
+        pass
 
 
     # test event ###############################################################

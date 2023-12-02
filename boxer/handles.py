@@ -7,9 +7,13 @@ DEBUG_HIT_SHAPE_COLOR = (255, 240, 20, 20)
 
 class Handle():
     
+    SPACE_SCREEN = 0
+    SPACE_WORLD = 1
+
     def __init__(self,
         position : pyglet.math.Vec2 = pyglet.math.Vec2(),
         debug : bool = False,
+        space : int = SPACE_WORLD,
         mouse : boxer.mouse.Mouse = None,
         batch : pyglet.graphics.Batch = None,
         group : pyglet.graphics.Group = None
@@ -19,6 +23,7 @@ class Handle():
         self.mouse = mouse or None
         self.hilighted = False
         self.debug : bool = debug
+        self.space : int = space
         self.batch = batch or None
         self.group = group or None
 
@@ -64,6 +69,7 @@ class PointHandle( Handle ):
         position : pyglet.math.Vec2 = pyglet.math.Vec2(),
         mouse : boxer.mouse.Mouse = None,
         debug : bool = False,
+        space : int = Handle.SPACE_WORLD,
         hit_radius : float = 15.0,
         display_radius : float = 5.0,
         color = (255, 255, 90, 255),
@@ -76,6 +82,7 @@ class PointHandle( Handle ):
             position = position,
             mouse = mouse,
             debug = debug,
+            space = space,
             batch = batch,
             group = group)
         
@@ -122,14 +129,20 @@ class PointHandle( Handle ):
         if self.selected:
             # TODO: camera info!! be class method for converting spaces
             # OR ask mouse for works-space conversion (mouse holds a camera transform)
-            self.position += pyglet.math.Vec2(dx, dy)*(1.0/self.mouse.camera_zoom) 
+            if self.space == Handle.SPACE_WORLD:
+                self.position += pyglet.math.Vec2(dx, dy)*(1.0/self.mouse.camera_zoom)
+            else:
+                self.position += pyglet.math.Vec2(dx, dy)
             self.update_position()
 
 
     def on_mouse_motion( self, x, y, dx, dy):
         if not self.mouse.captured_by_ui:
-            wmp = self.mouse.world_position
-            if self.is_inside( pyglet.math.Vec2( wmp.x, wmp.y ) ):
+            if self.space == Handle.SPACE_WORLD:
+                mp = self.mouse.world_position
+            else:
+                mp = self.mouse.position
+            if self.is_inside( pyglet.math.Vec2( mp.x, mp.y ) ):
                 self.hilighted = True
             else:
                 self.hilighted = False
