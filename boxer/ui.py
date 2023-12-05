@@ -126,7 +126,7 @@ class Ui(pyglet.event.EventDispatcher):
                         if _demo_clicked:
                             self.imgui_demo_visible = not self.imgui_demo_visible
                         imgui.separator()
-                        _fullscreen_clicked, _fullscreen_state = imgui.menu_item( "fullscreen", selected = self.application_root.fullscreen )
+                        _fullscreen_clicked, _fullscreen_state = imgui.menu_item( "fullscreen", 'Alt-Enter', selected = self.application_root.fullscreen )
                         if _fullscreen_clicked:
                             self.application_root.toggle_fullscreen()
 
