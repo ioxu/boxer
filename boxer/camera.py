@@ -10,11 +10,17 @@ import boxer.shaping
 
 
 class Camera(pyglet.event.EventDispatcher):
-    def __init__(self, window : pyglet.window.Window,
-                position : pyglet.math.Vec2 = pyglet.math.Vec2(0.0, 0.0)):
-        print("starting %s"%self)
+    """holds a 4x4 matrix for a camera transform and manages pushing
+    and popping this transform to a pyglet.window.Window"""
 
-        self.window : pyglet.window.Window = window
+    def __init__(self,
+                window : pyglet.window.Window = None,
+                position : pyglet.math.Vec2 = pyglet.math.Vec2(0.0, 0.0)):
+
+        print("starting %s window=%s"%(self, window) )
+ 
+
+        self.window = window
         #self.position : pyglet.math.Vec2 = position
         #self.position : pyglet.math.Vec2 = property( self.get_position, self.set_position )
         #self.position = property( self.get_position, self.set_position )
@@ -58,10 +64,12 @@ class Camera(pyglet.event.EventDispatcher):
         """
         reset the camera zoom and translation to be centered on the origin of the worksheet
         """
-        window_size = self.window.get_size()
-        print("camera.window.size = %s"%str(window_size))
-        self.zoom = 1.0
-        self.transform = pyglet.math.Mat4.from_translation( pyglet.math.Vec3( window_size[0]/2.0, window_size[1]/2.0 , 0.0) )
+        # TODO : update for Viewports
+        if self.window:
+            window_size = self.window.get_size()
+            print("camera.window.size = %s"%str(window_size))
+            self.zoom = 1.0
+            self.transform = pyglet.math.Mat4.from_translation( pyglet.math.Vec3( window_size[0]/2.0, window_size[1]/2.0 , 0.0) )
 
 
     def push(self) -> None:
@@ -171,3 +179,12 @@ class Camera(pyglet.event.EventDispatcher):
 
 # events
 Camera.register_event_type("transform_changed")
+
+
+# ------------------------------------------------------------------------------
+
+def get_default_camera( window ):
+    print("get_default_camera: %s"%window)
+    c = Camera( window = window )
+    c.start()
+    return c
