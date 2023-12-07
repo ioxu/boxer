@@ -40,13 +40,9 @@ class Container( pyglet.event.EventDispatcher ):
 
         self.lines = {}
         self.lines["left"] = pyglet.shapes.Line( 0, 0, 1, 0, batch = self.batch, color = self.color )
-        # self.lines["left"].opacity = 90
         self.lines["top"] = pyglet.shapes.Line( 0, 0, 1, 0, batch = self.batch, color = self.color )
-        # self.lines["top"].opacity = 90
         self.lines["right"] = pyglet.shapes.Line( 0, 0, 1, 0, batch = self.batch, color = self.color )
-        # self.lines["right"].opacity = 90
         self.lines["bottom"] = pyglet.shapes.Line( 0, 0, 1, 0, batch = self.batch, color = self.color )
-        # self.lines["bottom"].opacity = 90
 
 
     def add_child(self, child) -> None:
@@ -67,37 +63,35 @@ class Container( pyglet.event.EventDispatcher ):
     def get_available_size_from_parent( self ) -> tuple:
         """ask parent for available size"""
         if hasattr(self.parent, "get_child_size"):
-            # print("parent type is Container: %s"%type(self.parent)) 
+            # likely a Container 
             ps = self.parent.get_child_size( self )
             self.width = ps[0]
             self.height = ps[1]
             return (self.width, self.height)
-        elif self.parent == None:#type(self.parent) == type(pyglet.window.Window):
-            # print("parent type is pyglet.window.Window: %s"%self.window) 
+        elif self.parent == None:
+            # maybe it's a pyglet.window.Window ? 
             ws = self.window.get_size()
             self.width = ws[0]
             self.height = ws[1]
-            return (self.width, self.height)#self.window.get_size()
+            return (self.width, self.height)#
         else:
             return (None, None)
 
 
     def get_child_position(self, this):
-        # print("method: get_child_position %s"%this)
         return self.position
 
 
     def get_position_from_parent( self ) -> tuple:
         if hasattr(self.parent, "get_child_position"):
-            # print("get_child_position > ")
+            # likely a Container
             self.position = self.parent.get_child_position( self )
             return self.position
         elif self.parent == None:
-            # print("get_child_position NONE parent")
+            # waybe its a pyglet.window.Window ?
             self.position = (0,0)
             return self.position
         else:
-            # print("get_child_position ELSE")
             return (None, None)
 
 
@@ -107,6 +101,7 @@ class Container( pyglet.event.EventDispatcher ):
 
 
     def pprint_tree(self, depth : int = 0) -> None:
+        """prety prints the structure, indented by depth"""
         self._depth = depth
         print("    "*depth, "%s ( %s )"%(depth, self._node_id), "'%s'"%self.name, type(self).__name__ )#, "window: %s"%self.window)
         print("    "*depth, "  > size:", self.get_available_size_from_parent(), "position:", self.get_position_from_parent() )
@@ -115,7 +110,7 @@ class Container( pyglet.event.EventDispatcher ):
 
     
     def update( self, depth : int = 0, count : int = 0 ) -> None:
-        """traverse all children and update all geometries etc"""
+        """traverse all children and update all geometries, positions, etc"""
         self._depth = depth
         self._node_id = count
         count += 1
@@ -129,42 +124,20 @@ class Container( pyglet.event.EventDispatcher ):
         self.lines["left"].x2 = self.position[0] + margin
         self.lines["left"].y2 = self.position[1] + self.height - margin
 
-        self.lines["top"].x = self.position[0] + margin
+        self.lines["top"].x = self.position[0] + margin -1
         self.lines["top"].y = self.position[1] + self.height - margin
         self.lines["top"].x2 = self.position[0] + self.width - margin
         self.lines["top"].y2 = self.position[1] + self.height - margin
 
         self.lines["right"].x = self.position[0] + self.width - margin
-        self.lines["right"].y = self.position[1] + self.height -margin
-        self.lines["right"].x2 = self.position[0] + self.width -margin
-        self.lines["right"].y2 = self.position[1] + margin
+        self.lines["right"].y = self.position[1] + self.height - margin
+        self.lines["right"].x2 = self.position[0] + self.width - margin
+        self.lines["right"].y2 = self.position[1] + margin + 1
 
         self.lines["bottom"].x = self.position[0] + margin
         self.lines["bottom"].y = self.position[1] + margin
         self.lines["bottom"].x2 = self.position[0] + self.width -margin
         self.lines["bottom"].y2 = self.position[1] + margin
-
-        # _y = self._node_id * 20
-
-        # self.lines["left"].x = 0 + depth * 15
-        # self.lines["left"].y = _y
-        # self.lines["left"].x2 = 0 + 15 + depth * 15
-        # self.lines["left"].y2 = _y + 15
-
-        # self.lines["top"].x = 15 + depth * 15
-        # self.lines["top"].y = _y
-        # self.lines["top"].x2 = 15 + 15 + depth * 15
-        # self.lines["top"].y2 = _y + 15
-
-        # self.lines["right"].x = 30 + depth * 15
-        # self.lines["right"].y = _y
-        # self.lines["right"].x2 = 30 + 15 + depth * 15
-        # self.lines["right"].y2 = _y + 15
-
-        # self.lines["bottom"].x = 45 + depth * 15
-        # self.lines["bottom"].y = _y
-        # self.lines["bottom"].x2 = 45 + 15 + depth * 15
-        # self.lines["bottom"].y2 = _y + 15
 
         for c in self.children:
             count = c.update( depth+1, count )
@@ -175,6 +148,15 @@ class Container( pyglet.event.EventDispatcher ):
         # maybe just draw a coloured outline
         # NO DRAW, ONLY BATCH.
         pass
+
+
+# ------------------------------------------------------------------------------
+# Container events
+Container.register_event_type("mouse_entered")
+Container.register_event_type("mouse_exited")
+Container.register_event_type("resized")
+Container.register_event_type("split")
+Container.register_event_type("collapsed")
 
 
 class SplitContainer( Container ):
@@ -196,9 +178,9 @@ class HSplitContainer( SplitContainer ):
 
     def get_child_size(self, this) -> tuple:
         if this == self.children[0]:
-            return (int(self.width*self.ratio), self.height)
+            return (int(self.width*self.ratio), self.height )
         else:
-            return (int(self.width*(1-self.ratio)), self.height)
+            return (int(self.width*(1-self.ratio)), self.height )
 
 
     def get_child_position(self, this) -> tuple:
@@ -213,7 +195,6 @@ class HSplitContainer( SplitContainer ):
             return (x, y)
 
 
-
 class VSplitContainer( SplitContainer ):
     """container managing split view of two child containers,
     first child added is on bottom, second child on top
@@ -224,9 +205,9 @@ class VSplitContainer( SplitContainer ):
 
     def get_child_size(self, this) -> tuple:
         if this == self.children[0]:
-            return (self.width, int(self.height * self.ratio))
+            return (self.width , int(self.height * self.ratio) )
         else:
-            return (self.width, int(self.height * (1.0 - self.ratio)))
+            return (self.width , int(self.height * (1.0 - self.ratio)) )
 
 
     def get_child_position(self, this) -> tuple:
@@ -265,14 +246,12 @@ class ViewportContainer( Container ):
             group = group,
         )
 
-        self.camera : boxer.camera.Camera = camera or None
-        
         # camera
-        if not self.camera:
+        if not camera:
             print("if not self.camera %s"%self.window)
             print(type(self.window))
-            # self.camera = boxer.camera.get_default_camera( self.window )
-            self.camera = boxer.camera.get_default_camera( self.window )
+            camera = boxer.camera.get_default_camera( self.window )
+        self.camera = camera
 
 
     def begin(self) -> None:
@@ -305,7 +284,12 @@ if __name__ == "__main__":
     import pyglet.gl as gl
     sys.path.extend("..")
     import boxer.camera
+    import boxer.shaping
     from pyglet import app
+    from time import perf_counter
+    import math
+
+
 
     win = pyglet.window.Window( width=960, height=540 )
     batch = pyglet.graphics.Batch()
@@ -332,24 +316,30 @@ if __name__ == "__main__":
     cfh_right_vp = ViewportContainer(name="final_viewport", batch=batch, color=(255,255,255,255))
     c_fh.add_child( cfh_right_vp )
 
-    # c_r = VSplitContainer( name = "right panel", ratio =0.55, batch = batch )
-    # c.add_child( c_r )
-
-    # c_tr = HSplitContainer(name="top_right_panel", ratio=0.85, batch = batch)
-    # c_r.add_child( c_tr )
-    # c_tr_1 = Container(name="topright_h1_panel", batch = batch)
-    # c_tr.add_child(c_tr_1)
-    # c_tr_2 = Container(name="topright_h2_panel", batch = batch)
-    # c_tr.add_child(c_tr_2)
-
-    # c_vp = ViewportContainer(name="viewport_panel", batch = batch, color = (255, 20, 20, 255) )
-    # c_r.add_child( c_vp )
-
+    t1_start = perf_counter()
     c.update(count = 0)
+    t1_stop = perf_counter()
+
     c.pprint_tree()
+
+    # ---------------
+    print("time to 'update': %s"%( t1_stop - t1_start ))
+
+    gtime = 0.0
+    ss1 = 1.0
+    ss2 = 1.0
 
     @win.event
     def on_draw():
+        global gtime, ss1, ss2
+        gtime += 0.02
+        ss1 = boxer.shaping.remap(math.sin( gtime ), -1.0, 1.0, 0.75, 0.25)
+        ss2 = boxer.shaping.remap(math.sin( gtime * .2 + .7447), -1.0, 1.0, 0.75, 0.25)
+        c.ratio = ss1
+        c_r.ratio = ss2
+
+        c.update()
+
         win.clear()
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
