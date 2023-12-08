@@ -34,7 +34,8 @@ class Container( pyglet.event.EventDispatcher ):
 
         self.children = []
         self.parent = None
-            
+        self.is_leaf = False
+
         self._depth = 0
         self._node_id = None # unique number assigned during traversal
 
@@ -49,6 +50,7 @@ class Container( pyglet.event.EventDispatcher ):
         if child not in self.children:
             child.parent = self
             child.window = self.window
+            # child.connect_to_window_mouse_events( child.window )
             self.children.append( child )
 
 
@@ -103,17 +105,14 @@ class Container( pyglet.event.EventDispatcher ):
     def pprint_tree(self, depth : int = 0) -> None:
         """prety prints the structure, indented by depth"""
         self._depth = depth
-        print("    "*depth, "%s ( %s )"%(depth, self._node_id), "'%s'"%self.name, type(self).__name__ )#, "window: %s"%self.window)
+        print("    "*depth, "%s (id: %s )"%(depth, self._node_id), "'%s'"%self.name, type(self).__name__ )#, "window: %s"%self.window)
         print("    "*depth, "  > size:", self.get_available_size_from_parent(), "position:", self.get_position_from_parent() )
         for c in self.children:
             c.pprint_tree( depth+1 )
 
     
-    def update( self, depth : int = 0, count : int = 0 ) -> None:
+    def update_geometries( self ) -> None:
         """traverse all children and update all geometries, positions, etc"""
-        self._depth = depth
-        self._node_id = count
-        count += 1
         self.get_available_size_from_parent()
         self.get_position_from_parent()
 
@@ -140,7 +139,30 @@ class Container( pyglet.event.EventDispatcher ):
         self.lines["bottom"].y2 = self.position[1] + margin
 
         for c in self.children:
-            count = c.update( depth+1, count )
+            c.update_geometries()
+
+
+    def update_structure( self, depth : int = 0, count : int = 0 ) -> None:
+        """Update internal structure data, like is_leaf, unique ids, pushing and
+        popping events handlers.
+        Call this after adding or removing or replacing children of the tree."""
+
+        self._depth = depth
+        self._node_id = count
+        count += 1
+
+        if len(self.children) == 0:
+            self.is_leaf = True
+            # TODO: pushed mouse handlers --------------------------------------
+            self.window.push_handlers(on_mouse_motion=self.on_mouse_motion)
+            # ------------------------------------------------------------------
+        else:
+            self.is_leaf = False
+            # TODO: popped mouse handlers --------------------------------------
+            self.window.remove_handlers(on_mouse_motion=self.on_mouse_motion)
+            # ------------------------------------------------------------------
+            for c in self.children:
+                count = c.update_structure( depth+1, count )
         return count
 
 
@@ -149,6 +171,18 @@ class Container( pyglet.event.EventDispatcher ):
         # NO DRAW, ONLY BATCH.
         pass
 
+
+    def on_mouse_motion(self, x, y, ds, dy) -> None:
+        if point_in_box( x, y,
+                self.position[0],
+                self.position[1],
+                self.position[0]+self.width,
+                self.position[1]+self.height ):
+            print("%s %s %s"%(self.name, x, y))
+
+        # check point_in_self
+        # connect and forward mouse press/scroll/keypress etc events to active container
+        # 
 
 # ------------------------------------------------------------------------------
 # Container events
@@ -275,6 +309,13 @@ class ViewportContainer( Container ):
 
 
 # ------------------------------------------------------------------------------
+# utility
+
+def point_in_box( x, y, bottom_left_x, bottom_left_y, top_right_x, top_right_y ) -> bool:
+    return bottom_left_x <= x <= top_right_x and bottom_left_y <= y <= top_right_y
+
+
+# ------------------------------------------------------------------------------
 if __name__ == "__main__":
     print("run containers.py main:")
     
@@ -303,8 +344,6 @@ if __name__ == "__main__":
 
     c_r_one = Container(name="right_panel_bottom", batch = batch, color=(128, 255, 128, 128))
     c_r.add_child( c_r_one )
-    # c_r_two = Container( name="right_panel_top", batch = batch )
-    # c_r.add_child( c_r_two )
 
     c_fh = HSplitContainer(name="top_final_split", batch = batch, ratio = 0.05, color=(128,128,255,0))
     c_r.add_child( c_fh )
@@ -312,17 +351,18 @@ if __name__ == "__main__":
     cfh_left = VSplitContainer(name="final_split_left", batch=batch, color=(128,128,255,0))#, color=(255, 180, 10, 128))
     c_fh.add_child( cfh_left )
 
-    cfh_left_top = Container(name ="final_split_left_up", batch=batch, color=(255, 180, 10, 128))
+    cfh_left_top = Container(name ="final_split_left_bottom", batch=batch, color=(255, 180, 10, 128))
     cfh_left.add_child(cfh_left_top)
 
-    cfh_left_top = Container(name ="final_split_left_down", batch=batch, color=(255, 180, 10, 128))
+    cfh_left_top = Container(name ="final_split_left_top", batch=batch, color=(255, 180, 10, 128))
     cfh_left.add_child(cfh_left_top)
 
     cfh_right_vp = ViewportContainer(name="final_viewport", batch=batch, color=(255,255,255,128))
     c_fh.add_child( cfh_right_vp )
 
     t1_start = perf_counter()
-    c.update(count = 0)
+    c.update_structure()
+    c.update_geometries()#count = 0)
     t1_stop = perf_counter()
 
     c.pprint_tree()
@@ -334,6 +374,7 @@ if __name__ == "__main__":
     ss1 = 1.0
     ss2 = 1.0
     ss3 = 1.0
+    ss4 = 1.0
 
     @win.event
     def on_draw():
@@ -342,11 +383,13 @@ if __name__ == "__main__":
         ss1 = boxer.shaping.remap(math.sin( gtime *0.05 ), -1.0, 1.0, 0.2, 0.52)
         ss2 = boxer.shaping.remap(math.sin( gtime * .2 + .7447), -1.0, 1.0, 0.2, 0.82)
         ss3 = boxer.shaping.remap(math.sin( gtime * .9 + -.7447), -1.0, 1.0, 0.05, 0.15)
+        ss4 = boxer.shaping.remap(math.sin( gtime * 1.6 + -1.656), -1.0, 1.0, 0.3, 0.7)
         c.ratio = ss1
         c_r.ratio = ss2
         c_fh.ratio = ss3
+        cfh_left.ratio = ss4
 
-        c.update()
+        c.update_geometries()
 
         win.clear()
         gl.glEnable(gl.GL_BLEND)
