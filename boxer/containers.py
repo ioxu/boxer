@@ -117,7 +117,7 @@ class Container( pyglet.event.EventDispatcher ):
         self.get_available_size_from_parent()
         self.get_position_from_parent()
 
-        margin = 5
+        margin = 3
 
         self.lines["left"].x = self.position[0] + margin
         self.lines["left"].y = self.position[1] + margin
@@ -157,6 +157,7 @@ Container.register_event_type("mouse_exited")
 Container.register_event_type("resized")
 Container.register_event_type("split")
 Container.register_event_type("collapsed")
+# ------------------------------------------------------------------------------
 
 
 class SplitContainer( Container ):
@@ -178,19 +179,18 @@ class HSplitContainer( SplitContainer ):
 
     def get_child_size(self, this) -> tuple:
         if this == self.children[0]:
-            return (int(self.width*self.ratio), self.height )
+            return (math.floor(self.width*self.ratio), self.height )
         else:
-            return (int(self.width*(1-self.ratio)), self.height )
+            return (math.ceil(self.width*(1-self.ratio)), self.height )
 
 
     def get_child_position(self, this) -> tuple:
-        # print("HSplit method: get_child_position %s"%this)
         if this == self.children[0]:
             x = self.position[0]
             y = self.position[1]
             return (x, y)
         else:
-            x = self.position[0] + int(self.width*self.ratio)
+            x = self.position[0] + math.floor(self.width*self.ratio)
             y = self.position[1]
             return (x, y)
 
@@ -205,20 +205,19 @@ class VSplitContainer( SplitContainer ):
 
     def get_child_size(self, this) -> tuple:
         if this == self.children[0]:
-            return (self.width , int(self.height * self.ratio) )
+            return (self.width , math.floor(self.height * self.ratio) )
         else:
-            return (self.width , int(self.height * (1.0 - self.ratio)) )
+            return (self.width , math.ceil(self.height * (1.0 - self.ratio)) )
 
 
     def get_child_position(self, this) -> tuple:
-        # print("VSplit method: get_child_position %s"%this)
         if this == self.children[0]:
             x = self.position[0]
             y = self.position[1]
             return (x, y)
         else:
             x = self.position[0]
-            y = self.position[1] + int(self.height*self.ratio)
+            y = self.position[1] + math.floor(self.height*self.ratio)
             return (x, y)
 
 
@@ -295,25 +294,31 @@ if __name__ == "__main__":
     batch = pyglet.graphics.Batch()
 
     # container tree
-    c = HSplitContainer(name="root_container", ratio=0.3333, window = win, batch = batch)
+    c = HSplitContainer(name="root_container", ratio=0.36, window = win, batch = batch)
     c_l = Container(name = "left_panel", batch = batch)
     c.add_child( c_l )
 
-    c_r = VSplitContainer(name= "right_panel", batch = batch, ratio = 0.333)
+    c_r = VSplitContainer(name= "right_panel", batch = batch, ratio = 0.333,color=(128,128,255,0))
     c.add_child( c_r )
 
     c_r_one = Container(name="right_panel_bottom", batch = batch, color=(128, 255, 128, 128))
     c_r.add_child( c_r_one )
-    c_r_two = Container( name="right_panel_top", batch = batch )
-    c_r.add_child( c_r_two )
+    # c_r_two = Container( name="right_panel_top", batch = batch )
+    # c_r.add_child( c_r_two )
 
-    c_fh = HSplitContainer(name="top_final_split", batch = batch, ratio = 0.25)
-    c_r_two.add_child( c_fh )
+    c_fh = HSplitContainer(name="top_final_split", batch = batch, ratio = 0.05, color=(128,128,255,0))
+    c_r.add_child( c_fh )
 
-    cfh_left = Container(name="infal_split_left", batch=batch, color=(255, 180, 10, 128))
+    cfh_left = VSplitContainer(name="final_split_left", batch=batch, color=(128,128,255,0))#, color=(255, 180, 10, 128))
     c_fh.add_child( cfh_left )
 
-    cfh_right_vp = ViewportContainer(name="final_viewport", batch=batch, color=(255,255,255,255))
+    cfh_left_top = Container(name ="final_split_left_up", batch=batch, color=(255, 180, 10, 128))
+    cfh_left.add_child(cfh_left_top)
+
+    cfh_left_top = Container(name ="final_split_left_down", batch=batch, color=(255, 180, 10, 128))
+    cfh_left.add_child(cfh_left_top)
+
+    cfh_right_vp = ViewportContainer(name="final_viewport", batch=batch, color=(255,255,255,128))
     c_fh.add_child( cfh_right_vp )
 
     t1_start = perf_counter()
@@ -328,15 +333,18 @@ if __name__ == "__main__":
     gtime = 0.0
     ss1 = 1.0
     ss2 = 1.0
+    ss3 = 1.0
 
     @win.event
     def on_draw():
-        global gtime, ss1, ss2
+        global gtime, ss1, ss2, ss3
         gtime += 0.02
-        ss1 = boxer.shaping.remap(math.sin( gtime ), -1.0, 1.0, 0.75, 0.25)
-        ss2 = boxer.shaping.remap(math.sin( gtime * .2 + .7447), -1.0, 1.0, 0.75, 0.25)
+        ss1 = boxer.shaping.remap(math.sin( gtime *0.05 ), -1.0, 1.0, 0.2, 0.52)
+        ss2 = boxer.shaping.remap(math.sin( gtime * .2 + .7447), -1.0, 1.0, 0.2, 0.82)
+        ss3 = boxer.shaping.remap(math.sin( gtime * .9 + -.7447), -1.0, 1.0, 0.05, 0.15)
         c.ratio = ss1
         c_r.ratio = ss2
+        c_fh.ratio = ss3
 
         c.update()
 
