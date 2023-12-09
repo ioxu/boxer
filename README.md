@@ -12,16 +12,8 @@ Before a tree is drawn, call ``.update_geometries()`` on the root **Container**.
 
 ## Containers class diagram
 
-<script>
-  const callbackFunction = function () {
-    alert('A callback was triggered');
-  };
-</script>
-
 
 ```mermaid
-
-
 classDiagram
     class Container:::styleClass
     Container: +string name
