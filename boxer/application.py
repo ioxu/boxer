@@ -34,7 +34,7 @@ class Application(pyglet.event.EventDispatcher):
             name = "boxer",
             res_x = 900,
             res_y = 600):
-        
+
         self.name = name
         print("starting %s"%self)
 
@@ -66,7 +66,7 @@ class Application(pyglet.event.EventDispatcher):
 
         # app components:
         self.background = boxer.background.Background()
-        
+
         self.mouse = boxer.mouse.Mouse()
         self.window.push_handlers( self.mouse )
         self.window.set_mouse_cursor(self.mouse)
@@ -83,7 +83,7 @@ class Application(pyglet.event.EventDispatcher):
         # imgui
         self.ui = boxer.ui.Ui( application_root=self )
         self.ui.push_handlers(on_parameter_changed=self.on_parameter_change) # register to Ui events
-        
+
         # imgui.create_context()
         self._imgui_io = imgui.get_io()
         # self.imgui_renderer = create_renderer(self.window)
@@ -118,7 +118,7 @@ class Application(pyglet.event.EventDispatcher):
 
         self.test_handles = []
         self.test_handles_batch = pyglet.graphics.Batch()
-        
+
         for i in range(1):
             rx = random.random()*600
             ry = random.random()*600 -150
@@ -159,7 +159,7 @@ class Application(pyglet.event.EventDispatcher):
         `browse` : bool
             spawn a filebrowser if necessary, otherwise pass.
         """
-        
+
         if self.file_path != "" and not save_as:
             print("Ctrl-S to %s"%self.file_path)
             self.save_to_file( self.file_path )
@@ -176,7 +176,7 @@ class Application(pyglet.event.EventDispatcher):
         
         Returns True if saved, Fales if file_path is empty
         """
-        
+
         if file_path == '':
             return False
 
@@ -205,6 +205,7 @@ class Application(pyglet.event.EventDispatcher):
 
 
     def as_json(self)->dict:
+        """json string"""
         return{
             "name":self.name,
         }
@@ -233,11 +234,6 @@ class Application(pyglet.event.EventDispatcher):
 
         self.background.draw()
 
-
-        
-        
-        
-        
         line_width = 3.0 * self.camera.zoom
         gl.glLineWidth(line_width)
 
@@ -323,10 +319,10 @@ class Application(pyglet.event.EventDispatcher):
 			# reset camera
             print("reset camera")
             self.camera.reset()
-        
+
         if symbol == key.ESCAPE:
             return pyglet.event.EVENT_HANDLED 
-        
+
         # Save: Ctrl-S
         if symbol == key.S: 
             if modifiers & key.MOD_CTRL and modifiers & key.MOD_SHIFT:
@@ -343,11 +339,13 @@ class Application(pyglet.event.EventDispatcher):
 
 
     def toggle_fullscreen(self) -> None:
+        """toggles fullscreen window mode"""
         self.fullscreen = not self.fullscreen
         self.window.set_fullscreen( self.fullscreen )
 
 
     def on_mouse_motion(self, x,y,ds,dy):
+        """window mouse event"""
         # set mouse cursor if ImGui wants to capture the mouse:
         # must use a little bit of imgui logic here because imgui sets its own cursors
         # so we need to convert imgui cursor ID to pyglet system mouse cursor ID.
@@ -393,6 +391,7 @@ class Application(pyglet.event.EventDispatcher):
 
 
     def on_mouse_release(self, x, y, buttons, modifiers):
+        """window mouse event"""
     #     print("on_mouse_release self._imgui_io.want_capture_mouse %s"%self._imgui_io.want_capture_mouse)
     #     if self._imgui_io.want_capture_mouse:
     # #         return pyglet.event.EVENT_HANDLED
@@ -408,16 +407,19 @@ class Application(pyglet.event.EventDispatcher):
 
     # test event ###############################################################
     def on_parameter_change(self, event_arg):
+        """test callback linked to broadcast event"""
         print("dispatched event: 'on_parameter_change' %s"%event_arg)
         #print("%s %s"%[event_arg[0], str(event_arg[1:])])
     ############################################################################
 
     def on_close(self):
+        """window event"""
         print("%s on_close"%self)
         self.ui.on_close()
 
 
     def on_resize(self, width, height) -> None:
+        """window event"""
         print("applicaton.window.on_resize = (%s, %s)"%(width, height))
 
 

@@ -159,8 +159,8 @@ class Container( pyglet.event.EventDispatcher ):
         self._depth = depth
         print("    "*depth, "%s (id: %s )"%(depth, self._node_id), "'%s'"%self.name, type(self).__name__ )#, "window: %s"%self.window)
         print("    "*depth, "  > size:", self.get_available_size_from_parent(), "position:", self.get_position_from_parent() )
-        for c in self.children:
-            c.pprint_tree( depth+1 )
+        for child in self.children:
+            child.pprint_tree( depth+1 )
 
 
     def update_geometries( self ) -> None:
