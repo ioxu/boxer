@@ -27,7 +27,11 @@ class Arc( pyglet.shapes.Arc ):
         self._group.unset_state_recursive()
 
 
-def rectangle_centered_vertices( centre_x:float, centre_y:float, width:float, height:float ) -> tuple:
+def rectangle_centered_vertices(\
+        centre_x:float,
+        centre_y:float,
+        width:float,
+        height:float ) -> tuple:
     """
     Create counter-clockwise vertices for a 2d rectangle centred on a position, on the XY plane
     
@@ -47,7 +51,11 @@ def rectangle_centered_vertices( centre_x:float, centre_y:float, width:float, he
             -width/2.0 + centre_x, height/2.0 + centre_y, 0.0 )
 
 
-def quad_texcoords( scale_u : float = 1.0, scale_v : float = 1.0, offset_u : float = 0.0, offset_v : float = 0.0) -> tuple:
+def quad_texcoords(
+        scale_u : float = 1.0,
+        scale_v : float = 1.0,
+        offset_u : float = 0.0,
+        offset_v : float = 0.0) -> tuple:
     """
     create counter-clockwise UVW vertices for texture coords for a quad, on the UV plane
     
@@ -82,4 +90,10 @@ def quad_texcoords( scale_u : float = 1.0, scale_v : float = 1.0, offset_u : flo
              0.0 + offset_u, 1.0 * scale_v + offset_v, 0.0)
 
 
+# ------------------------------------------------------------------------------
 
+def point_in_box( x, y, bottom_left_x, bottom_left_y, top_right_x, top_right_y ) -> bool:
+    """test if point is inside a box
+    :returns
+        bool : True if inside box"""
+    return bottom_left_x <= x <= top_right_x and bottom_left_y <= y <= top_right_y

@@ -1,21 +1,28 @@
+"""boxer Application object"""
+
+import os
+import math
+#import types
+import random
+import pyglet
+import pyglet.gl as gl
+from pyglet.window import key
+import imgui
+
+#from colour import Color
+
 import boxer.background
 import boxer.mouse
 import boxer.camera
 import boxer.ui
 import boxer.handles
 
-import pyglet
-import pyglet.gl as gl
-from pyglet.window import key
 
-import imgui
+
 # from imgui.integrations.pyglet import create_renderer
 
-from colour import Color
-import os, math, types
 
 #----------------
-import random
 #----------------
 
 class Application(pyglet.event.EventDispatcher):
@@ -43,14 +50,15 @@ class Application(pyglet.event.EventDispatcher):
         self.fullscreen = False
 
 
-        self.on_close = self.window.event(self.on_close)
-        self.on_draw = self.window.event(self.on_draw)
-        self.on_key_press = self.window.event(self.on_key_press)
-        self.on_mouse_motion = self.window.event(self.on_mouse_motion)
-        self.on_mouse_release = self.window.event(self.on_mouse_release)
+        self.on_close = self.window.event( self.on_close )
+        self.on_draw = self.window.event( self.on_draw )
+        self.on_key_press = self.window.event( self.on_key_press )
+        self.on_mouse_motion = self.window.event (self.on_mouse_motion )
+        self.on_mouse_release = self.window.event( self.on_mouse_release )
         # self.on_mouse_scroll = self.window.event(self.on_mouse_scroll)
         # self.on_mouse_drag = self.window.event(self.on_mouse_drag)
         # self.on_mouse_press = self.window.event(self.on_mouse_press)
+        self.on_resize = self.window.event( self.on_resize )
 
         self.fps_display = pyglet.window.FPSDisplay(self.window)
         self.fps_display.update_period = 0.2
@@ -409,6 +417,10 @@ class Application(pyglet.event.EventDispatcher):
         self.ui.on_close()
 
 
+    def on_resize(self, width, height) -> None:
+        print("applicaton.window.on_resize = (%s, %s)"%(width, height))
+
+
 # ------------------------------------------------------------------------------
 # Application events
 Application.register_event_type("ui_mouse_entered")
@@ -439,4 +451,8 @@ def _create_window(res_x, res_y):
 
 # ------------------------------------------------------------------------------
 def to_255i(in_tuple : tuple)->tuple:
+    """Converts a tuple of assumed 0.0-1.0 range float into a tuple of 
+    0-255 range integers.
+    For color tuples.
+    """
     return tuple([int(i*255) for i in in_tuple])

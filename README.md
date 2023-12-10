@@ -10,6 +10,8 @@ Once a tree is constructed, call ``.update_structure()`` to initialise the tree'
 
 Before a tree is drawn, call ``.update_geometries()`` on the root **Container**.
 
+Call ``.update_geometries()`` in the ``window.on_resize()`` event
+
 ## Containers class diagram
 
 
