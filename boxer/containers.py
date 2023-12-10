@@ -43,6 +43,7 @@ class Container( pyglet.event.EventDispatcher ):
             window : pyglet.window.Window = None,
             width : int = 128,
             height : int = 128,
+            use_explicit_dimensions : bool = False,
             position : pyglet.math.Vec2 = pyglet.math.Vec2(),
             color = (255, 255, 255, 60),
             batch : pyglet.graphics.Batch = None,
@@ -54,6 +55,7 @@ class Container( pyglet.event.EventDispatcher ):
         self.width = width
         self.height = height
         self.position : pyglet.math.Vec2 = position
+        self.use_explicit_dimensions = use_explicit_dimensions 
         self.color = color
         self.batch = batch
         self.group = group
@@ -104,7 +106,10 @@ class Container( pyglet.event.EventDispatcher ):
 
     def get_available_size_from_parent( self ) -> tuple:
         """ask parent for available size"""
-        if hasattr(self.parent, "get_child_size"):
+        if self.use_explicit_dimensions:
+            # do not modify size
+            return (self.width, self.height)
+        elif hasattr(self.parent, "get_child_size"):
             # likely a Container 
             ps = self.parent.get_child_size( self )
             self.width = ps[0]
@@ -121,15 +126,21 @@ class Container( pyglet.event.EventDispatcher ):
 
 
     def get_child_position(self, this):
+        """the function that a child node will ask self for a position
+        to place the child"""
         return self.position
 
 
     def get_position_from_parent( self ) -> tuple:
-        if hasattr(self.parent, "get_child_position"):
+        """ask this node's parennt of a position to place self"""
+        if self.use_explicit_dimensions:
+            # do not modify position
+            pass
+        elif hasattr(self.parent, "get_child_position"):
             # likely a Container
             self.position = self.parent.get_child_position( self )
             return self.position
-        elif self.parent == None:
+        elif self.parent is None:
             # maybe its a pyglet.window.Window ?
             self.position = (0,0)
             return self.position
@@ -203,7 +214,7 @@ class Container( pyglet.event.EventDispatcher ):
                 lk[1].width = 1
                 lk[1].opacity = self._lines_original_color[3]
                 # self.lines[lk].width = 1
-    
+
         for child in self.children:
             child.update_geometries()
 
@@ -228,8 +239,8 @@ class Container( pyglet.event.EventDispatcher ):
             # TODO: popped mouse handlers --------------------------------------
             self.window.remove_handlers(on_mouse_motion=self.on_mouse_motion)
             # ------------------------------------------------------------------
-            for c in self.children:
-                count = c.update_structure( depth+1, count )
+            for child in self.children:
+                count = child.update_structure( depth+1, count )
         return count
 
 
@@ -333,6 +344,7 @@ class ViewportContainer( Container ):
             width : int = 128,
             height : int = 128,
             position : pyglet.math.Vec2 = pyglet.math.Vec2(),
+            use_explicit_dimensions : bool = False,
             window : pyglet.window.Window = None,
             camera : boxer.camera.Camera = None,
             color = (255, 255, 255, 255),
@@ -344,6 +356,7 @@ class ViewportContainer( Container ):
             width = width,
             height = height,
             position = position,
+            use_explicit_dimensions = use_explicit_dimensions,
             window = window,
             color = color,
             batch = batch,
@@ -407,14 +420,15 @@ if __name__ == "__main__":
     # test container events:
     def mouse_entered_container( container ) -> None:
         """test"""
-        print("<-- mouse entered %s"%container.name)
+        print("--> mouse entered %s"%container.name)
 
     def mouse_exited_container( container ) -> None:
         """test"""
-        print("--> mouse exited %s"%container.name)
+        print("o-- mouse exited %s"%container.name)
 
     # container tree
     c = HSplitContainer(name="root_container", ratio=0.36, window = win, batch = batch)
+    # c = HSplitContainer(name="root_container", ratio=0.36, window = win, batch = batch, position=pyglet.math.Vec2(50,50), width= 256, height=256, use_explicit_dimensions=True)
     c.push_handlers( mouse_entered = mouse_entered_container )
     c.push_handlers( mouse_exited = mouse_exited_container )
     c_l = Container(name = "left_panel", batch = batch)
@@ -476,11 +490,13 @@ if __name__ == "__main__":
 
     @win.event
     def on_resize( width, height ):
+        """resize"""
         print("on_resize (%s, %s)"%(width, height))
         c.update_geometries()
 
     @win.event
     def on_draw():
+        """draw"""
         global gtime, ss1, ss2, ss3
         gtime += 0.02
         ss1 = boxer.shaping.remap(math.sin( gtime *0.05 ), -1.0, 1.0, 0.2, 0.52)
