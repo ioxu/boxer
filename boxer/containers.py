@@ -37,7 +37,7 @@ class Container( pyglet.event.EventDispatcher ):
     This updates node depths, unique id and identifies leaves in the tree.
 
     The tree leaves are connected to the window's `on_mouse` events.
-    """ 
+    """
     def __init__(self,
             name="container",
             window : pyglet.window.Window = None,
@@ -70,10 +70,18 @@ class Container( pyglet.event.EventDispatcher ):
         self._node_id = None # unique number assigned during traversal
 
         self.lines = {}
-        self.lines["left"] = pyglet.shapes.Line( 0, 0, 1, 0, batch = self.batch, color = self.color )
-        self.lines["top"] = pyglet.shapes.Line( 0, 0, 1, 0, batch = self.batch, color = self.color )
-        self.lines["right"] = pyglet.shapes.Line( 0, 0, 1, 0, batch = self.batch, color = self.color )
-        self.lines["bottom"] = pyglet.shapes.Line( 0, 0, 1, 0, batch = self.batch, color = self.color )
+        self.lines["left"] = pyglet.shapes.Line( 0, 0, 1, 0,
+                                            batch = self.batch,
+                                            color = self.color )
+        self.lines["top"] = pyglet.shapes.Line( 0, 0, 1, 0,
+                                            batch = self.batch,
+                                            color = self.color )
+        self.lines["right"] = pyglet.shapes.Line( 0, 0, 1, 0,
+                                            batch = self.batch,
+                                            color = self.color )
+        self.lines["bottom"] = pyglet.shapes.Line( 0, 0, 1, 0,
+                                            batch = self.batch,
+                                            color = self.color )
 
         self._lines_original_color = self.color
 
@@ -109,20 +117,21 @@ class Container( pyglet.event.EventDispatcher ):
         if self.use_explicit_dimensions:
             # do not modify size
             return (self.width, self.height)
-        elif hasattr(self.parent, "get_child_size"):
+        if hasattr(self.parent, "get_child_size"):
             # likely a Container 
             ps = self.parent.get_child_size( self )
             self.width = ps[0]
             self.height = ps[1]
             return (self.width, self.height)
-        elif self.parent is None:
+        if self.parent is None:
             # maybe it's a pyglet.window.Window ?
-            ws = self.window.get_size()
-            self.width = ws[0]
-            self.height = ws[1]
-            return (self.width, self.height)#
-        else:
-            return (None, None)
+            # if not do not modify dimensions
+            if self.window:
+                ws = self.window.get_size()
+                self.width = ws[0]
+                self.height = ws[1]
+            return (self.width, self.height)
+        return (None, None)
 
 
     def get_child_position(self, this):
@@ -135,21 +144,21 @@ class Container( pyglet.event.EventDispatcher ):
         """ask this node's parennt of a position to place self"""
         if self.use_explicit_dimensions:
             # do not modify position
-            pass
-        elif hasattr(self.parent, "get_child_position"):
+            return self.position
+        if hasattr(self.parent, "get_child_position"):
             # likely a Container
             self.position = self.parent.get_child_position( self )
             return self.position
-        elif self.parent is None:
+        if self.parent is None:
             # maybe its a pyglet.window.Window ?
-            self.position = (0,0)
+            if self.window and not self.use_explicit_dimensions:
+                self.position = (0,0)
             return self.position
-        else:
-            return (None, None)
+        return (None, None)
 
 
     @ property
-    def get_child_count(self):
+    def child_count(self):
         """return the number of children"""
         return len(self.children)
 
@@ -231,17 +240,30 @@ class Container( pyglet.event.EventDispatcher ):
         if len(self.children) == 0:
             self.is_leaf = True
             # TODO: pushed mouse handlers --------------------------------------
-            self.window.push_handlers(on_mouse_motion=self.on_mouse_motion)
+            if self.window:
+                self.window.push_handlers(on_mouse_motion=self.on_mouse_motion)
             # ------------------------------------------------------------------
         else:
             self.is_leaf = False
             self.mouse_inside = False
             # TODO: popped mouse handlers --------------------------------------
-            self.window.remove_handlers(on_mouse_motion=self.on_mouse_motion)
+            if self.window:
+                self.window.remove_handlers(on_mouse_motion=self.on_mouse_motion)
             # ------------------------------------------------------------------
             for child in self.children:
                 count = child.update_structure( depth+1, count )
         return count
+
+
+    def update(self) -> None:
+        """update both geometries and structure
+        
+        calls
+        self.update_structure()
+        self.update_geometries()
+        """
+        self.update_structure()
+        self.update_geometries()
 
 
     def draw(self):
@@ -396,16 +418,16 @@ class ViewportContainer( Container ):
 # ------------------------------------------------------------------------------
 if __name__ == "__main__":
     print("run containers.py main:")
-    
+
     import sys
-    import pyglet.window
-    import pyglet.gl as gl
+    # import pyglet.gl as gl
     sys.path.extend("..")
-    import boxer.camera
-    import boxer.shaping
+    # import boxer.camera
+    import pyglet.window
     from pyglet import app
+    import boxer.shaping
     from time import perf_counter
-    import math
+    # import math
 
     _window_config = gl.Config(
         sample_buffers = 1,
@@ -415,7 +437,7 @@ if __name__ == "__main__":
     )
 
     win = pyglet.window.Window( width=960, height=540, config=_window_config )
-    batch = pyglet.graphics.Batch()
+    line_batch = pyglet.graphics.Batch()
 
     # test container events:
     def mouse_entered_container( container ) -> None:
@@ -427,46 +449,54 @@ if __name__ == "__main__":
         print("o-- mouse exited %s"%container.name)
 
     # container tree
-    c = HSplitContainer(name="root_container", ratio=0.36, window = win, batch = batch)
-    # c = HSplitContainer(name="root_container", ratio=0.36, window = win, batch = batch, position=pyglet.math.Vec2(50,50), width= 256, height=256, use_explicit_dimensions=True)
+    #c = HSplitContainer(name="root_container", ratio=0.36, window = win, batch = line_batch)
+    c = HSplitContainer(name="root_container",
+                        ratio=0.36,
+                        window = win,
+                        batch = line_batch,
+                        position=pyglet.math.Vec2(50,50),
+                        width= 320,
+                        height=320,
+                        use_explicit_dimensions=True)
+    
     c.push_handlers( mouse_entered = mouse_entered_container )
     c.push_handlers( mouse_exited = mouse_exited_container )
-    c_l = Container(name = "left_panel", batch = batch)
+    c_l = Container(name = "left_panel", batch = line_batch)
     c_l.push_handlers( mouse_entered = mouse_entered_container )
     c_l.push_handlers( mouse_exited = mouse_exited_container )
     c.add_child( c_l )
 
-    c_r = VSplitContainer(name= "right_panel", batch = batch, ratio = 0.333,color=(128,128,255,0))
+    c_r = VSplitContainer(name= "right_panel", batch = line_batch, ratio = 0.333,color=(128,128,255,0))
     c_r.push_handlers( mouse_entered = mouse_entered_container )
     c_r.push_handlers( mouse_exited = mouse_exited_container )
     c.add_child( c_r )
 
-    c_r_one = Container(name="right_panel_bottom", batch = batch, color=(128, 255, 128, 128))
+    c_r_one = Container(name="right_panel_bottom", batch = line_batch, color=(128, 255, 128, 128))
     c_r_one.push_handlers( mouse_entered = mouse_entered_container )
     c_r_one.push_handlers( mouse_exited = mouse_exited_container )
     c_r.add_child( c_r_one )
 
-    c_fh = HSplitContainer(name="top_final_split", batch = batch, ratio = 0.05, color=(128,128,255,0))
+    c_fh = HSplitContainer(name="top_final_split", batch = line_batch, ratio = 0.05, color=(128,128,255,0))
     c_fh.push_handlers( mouse_entered = mouse_entered_container )
     c_fh.push_handlers( mouse_exited = mouse_exited_container )
     c_r.add_child( c_fh )
 
-    cfh_left = VSplitContainer(name="final_split_left", batch=batch, color=(128,128,255,0))#, color=(255, 180, 10, 128))
+    cfh_left = VSplitContainer(name="final_split_left", batch=line_batch, color=(128,128,255,0))#, color=(255, 180, 10, 128))
     cfh_left.push_handlers( mouse_entered = mouse_entered_container )
     cfh_left.push_handlers( mouse_exited = mouse_exited_container )
     c_fh.add_child( cfh_left )
 
-    cfh_left_bottom = Container(name ="final_split_left_bottom", batch=batch, color=(255, 180, 10, 128))
+    cfh_left_bottom = Container(name ="final_split_left_bottom", batch=line_batch, color=(255, 180, 10, 128))
     cfh_left_bottom.push_handlers( mouse_entered = mouse_entered_container )
     cfh_left_bottom.push_handlers( mouse_exited = mouse_exited_container )
     cfh_left.add_child(cfh_left_bottom)
 
-    cfh_left_top = Container(name ="final_split_left_top", batch=batch, color=(255, 180, 10, 128))
+    cfh_left_top = Container(name ="final_split_left_top", batch=line_batch, color=(255, 180, 10, 128))
     cfh_left_top.push_handlers( mouse_entered = mouse_entered_container )
     cfh_left_top.push_handlers( mouse_exited = mouse_exited_container )
     cfh_left.add_child(cfh_left_top)
 
-    cfh_right_vp = ViewportContainer(name="final_viewport", batch=batch, color=(255,255,255,128))
+    cfh_right_vp = ViewportContainer(name="final_viewport", batch=line_batch, color=(255,255,255,128))
     cfh_right_vp.push_handlers( mouse_entered = mouse_entered_container )
     cfh_right_vp.push_handlers( mouse_exited = mouse_exited_container )
     c_fh.add_child( cfh_right_vp )
@@ -513,6 +543,6 @@ if __name__ == "__main__":
         win.clear()
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        batch.draw()
+        line_batch.draw()
 
     app.run()

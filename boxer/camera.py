@@ -45,6 +45,7 @@ class Camera(pyglet.event.EventDispatcher):
 
 
     def as_json(self) -> dict:
+        """write self as json string"""
         return {
             "transform": self.transform,
             "position": self.get_position(),
@@ -53,30 +54,39 @@ class Camera(pyglet.event.EventDispatcher):
 
 
     def enable(self) -> None:
+        """enables input for the camera"""
         self.enabled = True
 
 
     def disable(self) -> None:
+        """disable the camera
+        for temporarily ignoring mouse input, etc.  
+        """
         self.enabled = False
 
 
     def reset(self) -> None:
-        """
-        reset the camera zoom and translation to be centered on the origin of the worksheet
+        """reset the camera zoom and translation to be centered on
+        the origin of the worksheet.
         """
         # TODO : update for Viewports
         if self.window:
             window_size = self.window.get_size()
             print("camera.window.size = %s"%str(window_size))
             self.zoom = 1.0
-            self.transform = pyglet.math.Mat4.from_translation( pyglet.math.Vec3( window_size[0]/2.0, window_size[1]/2.0 , 0.0) )
+            t = pyglet.math.Vec3( window_size[0]/2.0, window_size[1]/2.0 , 0.0)
+            self.transform = pyglet.math.Mat4.from_translation( t )
 
 
     def push(self) -> None:
+        """push a view transform onto the window"""
         self.window.view = self.transform #@ pyglet.math.Mat4().from_scale( pyglet.math.Vec3(2.0, 1.0, 1.0) )
 
 
     def pop(self) -> None:
+        """pop a view transform from the window
+        (actually just set the view to identity,
+        seeing as we don't maintain a stack)"""
         self.window.view = pyglet.math.Mat4()
 
 

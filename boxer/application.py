@@ -205,7 +205,7 @@ class Application(pyglet.event.EventDispatcher):
 
 
     def as_json(self)->dict:
-        """json string"""
+        """write self as json string"""
         return{
             "name":self.name,
         }
