@@ -40,6 +40,12 @@ class Container( pyglet.event.EventDispatcher ):
 
     The tree leaves are connected to the window's `on_mouse` events.
     """
+
+    cog_image = pyglet.image.load("boxer/resources/cog_16.png")
+    textures = {
+        "cog" : cog_image.get_texture(),
+    }
+
     def __init__(self,
             name="container",
             window : pyglet.window.Window = None,
@@ -279,6 +285,21 @@ class Container( pyglet.event.EventDispatcher ):
         #     imgui.new_frame()
         #     imgui.render()
         #     imgui.end_frame()
+        pos = self.position
+
+        container_imwindow_flags = imgui.WINDOW_NO_TITLE_BAR\
+                            | imgui.WINDOW_NO_BACKGROUND\
+                            | imgui.WINDOW_NO_RESIZE\
+                            | imgui.WINDOW_NO_SAVED_SETTINGS
+
+        container_imwindow_flags2 = imgui.WINDOW_NO_BACKGROUND\
+                            | imgui.WINDOW_NO_RESIZE\
+                            | imgui.WINDOW_NO_SAVED_SETTINGS
+
+        imgui.set_next_window_position(pos[0], self.window.height - pos[1] - self.height)
+        imgui.set_next_window_size(self.width-1, self.height)
+        with imgui.begin(self.name, flags = container_imwindow_flags2 ) as imgui_window:
+            imgui.image_button( self.textures["cog"].id, 16, 16 )
 
 
     def on_mouse_motion(self, x, y, ds, dy) -> None:
@@ -430,6 +451,7 @@ if __name__ == "__main__":
     print("run containers.py main:")
 
     import sys
+    from imgui.integrations.pyglet import create_renderer
     # import pyglet.gl as gl
     sys.path.extend("..")
     # import boxer.camera
@@ -449,7 +471,7 @@ if __name__ == "__main__":
     win = pyglet.window.Window( width=960, height=540, config=_window_config )
     line_batch = pyglet.graphics.Batch()
 
-    # test container events:
+    # test container events: ---------------------------------------------------
     def mouse_entered_container( container ) -> None:
         """test"""
         print("--> mouse entered %s"%container.name)
@@ -458,8 +480,17 @@ if __name__ == "__main__":
         """test"""
         print("o-- mouse exited %s"%container.name)
 
-    # container tree
-    #c = HSplitContainer(name="root_container", ratio=0.36, window = win, batch = line_batch)
+    # imgui --------------------------------------------------------------------
+    imgui.create_context()
+    imgui_renderer = create_renderer(win)
+    imgui_io = imgui.get_io()
+    font_default = imgui_io.fonts.add_font_from_file_ttf("boxer/resources/fonts/DejaVuSansCondensed.ttf", 14 )
+    font_t1 = imgui_io.fonts.add_font_from_file_ttf("boxer/resources/fonts/DejaVuSansCondensed.ttf", 23 )
+    imgui_renderer.refresh_font_texture()
+
+
+    # container tree -----------------------------------------------------------
+    # c = HSplitContainer(name="root_container", ratio=0.36, window = win, batch = line_batch)
     c = HSplitContainer(name="root_container",
                         ratio=0.36,
                         window = win,
@@ -535,29 +566,44 @@ if __name__ == "__main__":
     @win.event
     def on_resize( width, height ):
         """resize"""
-        print("on_resize (%s, %s)"%(width, height))
+        # print("on_resize (%s, %s)"%(width, height))
         c.update_geometries()
 
     @win.event
     def on_draw():
         """draw"""
-        # global gtime, ss1, ss2, ss3
-        # gtime += 0.02
-        # ss1 = boxer.shaping.remap(math.sin( gtime *0.05 ), -1.0, 1.0, 0.2, 0.52)
-        # ss2 = boxer.shaping.remap(math.sin( gtime * .2 + .7447), -1.0, 1.0, 0.2, 0.82)
-        # ss3 = boxer.shaping.remap(math.sin( gtime * .9 + -.7447), -1.0, 1.0, 0.45, 0.5)
-        # ss4 = boxer.shaping.remap(math.sin( gtime * 1.6 + -1.656), -1.0, 1.0, 0.3, 0.7)
-        # c.ratio = ss1
-        # c_r.ratio = ss2
-        # c_fh.ratio = ss3
-        # cfh_left.ratio = ss4
+        global gtime, ss1, ss2, ss3
+        gtime += 0.02
+        ss1 = boxer.shaping.remap(math.sin( gtime *0.05 ), -1.0, 1.0, 0.2, 0.52)
+        ss2 = boxer.shaping.remap(math.sin( gtime * .2 + .7447), -1.0, 1.0, 0.2, 0.82)
+        ss3 = boxer.shaping.remap(math.sin( gtime * .9 + -.7447), -1.0, 1.0, 0.45, 0.5)
+        ss4 = boxer.shaping.remap(math.sin( gtime * 1.6 + -1.656), -1.0, 1.0, 0.3, 0.7)
+        c.ratio = ss1
+        c_r.ratio = ss2
+        c_fh.ratio = ss3
+        cfh_left.ratio = ss4
 
         c.update_geometries()
 
         win.clear()
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+
+
+        # imgui.set_next_window_position(0, 0)
+        # imgui.set_next_window_size( win.size[0], win.size[1], condition = imgui.ALWAYS )
+        imgui.new_frame()
+        # imgui.begin("Container imgui")
+        # imgui.push_font(font_default)
         line_batch.draw()
         for l in leaves:
             l.draw()
+        
+        # imgui.pop_font()
+        # imgui.end()
+        imgui.end_frame()
+
+        imgui.render()
+        imgui_renderer.render(imgui.get_draw_data())
+
     app.run()
