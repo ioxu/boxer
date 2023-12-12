@@ -15,6 +15,8 @@ import pyglet.shapes
 import boxer.camera
 import boxer.shapes
 
+import imgui
+
 # https://www.reddit.com/r/learnprogramming/comments/214nd9/making_a_gui_from_scratch/
 # https://developer.valvesoftware.com/wiki/VGUI_Documentation
 
@@ -52,6 +54,7 @@ class Container( pyglet.event.EventDispatcher ):
 
         self.name = name
         self.window = window
+        print("self.window: %s"%str(self.window))
         self.width = width
         self.height = height
         self.position : pyglet.math.Vec2 = position
@@ -62,6 +65,7 @@ class Container( pyglet.event.EventDispatcher ):
 
         self.children = []
         self.parent = None
+        self.leaves = []
         self.is_leaf = False
 
         self.mouse_inside = False
@@ -90,7 +94,7 @@ class Container( pyglet.event.EventDispatcher ):
                         x=0.0, y=0.0,
                         anchor_x='left', anchor_y='top',
                         batch=batch,
-                        color=(255,255,255,100),
+                        color=( 255, 255, 255, 50 ),
                         width = 100,
                         multiline=True,)
 
@@ -177,7 +181,7 @@ class Container( pyglet.event.EventDispatcher ):
         self.get_available_size_from_parent()
         self.get_position_from_parent()
 
-        margin = 3
+        margin = 0#3
 
         self.debug_label_name.x = self.position[0] + 5
         self.debug_label_name.y = self.position[1] + self.height - 2
@@ -189,7 +193,7 @@ class Container( pyglet.event.EventDispatcher ):
             str(self.mouse_inside)
 
         if self.is_leaf:
-            self.debug_label_name.opacity = 128
+            self.debug_label_name.opacity = 50
         else:
             self.debug_label_name.opacity = 0
 
@@ -216,11 +220,11 @@ class Container( pyglet.event.EventDispatcher ):
         if self.mouse_inside:
             for lk in self.lines.items(): #self.lines.keys():
                 # self.lines[lk].width = 3
-                lk[1].width = 1.5
+                lk[1].width = 0.5#1.5
                 lk[1].opacity = 255
         else:
             for lk in self.lines.items():#keys():
-                lk[1].width = 1
+                lk[1].width = .5
                 lk[1].opacity = self._lines_original_color[3]
                 # self.lines[lk].width = 1
 
@@ -228,7 +232,7 @@ class Container( pyglet.event.EventDispatcher ):
             child.update_geometries()
 
 
-    def update_structure( self, depth : int = 0, count : int = 0 ) -> None:
+    def update_structure( self, depth : int = 0, count : int = 0, leaves : list = list() ) -> int:
         """Update internal structure data, like is_leaf, unique ids, pushing and
         popping events handlers.
         Call this after adding or removing or replacing children of the tree."""
@@ -239,6 +243,7 @@ class Container( pyglet.event.EventDispatcher ):
 
         if len(self.children) == 0:
             self.is_leaf = True
+            leaves.append( self )
             # TODO: pushed mouse handlers --------------------------------------
             if self.window:
                 self.window.push_handlers(on_mouse_motion=self.on_mouse_motion)
@@ -251,8 +256,8 @@ class Container( pyglet.event.EventDispatcher ):
                 self.window.remove_handlers(on_mouse_motion=self.on_mouse_motion)
             # ------------------------------------------------------------------
             for child in self.children:
-                count = child.update_structure( depth+1, count )
-        return count
+                count, leaves = child.update_structure( depth+1, count, leaves )
+        return count, leaves
 
 
     def update(self) -> None:
@@ -270,6 +275,10 @@ class Container( pyglet.event.EventDispatcher ):
         """future draw method"""
         # maybe just draw a coloured outline
         # NO DRAW, ONLY BATCH.
+        # if self.is_leaf:
+        #     imgui.new_frame()
+        #     imgui.render()
+        #     imgui.end_frame()
 
 
     def on_mouse_motion(self, x, y, ds, dy) -> None:
@@ -317,9 +326,9 @@ class HSplitContainer( SplitContainer ):
 
     def get_child_size(self, this) -> tuple:
         if this == self.children[0]:
-            return (math.floor(self.width*self.ratio), self.height )
+            return (math.floor(self.width*self.ratio) -1 , self.height  )
         else:
-            return (math.ceil(self.width*(1-self.ratio)), self.height )
+            return (math.ceil(self.width*(1-self.ratio)), self.height  )
 
 
     def get_child_position(self, this) -> tuple:
@@ -343,9 +352,9 @@ class VSplitContainer( SplitContainer ):
 
     def get_child_size(self, this) -> tuple:
         if this == self.children[0]:
-            return (self.width , math.floor(self.height * self.ratio) )
+            return (self.width , math.floor(self.height * self.ratio) -1 )
         else:
-            return (self.width , math.ceil(self.height * (1.0 - self.ratio)) )
+            return (self.width , math.ceil(self.height * (1.0 - self.ratio))  )
 
 
     def get_child_position(self, this) -> tuple:
@@ -400,6 +409,7 @@ class ViewportContainer( Container ):
 
 
     def end(self) -> None:
+        """pop the camera from the viewport transform"""
         self.camera.pop()
 
 
@@ -407,11 +417,11 @@ class ViewportContainer( Container ):
         raise("ViewportContainers cannot contain children")
 
 
-    def draw(self) -> None:
-        # draw the viewport box
-        # draw viewport ornaments
-        # draw viewport GUI widgets, TODO: Viewport Widgets
-        pass
+    # def draw(self) -> None:
+    #     # draw the viewport box
+    #     # draw viewport ornaments
+    #     # draw viewport GUI widgets, TODO: Viewport Widgets
+    #     pass
 
 
 
@@ -431,7 +441,7 @@ if __name__ == "__main__":
 
     _window_config = gl.Config(
         sample_buffers = 1,
-        samples = 16,
+        samples = 1,#16,
         depth_size = 16,
         double_buffer = True,
     )
@@ -458,9 +468,9 @@ if __name__ == "__main__":
                         width= 320,
                         height=320,
                         use_explicit_dimensions=True)
-    
     c.push_handlers( mouse_entered = mouse_entered_container )
     c.push_handlers( mouse_exited = mouse_exited_container )
+
     c_l = Container(name = "left_panel", batch = line_batch)
     c_l.push_handlers( mouse_entered = mouse_entered_container )
     c_l.push_handlers( mouse_exited = mouse_exited_container )
@@ -476,7 +486,7 @@ if __name__ == "__main__":
     c_r_one.push_handlers( mouse_exited = mouse_exited_container )
     c_r.add_child( c_r_one )
 
-    c_fh = HSplitContainer(name="top_final_split", batch = line_batch, ratio = 0.05, color=(128,128,255,0))
+    c_fh = HSplitContainer(name="top_final_split", batch = line_batch, ratio = 0.65, color=(128,128,255,0))
     c_fh.push_handlers( mouse_entered = mouse_entered_container )
     c_fh.push_handlers( mouse_exited = mouse_exited_container )
     c_r.add_child( c_fh )
@@ -502,11 +512,15 @@ if __name__ == "__main__":
     c_fh.add_child( cfh_right_vp )
 
     t1_start = perf_counter()
-    c.update_structure()
+    count, leaves = c.update_structure()
     c.update_geometries()#count = 0)
     t1_stop = perf_counter()
 
     c.pprint_tree()
+
+    print("leaves:")
+    for leaf in leaves:
+        print("    %s"%leaf.name)
 
     # ---------------
     print("time to 'update': %s"%( t1_stop - t1_start ))
@@ -527,16 +541,16 @@ if __name__ == "__main__":
     @win.event
     def on_draw():
         """draw"""
-        global gtime, ss1, ss2, ss3
-        gtime += 0.02
-        ss1 = boxer.shaping.remap(math.sin( gtime *0.05 ), -1.0, 1.0, 0.2, 0.52)
-        ss2 = boxer.shaping.remap(math.sin( gtime * .2 + .7447), -1.0, 1.0, 0.2, 0.82)
-        ss3 = boxer.shaping.remap(math.sin( gtime * .9 + -.7447), -1.0, 1.0, 0.45, 0.5)
-        ss4 = boxer.shaping.remap(math.sin( gtime * 1.6 + -1.656), -1.0, 1.0, 0.3, 0.7)
-        c.ratio = ss1
-        c_r.ratio = ss2
-        c_fh.ratio = ss3
-        cfh_left.ratio = ss4
+        # global gtime, ss1, ss2, ss3
+        # gtime += 0.02
+        # ss1 = boxer.shaping.remap(math.sin( gtime *0.05 ), -1.0, 1.0, 0.2, 0.52)
+        # ss2 = boxer.shaping.remap(math.sin( gtime * .2 + .7447), -1.0, 1.0, 0.2, 0.82)
+        # ss3 = boxer.shaping.remap(math.sin( gtime * .9 + -.7447), -1.0, 1.0, 0.45, 0.5)
+        # ss4 = boxer.shaping.remap(math.sin( gtime * 1.6 + -1.656), -1.0, 1.0, 0.3, 0.7)
+        # c.ratio = ss1
+        # c_r.ratio = ss2
+        # c_fh.ratio = ss3
+        # cfh_left.ratio = ss4
 
         c.update_geometries()
 
@@ -544,5 +558,6 @@ if __name__ == "__main__":
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         line_batch.draw()
-
+        for l in leaves:
+            l.draw()
     app.run()
