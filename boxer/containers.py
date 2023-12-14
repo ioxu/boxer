@@ -42,8 +42,10 @@ class Container( pyglet.event.EventDispatcher ):
     """
 
     cog_image = pyglet.image.load("boxer/resources/cog_16.png")
+    window_image = pyglet.image.load("boxer/resources/window_16.png")
     textures = {
         "cog" : cog_image.get_texture(),
+        "window" : window_image.get_texture(),
     }
 
     def __init__(self,
@@ -100,10 +102,16 @@ class Container( pyglet.event.EventDispatcher ):
                         x=0.0, y=0.0,
                         anchor_x='left', anchor_y='top',
                         batch=batch,
-                        color=( 255, 255, 255, 50 ),
+                        color=( 255, 255, 255, 50),
                         width = 100,
                         multiline=True,)
 
+        # imgui
+        self.container_view_combo_selected = 0
+        self.container_view_combo_items = ["graph", "3d", "parameters", "spreadsheet", "python", "log"]
+
+        self.container_actions_combo_items = ["split orizontal", "split vertical", "close"]
+        self.container_actions_combo_selected =0
 
     def add_child(self, child) -> None:
         """add a child to this Container"""
@@ -199,7 +207,7 @@ class Container( pyglet.event.EventDispatcher ):
             str(self.mouse_inside)
 
         if self.is_leaf:
-            self.debug_label_name.opacity = 50
+            self.debug_label_name.opacity = 0#50
         else:
             self.debug_label_name.opacity = 0
 
@@ -287,19 +295,111 @@ class Container( pyglet.event.EventDispatcher ):
         #     imgui.end_frame()
         pos = self.position
 
+        # no decoration / no collapsible title bar
         container_imwindow_flags = imgui.WINDOW_NO_TITLE_BAR\
                             | imgui.WINDOW_NO_BACKGROUND\
                             | imgui.WINDOW_NO_RESIZE\
-                            | imgui.WINDOW_NO_SAVED_SETTINGS
+                            | imgui.WINDOW_NO_SAVED_SETTINGS\
+                            | imgui.WINDOW_NO_SCROLLBAR
 
+        # with title bar
         container_imwindow_flags2 = imgui.WINDOW_NO_BACKGROUND\
                             | imgui.WINDOW_NO_RESIZE\
                             | imgui.WINDOW_NO_SAVED_SETTINGS
 
-        imgui.set_next_window_position(pos[0], self.window.height - pos[1] - self.height)
-        imgui.set_next_window_size(self.width-1, self.height)
-        with imgui.begin(self.name, flags = container_imwindow_flags2 ) as imgui_window:
-            imgui.image_button( self.textures["cog"].id, 16, 16 )
+
+
+        imgui.set_next_window_position(\
+                            pos[0],
+                            self.window.height - pos[1] - self.height)
+        imgui.set_next_window_size(\
+                            self.width-1,
+                            self.height)
+
+        imgui.push_style_var(imgui.STYLE_WINDOW_PADDING , imgui.Vec2(0.0, 0.0))
+        with imgui.begin(self.name, flags = container_imwindow_flags ) as imgui_window:
+            imgui.push_clip_rect(\
+                            pos[0],
+                            self.window.height - pos[1] - self.height,
+                            pos[0] + self.width -1,
+                            self.window.height - pos[1] - 1)
+            imgui.push_style_var(imgui.STYLE_FRAME_PADDING, imgui.Vec2(1.0, 1.0))
+            imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(0.0, 0.0))
+            imgui.image_button( self.textures["cog"].id, 12, 12)
+            imgui.same_line()
+            imgui.image_button( self.textures["window"].id, 12, 12)
+            imgui.same_line()
+            
+            imgui.push_item_width(80)
+            # with imgui.begin_combo(\
+            #                 "",
+            #                 self.container_view_combo_items[self.container_view_combo_selected],
+            #                 flags = imgui.COMBO_NO_PREVIEW) as combo:
+            # # combo = imgui.begin_combo("",
+            # #                 self.container_view_combo_items[self.container_view_combo_selected],
+            # #                 flags = imgui.COMBO_NO_PREVIEW)
+            #     if combo.opened:
+            #         for i, item in enumerate(self.container_view_combo_items):
+            #             is_selected = (i==self.container_view_combo_selected)
+            #             if imgui.selectable( item, is_selected )[0]:
+            #                 self.container_view_combo_selected = i
+            #             if is_selected:
+            #                 imgui.set_item_default_focus()
+
+
+            if imgui.begin_combo(\
+                            "##view combo",
+                            self.container_view_combo_items[self.container_view_combo_selected],
+                            flags = imgui.COMBO_NO_PREVIEW):
+            # combo = imgui.begin_combo("",
+            #                 self.container_view_combo_items[self.container_view_combo_selected],
+            #                 flags = imgui.COMBO_NO_PREVIEW)
+                for i, item in enumerate(self.container_view_combo_items):
+                    is_selected = (i==self.container_view_combo_selected)
+                    if imgui.selectable( item, is_selected )[0]:
+                        self.container_view_combo_selected = i
+                    if is_selected:
+                        imgui.set_item_default_focus()
+                imgui.end_combo()
+
+            # imgui.end_combo()
+            imgui.pop_item_width()
+            
+            
+            imgui.set_cursor_pos( (self.width - 15, 0) )
+            # imgui.same_line()
+            
+            # imgui.image_button( self.textures["window"].id, 12, 12)
+
+            # with imgui.begin_combo(\
+            #             "",
+            #             "",
+            #             flags = imgui.COMBO_NO_PREVIEW) as action_combo:
+            #     if action_combo.opened:
+            #         for i2, item2 in enumerate(self.container_actions_combo_items):
+            #             is_selected_action = (i2==self.container_actions_combo_selected)
+            #             if imgui.selectable( item2, is_selected_action )[0]:
+            #                 self.container_actions_combo_selected = i2
+            #             # if is_selected:
+            #             #     imgui.set_item_default_focus()
+
+            if imgui.begin_combo(\
+                        "##action combo",
+                        self.container_actions_combo_items[self.container_actions_combo_selected],
+                        flags = imgui.COMBO_NO_PREVIEW):
+
+                imgui.set_cursor_pos((0,0))
+                for i2, item2 in enumerate(self.container_actions_combo_items):
+                    is_selected_action = (i2==self.container_actions_combo_selected)
+                    if imgui.selectable( item2, is_selected_action )[0]:
+                        self.container_actions_combo_selected = i2
+                    # if is_selected:
+                    #     imgui.set_item_default_focus()
+                imgui.end_combo()
+
+            imgui.pop_style_var(2)
+            imgui.pop_clip_rect()
+        imgui.pop_style_var()
 
 
     def on_mouse_motion(self, x, y, ds, dy) -> None:
@@ -496,7 +596,7 @@ if __name__ == "__main__":
                         window = win,
                         batch = line_batch,
                         position=pyglet.math.Vec2(50,50),
-                        width= 320,
+                        width= 615,
                         height=320,
                         use_explicit_dimensions=True)
     c.push_handlers( mouse_entered = mouse_entered_container )
@@ -590,8 +690,6 @@ if __name__ == "__main__":
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
 
-        # imgui.set_next_window_position(0, 0)
-        # imgui.set_next_window_size( win.size[0], win.size[1], condition = imgui.ALWAYS )
         imgui.new_frame()
         # imgui.begin("Container imgui")
         # imgui.push_font(font_default)
