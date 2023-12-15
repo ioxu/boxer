@@ -110,8 +110,9 @@ class Container( pyglet.event.EventDispatcher ):
         self.container_view_combo_selected = 0
         self.container_view_combo_items = ["graph", "3d", "parameters", "spreadsheet", "python", "log"]
 
-        self.container_actions_combo_items = ["split orizontal", "split vertical", "close"]
+        self.container_actions_combo_items = ["split horizontal", "split vertical", "close"]
         self.container_actions_combo_selected =0
+
 
     def add_child(self, child) -> None:
         """add a child to this Container"""
@@ -331,71 +332,40 @@ class Container( pyglet.event.EventDispatcher ):
             imgui.same_line()
             
             imgui.push_item_width(80)
-            # with imgui.begin_combo(\
-            #                 "",
-            #                 self.container_view_combo_items[self.container_view_combo_selected],
-            #                 flags = imgui.COMBO_NO_PREVIEW) as combo:
-            # # combo = imgui.begin_combo("",
-            # #                 self.container_view_combo_items[self.container_view_combo_selected],
-            # #                 flags = imgui.COMBO_NO_PREVIEW)
-            #     if combo.opened:
-            #         for i, item in enumerate(self.container_view_combo_items):
-            #             is_selected = (i==self.container_view_combo_selected)
-            #             if imgui.selectable( item, is_selected )[0]:
-            #                 self.container_view_combo_selected = i
-            #             if is_selected:
-            #                 imgui.set_item_default_focus()
 
-
+            # combo ------------------------------------------------------------
             if imgui.begin_combo(\
                             "##view combo",
                             self.container_view_combo_items[self.container_view_combo_selected],
                             flags = imgui.COMBO_NO_PREVIEW):
-            # combo = imgui.begin_combo("",
-            #                 self.container_view_combo_items[self.container_view_combo_selected],
-            #                 flags = imgui.COMBO_NO_PREVIEW)
+                imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(3.0, 3.0))
                 for i, item in enumerate(self.container_view_combo_items):
                     is_selected = (i==self.container_view_combo_selected)
                     if imgui.selectable( item, is_selected )[0]:
                         self.container_view_combo_selected = i
                     if is_selected:
                         imgui.set_item_default_focus()
+                imgui.pop_style_var(1)
                 imgui.end_combo()
+            # ------------------------------------------------------------------
 
-            # imgui.end_combo()
             imgui.pop_item_width()
-            
-            
             imgui.set_cursor_pos( (self.width - 15, 0) )
-            # imgui.same_line()
             
-            # imgui.image_button( self.textures["window"].id, 12, 12)
-
-            # with imgui.begin_combo(\
-            #             "",
-            #             "",
-            #             flags = imgui.COMBO_NO_PREVIEW) as action_combo:
-            #     if action_combo.opened:
-            #         for i2, item2 in enumerate(self.container_actions_combo_items):
-            #             is_selected_action = (i2==self.container_actions_combo_selected)
-            #             if imgui.selectable( item2, is_selected_action )[0]:
-            #                 self.container_actions_combo_selected = i2
-            #             # if is_selected:
-            #             #     imgui.set_item_default_focus()
-
+            # combo ------------------------------------------------------------
             if imgui.begin_combo(\
                         "##action combo",
                         self.container_actions_combo_items[self.container_actions_combo_selected],
                         flags = imgui.COMBO_NO_PREVIEW):
-
-                imgui.set_cursor_pos((0,0))
+                imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(3.0, 3.0))
                 for i2, item2 in enumerate(self.container_actions_combo_items):
-                    is_selected_action = (i2==self.container_actions_combo_selected)
-                    if imgui.selectable( item2, is_selected_action )[0]:
+                    if i2 == len(self.container_actions_combo_items) - 1:
+                        imgui.separator()
+                    if imgui.selectable( item2, selected = False )[0]:
                         self.container_actions_combo_selected = i2
-                    # if is_selected:
-                    #     imgui.set_item_default_focus()
+                imgui.pop_style_var(1)
                 imgui.end_combo()
+            # ------------------------------------------------------------------
 
             imgui.pop_style_var(2)
             imgui.pop_clip_rect()
@@ -692,12 +662,12 @@ if __name__ == "__main__":
 
         imgui.new_frame()
         # imgui.begin("Container imgui")
-        # imgui.push_font(font_default)
+        imgui.push_font(font_default)
         line_batch.draw()
         for l in leaves:
             l.draw()
         
-        # imgui.pop_font()
+        imgui.pop_font()
         # imgui.end()
         imgui.end_frame()
 
