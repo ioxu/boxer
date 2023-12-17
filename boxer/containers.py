@@ -110,7 +110,12 @@ class Container( pyglet.event.EventDispatcher ):
         self.container_view_combo_selected = 0
         self.container_view_combo_items = ["graph", "3d", "parameters", "spreadsheet", "python", "log"]
 
-        self.container_actions_combo_items = ["split horizontal", "split vertical", "close"]
+        self.container_actions_combo_items = [\
+                            "split horizontal",
+                            "split vertical",
+                            "close",
+                            "close split",
+                            "close others"]
         self.container_actions_combo_selected =0
 
 
@@ -217,7 +222,7 @@ class Container( pyglet.event.EventDispatcher ):
         self.lines["left"].x2 = self.position[0] + margin
         self.lines["left"].y2 = self.position[1] + self.height - margin
 
-        self.lines["top"].x = self.position[0] + margin -1
+        self.lines["top"].x = self.position[0] + margin #-1
         self.lines["top"].y = self.position[1] + self.height - margin
         self.lines["top"].x2 = self.position[0] + self.width - margin
         self.lines["top"].y2 = self.position[1] + self.height - margin
@@ -225,7 +230,7 @@ class Container( pyglet.event.EventDispatcher ):
         self.lines["right"].x = self.position[0] + self.width - margin
         self.lines["right"].y = self.position[1] + self.height - margin
         self.lines["right"].x2 = self.position[0] + self.width - margin
-        self.lines["right"].y2 = self.position[1] + margin + 1
+        self.lines["right"].y2 = self.position[1] + margin #+ 1
 
         self.lines["bottom"].x = self.position[0] + margin
         self.lines["bottom"].y = self.position[1] + margin
@@ -290,10 +295,7 @@ class Container( pyglet.event.EventDispatcher ):
         """future draw method"""
         # maybe just draw a coloured outline
         # NO DRAW, ONLY BATCH.
-        # if self.is_leaf:
-        #     imgui.new_frame()
-        #     imgui.render()
-        #     imgui.end_frame()
+
         pos = self.position
 
         # no decoration / no collapsible title bar
@@ -352,19 +354,23 @@ class Container( pyglet.event.EventDispatcher ):
             imgui.pop_item_width()
             imgui.set_cursor_pos( (self.width - 15, 0) )
             
-            # combo ------------------------------------------------------------
+            # container action combo -------------------------------------------
             if imgui.begin_combo(\
                         "##action combo",
                         self.container_actions_combo_items[self.container_actions_combo_selected],
                         flags = imgui.COMBO_NO_PREVIEW):
                 imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(3.0, 3.0))
                 for i2, item2 in enumerate(self.container_actions_combo_items):
-                    if i2 == len(self.container_actions_combo_items) - 1:
+                    if i2 == 2:#len(self.container_actions_combo_items) - 2:
                         imgui.separator()
                     if imgui.selectable( item2, selected = False )[0]:
                         self.container_actions_combo_selected = i2
+                        print("container action combo selected: '%s' (%s)"%(\
+                                    self.container_actions_combo_items[self.container_actions_combo_selected],
+                                    self.name))
                 imgui.pop_style_var(1)
                 imgui.end_combo()
+                
             # ------------------------------------------------------------------
 
             imgui.pop_style_var(2)
@@ -514,6 +520,49 @@ class ViewportContainer( Container ):
     #     # draw viewport GUI widgets, TODO: Viewport Widgets
     #     pass
 
+# ------------------------------------------------------------------------------
+def draw_container_tree_info( root : Container ) -> None:
+    """draws a new imgui window with Container information
+    expects tree to be initiaised with Container.update_structure() (?)
+    """
+    imgui.begin("Container info (%s)"%root.name,
+                flags = imgui.WINDOW_NO_SAVED_SETTINGS)
+    
+    _tree_info_preorder(root)
+
+    imgui.end()
+
+
+def _tree_info_preorder(root) -> None:
+    if root is None:
+        return
+
+    # tree item colours
+    c = (10.0, 10.0, 10.0, 1.0)
+    if root.mouse_inside:
+        c = c
+    elif root.is_leaf:
+        c = (0.6, 0.35, 0.02, 1.0)
+    else:
+        c = (0.4, 0.4, 0.4, 1.0)
+
+    # draw tree
+    imgui.push_font(font_default_bold)
+    imgui.push_style_color( imgui.COLOR_TEXT, *c)
+    if imgui.tree_node(root.name, imgui.TREE_NODE_DEFAULT_OPEN):
+        c = (*c[:3], c[3]*0.5)
+        imgui.push_font(font_small)
+        imgui.push_style_color( imgui.COLOR_TEXT, *c )
+        c = imgui.get_style(  )
+        imgui.text("%s"%type(root).__name__)
+        imgui.text("%s %s"%(root.width, root.height))
+        imgui.pop_style_color()
+        imgui.pop_font()
+        for c in root.children:
+            _tree_info_preorder(c)    
+        imgui.tree_pop()
+    imgui.pop_font()
+    imgui.pop_style_color(1)
 
 
 # ------------------------------------------------------------------------------
@@ -541,6 +590,7 @@ if __name__ == "__main__":
     win = pyglet.window.Window( width=960, height=540, config=_window_config )
     line_batch = pyglet.graphics.Batch()
 
+
     # test container events: ---------------------------------------------------
     def mouse_entered_container( container ) -> None:
         """test"""
@@ -550,11 +600,14 @@ if __name__ == "__main__":
         """test"""
         print("o-- mouse exited %s"%container.name)
 
+
     # imgui --------------------------------------------------------------------
     imgui.create_context()
     imgui_renderer = create_renderer(win)
     imgui_io = imgui.get_io()
     font_default = imgui_io.fonts.add_font_from_file_ttf("boxer/resources/fonts/DejaVuSansCondensed.ttf", 14 )
+    font_default_bold = imgui_io.fonts.add_font_from_file_ttf("boxer/resources/fonts/DejaVuSansCondensed-Bold.ttf", 14 )
+    font_small = imgui_io.fonts.add_font_from_file_ttf("boxer/resources/fonts/DejaVuSansCondensed.ttf", 10 )
     font_t1 = imgui_io.fonts.add_font_from_file_ttf("boxer/resources/fonts/DejaVuSansCondensed.ttf", 23 )
     imgui_renderer.refresh_font_texture()
 
@@ -666,8 +719,13 @@ if __name__ == "__main__":
         line_batch.draw()
         for l in leaves:
             l.draw()
-        
         imgui.pop_font()
+        
+
+        imgui.push_font(font_default)
+        draw_container_tree_info( c )
+        imgui.pop_font()
+
         # imgui.end()
         imgui.end_frame()
 
