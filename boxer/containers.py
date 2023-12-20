@@ -48,6 +48,15 @@ class Container( pyglet.event.EventDispatcher ):
         "window" : window_image.get_texture(),
     }
 
+    container_view_combo_items = ["graph", "3d", "parameters", "spreadsheet", "python", "log"]
+
+    container_actions_combo_items = [\
+                            "split horizontal",
+                            "split vertical",
+                            "close",
+                            "close split",
+                            "close others"]
+
     def __init__(self,
             name="container",
             window : pyglet.window.Window = None,
@@ -62,7 +71,7 @@ class Container( pyglet.event.EventDispatcher ):
 
         self.name = name
         self.window = window
-        print("self.window: %s"%str(self.window))
+        # print("self.window: %s"%str(self.window))
         self.width = width
         self.height = height
         self.position : pyglet.math.Vec2 = position
@@ -73,7 +82,12 @@ class Container( pyglet.event.EventDispatcher ):
 
         self.children = []
         self.parent = None
+
+        # usually just the root container would hold an updated list of leaves.
+        # container.update() sets this on whatever container update() is called on.
+        # usually update a tree with container.get_root_container().update()
         self.leaves = []
+
         self.is_leaf = False
 
         self.mouse_inside = False
@@ -108,14 +122,6 @@ class Container( pyglet.event.EventDispatcher ):
 
         # imgui
         self.container_view_combo_selected = 0
-        self.container_view_combo_items = ["graph", "3d", "parameters", "spreadsheet", "python", "log"]
-
-        self.container_actions_combo_items = [\
-                            "split horizontal",
-                            "split vertical",
-                            "close",
-                            "close split",
-                            "close others"]
         self.container_actions_combo_selected =0
 
 
@@ -126,6 +132,57 @@ class Container( pyglet.event.EventDispatcher ):
             child.window = self.window
             # child.connect_to_window_mouse_events( child.window )
             self.children.append( child )
+
+
+    def remove_children(self) -> list:
+        """clear all children"""
+        old_children=self.children.copy()
+        for c in children:
+            c.parent = None
+            c.window = None
+        self.children=[]
+        return old_children
+
+
+    def remove_child(self, child ):
+        """remove a child from children list"""
+        idx = None
+        if child in self.children:
+            child.parent = None
+            child.window = None
+            idx = self.children.index( child )
+            self.children[idx] = None
+        return idx
+
+
+    def set_child(self, child, index=0) -> None:
+        """sets a child to a specific child index
+        if the index > len(self.children) the children list is extended by Nones
+        to length.
+        """
+        if len(self.children) < index:
+            # extend list to length==(index+1)
+            self.children.extend( [None] * ( index + 1 - len(self.children) ))
+        child.parent = self
+        child.window = self.window
+        self.children[index] = child
+
+
+    def replace_child(self, old_child, new_child ):
+        """replace a child in children by new_child
+        
+        `returns:`
+            idx `int or None` : index of replaced child or None
+        """
+        idx = None
+        if old_child in self.children:
+            # print("before remove child: %s"%[i.name for i in self.children])
+            idx = self.remove_child(old_child)
+            # print("after remove child: %s (idx %s)"%([i.name for i in self.children if i is not None], idx))
+            if idx is not None:
+                self.set_child( new_child, idx )
+                # print("after set_child: %s"%[i.name for i in self.children])
+        return idx
 
 
     def get_child_size(self, this) -> tuple:
@@ -156,6 +213,13 @@ class Container( pyglet.event.EventDispatcher ):
                 self.height = ws[1]
             return (self.width, self.height)
         return (None, None)
+
+
+    def get_root_container(self):
+        # print("get root container %s"%self.name)
+        if self.parent == None:
+            return self
+        return self.parent.get_root_container()
 
 
     def get_child_position(self, this):
@@ -201,10 +265,10 @@ class Container( pyglet.event.EventDispatcher ):
         self.get_available_size_from_parent()
         self.get_position_from_parent()
 
-        margin = 0#3
+        margin = 1#3
 
         self.debug_label_name.x = self.position[0] + 5
-        self.debug_label_name.y = self.position[1] + self.height - 2
+        self.debug_label_name.y = self.position[1] + self.height - 2 - 15
         self.debug_label_name.text =\
             self.name +\
             "\n.is_leaf " +\
@@ -213,7 +277,7 @@ class Container( pyglet.event.EventDispatcher ):
             str(self.mouse_inside)
 
         if self.is_leaf:
-            self.debug_label_name.opacity = 0#50
+            self.debug_label_name.opacity = 50
         else:
             self.debug_label_name.opacity = 0
 
@@ -243,12 +307,16 @@ class Container( pyglet.event.EventDispatcher ):
                 lk[1].width = 0.5#1.5
                 lk[1].opacity = 255
         else:
-            for lk in self.lines.items():#keys():
-                lk[1].width = .5
-                lk[1].opacity = self._lines_original_color[3]
-                # self.lines[lk].width = 1
+            if self.is_leaf:
+                for lk in self.lines.items():#keys():
+                    lk[1].width = .5
+                    lk[1].opacity = self._lines_original_color[3]
+                    # self.lines[lk].width = 1
+            else:
+                for lk in self.lines.items():
+                    lk[1].opacity = 0
 
-        for child in self.children:
+        for child in [c for c in self.children if c is not None]:
             child.update_geometries()
 
 
@@ -257,12 +325,15 @@ class Container( pyglet.event.EventDispatcher ):
         popping events handlers.
         Call this after adding or removing or replacing children of the tree."""
 
+        # print("update_structure: %s (leaves: %s)"%(self.name, [i.name for i in leaves]))
+
         self._depth = depth
         self._node_id = count
         count += 1
 
         if len(self.children) == 0:
             self.is_leaf = True
+            # print("  adding leaf: %s"%self.name)
             leaves.append( self )
             # TODO: pushed mouse handlers --------------------------------------
             if self.window:
@@ -271,12 +342,16 @@ class Container( pyglet.event.EventDispatcher ):
         else:
             self.is_leaf = False
             self.mouse_inside = False
+            if self in leaves:
+                # print("  removing leaf: %s"%self.name)
+                leaves.remove(self)
             # TODO: popped mouse handlers --------------------------------------
             if self.window:
                 self.window.remove_handlers(on_mouse_motion=self.on_mouse_motion)
             # ------------------------------------------------------------------
             for child in self.children:
                 count, leaves = child.update_structure( depth+1, count, leaves )
+        # print("  leaves: %s"%[i.name for i in leaves])
         return count, leaves
 
 
@@ -287,7 +362,8 @@ class Container( pyglet.event.EventDispatcher ):
         self.update_structure()
         self.update_geometries()
         """
-        self.update_structure()
+        self.leaves = []
+        _, self.leaves = self.update_structure(leaves=self.leaves)
         self.update_geometries()
 
 
@@ -298,6 +374,7 @@ class Container( pyglet.event.EventDispatcher ):
 
         pos = self.position
 
+        # imgui ----------------------------------------------------------------
         # no decoration / no collapsible title bar
         container_imwindow_flags = imgui.WINDOW_NO_TITLE_BAR\
                             | imgui.WINDOW_NO_BACKGROUND\
@@ -309,7 +386,6 @@ class Container( pyglet.event.EventDispatcher ):
         container_imwindow_flags2 = imgui.WINDOW_NO_BACKGROUND\
                             | imgui.WINDOW_NO_RESIZE\
                             | imgui.WINDOW_NO_SAVED_SETTINGS
-
 
 
         imgui.set_next_window_position(\
@@ -338,10 +414,10 @@ class Container( pyglet.event.EventDispatcher ):
             # combo ------------------------------------------------------------
             if imgui.begin_combo(\
                             "##view combo",
-                            self.container_view_combo_items[self.container_view_combo_selected],
+                            Container.container_view_combo_items[self.container_view_combo_selected],
                             flags = imgui.COMBO_NO_PREVIEW):
                 imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(3.0, 3.0))
-                for i, item in enumerate(self.container_view_combo_items):
+                for i, item in enumerate(Container.container_view_combo_items):
                     is_selected = (i==self.container_view_combo_selected)
                     if imgui.selectable( item, is_selected )[0]:
                         self.container_view_combo_selected = i
@@ -350,32 +426,41 @@ class Container( pyglet.event.EventDispatcher ):
                 imgui.pop_style_var(1)
                 imgui.end_combo()
             # ------------------------------------------------------------------
-
             imgui.pop_item_width()
+
+            imgui.same_line()
+            imgui.text(self.name)
+
             imgui.set_cursor_pos( (self.width - 15, 0) )
             
             # container action combo -------------------------------------------
+            do_container_action = False
             if imgui.begin_combo(\
                         "##action combo",
-                        self.container_actions_combo_items[self.container_actions_combo_selected],
+                        Container.container_actions_combo_items[self.container_actions_combo_selected],
                         flags = imgui.COMBO_NO_PREVIEW):
                 imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(3.0, 3.0))
-                for i2, item2 in enumerate(self.container_actions_combo_items):
+                for i2, item2 in enumerate(Container.container_actions_combo_items):
                     if i2 == 2:#len(self.container_actions_combo_items) - 2:
                         imgui.separator()
                     if imgui.selectable( item2, selected = False )[0]:
                         self.container_actions_combo_selected = i2
-                        print("container action combo selected: '%s' (%s)"%(\
-                                    self.container_actions_combo_items[self.container_actions_combo_selected],
+                        print("container action: '%s' (%s)"%(\
+                                    Container.container_actions_combo_items[self.container_actions_combo_selected],
                                     self.name))
+                        do_container_action = True
                 imgui.pop_style_var(1)
                 imgui.end_combo()
-                
+
             # ------------------------------------------------------------------
 
             imgui.pop_style_var(2)
             imgui.pop_clip_rect()
         imgui.pop_style_var()
+
+        if do_container_action:
+            print(self.container_actions_combo_selected)
+            change_container( self, Container.container_actions_combo_items[self.container_actions_combo_selected] )
 
 
     def on_mouse_motion(self, x, y, ds, dy) -> None:
@@ -527,13 +612,14 @@ def draw_container_tree_info( root : Container ) -> None:
     """
     imgui.begin("Container info (%s)"%root.name,
                 flags = imgui.WINDOW_NO_SAVED_SETTINGS)
-    
+
     _tree_info_preorder(root)
 
     imgui.end()
 
 
 def _tree_info_preorder(root) -> None:
+    """preorder recursive tree walk"""
     if root is None:
         return
 
@@ -555,7 +641,7 @@ def _tree_info_preorder(root) -> None:
         imgui.push_style_color( imgui.COLOR_TEXT, *c )
         c = imgui.get_style(  )
         imgui.text("%s"%type(root).__name__)
-        imgui.text("%s %s"%(root.width, root.height))
+        imgui.text("size: %s %s  pos: %s %s"%(root.width, root.height, root.position[0], root.position[1]))
         imgui.pop_style_color()
         imgui.pop_font()
         for c in root.children:
@@ -563,6 +649,45 @@ def _tree_info_preorder(root) -> None:
         imgui.tree_pop()
     imgui.pop_font()
     imgui.pop_style_color(1)
+
+
+def change_container( container, action ):
+    """invoked from gui option to split or close containers"""
+
+    match action:
+        case "split horizontal":
+            print("--- [ | ] change_container: 'split horizontal' on '%s'"%container.name)
+
+            if not container.parent:
+                # if the containter doesn't have a parent then it must be the root
+
+                if container.child_count == 0:
+                    container.ratio = 0.5
+                    c1 = Container(name = container.name + "_cleft", batch=container.batch, window=container.window)
+                    c2 = Container(name = container.name + "_cright", batch=container.batch, window=container.window)
+                    container.add_child(c1)
+                    container.add_child(c2)
+            else:
+                new_c = HSplitContainer( name= container.name + "_splith",
+                    window=container.window,
+                    batch=container.batch)
+                parent : Container = container.parent
+                parent.replace_child( container, new_c )
+                container = new_c
+                
+                c1 = Container(name = container.name + "_cleft", batch=container.batch, window=container.window)
+                c2 = Container(name = container.name + "_cright", batch=container.batch, window=container.window)
+                container.add_child(c1)
+                container.add_child(c2)
+
+            root = container.get_root_container()
+            root.update()
+            root.pprint_tree()
+
+        case "split vertical":
+            print("--- [---] change_container: 'split vertical' on '%s'"%container.name)
+        case "close":
+            print("--- [ x ] change_container: 'close' on '%s'"%container.name)
 
 
 # ------------------------------------------------------------------------------
@@ -625,55 +750,59 @@ if __name__ == "__main__":
     c.push_handlers( mouse_entered = mouse_entered_container )
     c.push_handlers( mouse_exited = mouse_exited_container )
 
-    c_l = Container(name = "left_panel", batch = line_batch)
-    c_l.push_handlers( mouse_entered = mouse_entered_container )
-    c_l.push_handlers( mouse_exited = mouse_exited_container )
-    c.add_child( c_l )
+    # # ---
+    # c_l = Container(name = "left_panel", batch = line_batch)
+    # c_l.push_handlers( mouse_entered = mouse_entered_container )
+    # c_l.push_handlers( mouse_exited = mouse_exited_container )
+    # c.add_child( c_l )
 
-    c_r = VSplitContainer(name= "right_panel", batch = line_batch, ratio = 0.333,color=(128,128,255,0))
-    c_r.push_handlers( mouse_entered = mouse_entered_container )
-    c_r.push_handlers( mouse_exited = mouse_exited_container )
-    c.add_child( c_r )
+    # c_r = VSplitContainer(name= "right_panel", batch = line_batch, ratio = 0.333,color=(128,128,255,0))
+    # c_r.push_handlers( mouse_entered = mouse_entered_container )
+    # c_r.push_handlers( mouse_exited = mouse_exited_container )
+    # c.add_child( c_r )
 
-    c_r_one = Container(name="right_panel_bottom", batch = line_batch, color=(128, 255, 128, 128))
-    c_r_one.push_handlers( mouse_entered = mouse_entered_container )
-    c_r_one.push_handlers( mouse_exited = mouse_exited_container )
-    c_r.add_child( c_r_one )
+    # c_r_one = Container(name="right_panel_bottom", batch = line_batch, color=(128, 255, 128, 128))
+    # c_r_one.push_handlers( mouse_entered = mouse_entered_container )
+    # c_r_one.push_handlers( mouse_exited = mouse_exited_container )
+    # c_r.add_child( c_r_one )
 
-    c_fh = HSplitContainer(name="top_final_split", batch = line_batch, ratio = 0.65, color=(128,128,255,0))
-    c_fh.push_handlers( mouse_entered = mouse_entered_container )
-    c_fh.push_handlers( mouse_exited = mouse_exited_container )
-    c_r.add_child( c_fh )
+    # c_fh = HSplitContainer(name="top_final_split", batch = line_batch, ratio = 0.65, color=(128,128,255,0))
+    # c_fh.push_handlers( mouse_entered = mouse_entered_container )
+    # c_fh.push_handlers( mouse_exited = mouse_exited_container )
+    # c_r.add_child( c_fh )
 
-    cfh_left = VSplitContainer(name="final_split_left", batch=line_batch, color=(128,128,255,0))#, color=(255, 180, 10, 128))
-    cfh_left.push_handlers( mouse_entered = mouse_entered_container )
-    cfh_left.push_handlers( mouse_exited = mouse_exited_container )
-    c_fh.add_child( cfh_left )
+    # cfh_left = VSplitContainer(name="final_split_left", batch=line_batch, color=(128,128,255,0))#, color=(255, 180, 10, 128))
+    # cfh_left.push_handlers( mouse_entered = mouse_entered_container )
+    # cfh_left.push_handlers( mouse_exited = mouse_exited_container )
+    # c_fh.add_child( cfh_left )
 
-    cfh_left_bottom = Container(name ="final_split_left_bottom", batch=line_batch, color=(255, 180, 10, 128))
-    cfh_left_bottom.push_handlers( mouse_entered = mouse_entered_container )
-    cfh_left_bottom.push_handlers( mouse_exited = mouse_exited_container )
-    cfh_left.add_child(cfh_left_bottom)
+    # cfh_left_bottom = Container(name ="final_split_left_bottom", batch=line_batch, color=(255, 180, 10, 128))
+    # cfh_left_bottom.push_handlers( mouse_entered = mouse_entered_container )
+    # cfh_left_bottom.push_handlers( mouse_exited = mouse_exited_container )
+    # cfh_left.add_child(cfh_left_bottom)
 
-    cfh_left_top = Container(name ="final_split_left_top", batch=line_batch, color=(255, 180, 10, 128))
-    cfh_left_top.push_handlers( mouse_entered = mouse_entered_container )
-    cfh_left_top.push_handlers( mouse_exited = mouse_exited_container )
-    cfh_left.add_child(cfh_left_top)
+    # cfh_left_top = Container(name ="final_split_left_top", batch=line_batch, color=(255, 180, 10, 128))
+    # cfh_left_top.push_handlers( mouse_entered = mouse_entered_container )
+    # cfh_left_top.push_handlers( mouse_exited = mouse_exited_container )
+    # cfh_left.add_child(cfh_left_top)
 
-    cfh_right_vp = ViewportContainer(name="final_viewport", batch=line_batch, color=(255,255,255,128))
-    cfh_right_vp.push_handlers( mouse_entered = mouse_entered_container )
-    cfh_right_vp.push_handlers( mouse_exited = mouse_exited_container )
-    c_fh.add_child( cfh_right_vp )
+    # cfh_right_vp = ViewportContainer(name="final_viewport", batch=line_batch, color=(255,255,255,128))
+    # cfh_right_vp.push_handlers( mouse_entered = mouse_entered_container )
+    # cfh_right_vp.push_handlers( mouse_exited = mouse_exited_container )
+    # c_fh.add_child( cfh_right_vp )
+    # # ---
+
 
     t1_start = perf_counter()
-    count, leaves = c.update_structure()
-    c.update_geometries()#count = 0)
+    # count, leaves = c.update_structure()
+    # c.update_geometries()#count = 0)
+    c.update()
     t1_stop = perf_counter()
 
     c.pprint_tree()
 
     print("leaves:")
-    for leaf in leaves:
+    for leaf in c.leaves:
         print("    %s"%leaf.name)
 
     # ---------------
@@ -695,16 +824,16 @@ if __name__ == "__main__":
     @win.event
     def on_draw():
         """draw"""
-        global gtime, ss1, ss2, ss3
-        gtime += 0.02
-        ss1 = boxer.shaping.remap(math.sin( gtime *0.05 ), -1.0, 1.0, 0.2, 0.52)
-        ss2 = boxer.shaping.remap(math.sin( gtime * .2 + .7447), -1.0, 1.0, 0.2, 0.82)
-        ss3 = boxer.shaping.remap(math.sin( gtime * .9 + -.7447), -1.0, 1.0, 0.45, 0.5)
-        ss4 = boxer.shaping.remap(math.sin( gtime * 1.6 + -1.656), -1.0, 1.0, 0.3, 0.7)
-        c.ratio = ss1
-        c_r.ratio = ss2
-        c_fh.ratio = ss3
-        cfh_left.ratio = ss4
+        # global gtime, ss1, ss2, ss3
+        # gtime += 0.02
+        # ss1 = boxer.shaping.remap(math.sin( gtime *0.05 ), -1.0, 1.0, 0.2, 0.52)
+        # ss2 = boxer.shaping.remap(math.sin( gtime * .2 + .7447), -1.0, 1.0, 0.2, 0.82)
+        # ss3 = boxer.shaping.remap(math.sin( gtime * .9 + -.7447), -1.0, 1.0, 0.45, 0.5)
+        # ss4 = boxer.shaping.remap(math.sin( gtime * 1.6 + -1.656), -1.0, 1.0, 0.3, 0.7)
+        # c.ratio = ss1
+        # c_r.ratio = ss2
+        # c_fh.ratio = ss3
+        # cfh_left.ratio = ss4
 
         c.update_geometries()
 
@@ -717,16 +846,17 @@ if __name__ == "__main__":
         # imgui.begin("Container imgui")
         imgui.push_font(font_default)
         line_batch.draw()
-        for l in leaves:
+
+
+        for l in c.leaves:
             l.draw()
+
         imgui.pop_font()
-        
 
         imgui.push_font(font_default)
         draw_container_tree_info( c )
         imgui.pop_font()
 
-        # imgui.end()
         imgui.end_frame()
 
         imgui.render()

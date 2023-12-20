@@ -65,6 +65,72 @@ def test_Container_get_position_from_parent() -> None:
     assert c_child.get_position_from_parent() == pyglet.math.Vec2(123,456)
 
 
+def test_Container_set_child_test_parent_children_length() -> None:
+    """test exteding children length if set_child index is greater than len(children)"""
+    c_parent = containers.Container()
+    c_child = containers.Container()
+    c_parent.set_child( c_child, 4 )
+    assert len(c_parent.children) == 5
+
+
+def test_Container_add_child_set_child_test_parent_children() -> None:
+    """test add_child and then set_child() with index greater than len(children)"""
+    c_parent = containers.Container()
+    c_child1 = containers.Container()
+    c_parent.add_child(c_child1)
+    c_child2 = containers.Container()
+    c_parent.set_child( c_child2, 5 )
+    print(c_parent.children)
+    assert c_parent.children == [ c_child1, None, None, None, None, c_child2 ]
+
+
+def test_Container_remove_child() -> None:
+    """test container.remove_child"""
+    c_parent = containers.Container()
+    c_child1 = containers.Container()
+    c_child2 = containers.Container()
+    c_parent.add_child(c_child1)
+    c_parent.add_child(c_child2)
+    c_parent.remove_child( c_child1 )
+    assert c_parent.children == [None, c_child2]
+
+
+def test_Container_remove_child_return_idx() -> None:
+    """test container.remove_child returns the index"""
+    c_parent = containers.Container()
+    c_child1 = containers.Container()
+    c_child2 = containers.Container()
+    c_child3 = containers.Container()
+    c_parent.add_child(c_child1)
+    c_parent.add_child(c_child2)
+    c_parent.add_child(c_child3)
+    idx = c_parent.remove_child( c_child3 )
+    assert idx == 2
+
+
+def test_Container_replace_child() -> None:
+    """test container.replace_child equals the replaced child"""
+    c_parent = containers.Container()
+    c_child1 = containers.Container()
+    c_child2 = containers.Container()
+    c_parent.add_child(c_child1)
+    idx = c_parent.replace_child( c_child1, c_child2 )
+    assert c_parent.children[0] == c_child2
+    assert idx == 0
+
+
+def test_Container_get_root_container() -> None:
+    """ """
+    c_parent = containers.Container(name="root")
+    c_child1 = containers.Container(name="one")
+    c_parent.add_child(c_child1)
+    c_child2 = containers.Container(name="two")
+    c_child1.add_child(c_child2)
+    c_child3 = containers.Container(name="three")
+    c_child2.add_child(c_child3)
+    assert c_child3.get_root_container() == c_parent
+
+
 # ------------------------------------------------------------------------------
 # HSplitContainer
 
