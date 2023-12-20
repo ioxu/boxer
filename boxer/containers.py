@@ -34,9 +34,12 @@ class Container( pyglet.event.EventDispatcher ):
     If window dimensions or parent dimensions change (inc. split ratios or other constraints),
     call `.update_geometries()` on a node to update all descendant dimensions.
 
-    `.update_structure()` needs to be called if the tree structure changes due
+    `.update_structure()` aneeds to be called if the tree structure changes due
     to adding or collapsing children.
     This updates node depths, unique id and identifies leaves in the tree.
+    This also updates pushing and popping handlers to subscribers of container events.
+
+    `.update()` can be called to invoke both `.update_geometries()` and `.update_structure()`
 
     The tree leaves are connected to the window's `on_mouse` events.
     """
@@ -159,6 +162,8 @@ class Container( pyglet.event.EventDispatcher ):
             child.parent = None
             child.window = None
             idx = self.children.index( child )
+            # TODO: pop handlers for this child from window
+            self.window.remove_handlers(on_mouse_motion=child.on_mouse_motion)
             self.children[idx] = None
         return idx
 
@@ -328,35 +333,50 @@ class Container( pyglet.event.EventDispatcher ):
     def update_structure( self, depth : int = 0, count : int = 0, leaves : list = list() ) -> int:
         """Update internal structure data, like is_leaf, unique ids, pushing and
         popping events handlers.
-        Call this after adding or removing or replacing children of the tree."""
+        Push and pop handlers to additional subscribers.
+        Call this after adding or removing or replacing children of the tree.
+        """
 
-        # print("update_structure: %s (leaves: %s)"%(self.name, [i.name for i in leaves]))
 
         self._depth = depth
         self._node_id = count
         count += 1
 
+        # ----------------------------------------------------------------------
+        # remove all handlers first?
+        # TODO: popped mouse handlers
+        # TODO: how to parameterise functions to pop handlers from        
+        if self.window:
+            self.window.remove_handlers(on_mouse_motion=self.on_mouse_motion)
+            self.remove_handlers( mouse_entered = mouse_entered_container )
+            self.remove_handlers( mouse_exited = mouse_exited_container )
+        # ----------------------------------------------------------------------
+
         if len(self.children) == 0:
             self.is_leaf = True
-            # print("  adding leaf: %s"%self.name)
             leaves.append( self )
-            # TODO: pushed mouse handlers --------------------------------------
+            # add handers for leaves -------------------------------------------
+            # TODO: pushed mouse handlers
+            # TODO: how to parameterise functions to push handlers to
             if self.window:
                 self.window.push_handlers(on_mouse_motion=self.on_mouse_motion)
+                self.push_handlers( mouse_entered = mouse_entered_container )
+                self.push_handlers( mouse_exited = mouse_exited_container )
             # ------------------------------------------------------------------
         else:
             self.is_leaf = False
             self.mouse_inside = False
             if self in leaves:
-                # print("  removing leaf: %s"%self.name)
                 leaves.remove(self)
-            # TODO: popped mouse handlers --------------------------------------
-            if self.window:
-                self.window.remove_handlers(on_mouse_motion=self.on_mouse_motion)
             # ------------------------------------------------------------------
+            # if self.window:
+            #     self.window.remove_handlers(on_mouse_motion=self.on_mouse_motion)
+            #     self.remove_handlers( mouse_entered = mouse_entered_container )
+            #     self.remove_handlers( mouse_exited = mouse_exited_container )
+            # # ------------------------------------------------------------------
             for child in self.children:
                 count, leaves = child.update_structure( depth+1, count, leaves )
-        # print("  leaves: %s"%[i.name for i in leaves])
+        
         return count, leaves
 
 
@@ -478,11 +498,13 @@ class Container( pyglet.event.EventDispatcher ):
                 self.position[0]+self.width,
                 self.position[1]+self.height ):
             if self.mouse_inside is not True:
-                self.dispatch_event( "mouse_entered", self )
+                ret = self.dispatch_event( "mouse_entered", self )
+                # print("dispatch event 'mouse_entered' for %s: return: %s"%(self.name, ret))
             self.mouse_inside = True
         else:
             if self.mouse_inside is True:
-                self.dispatch_event( "mouse_exited", self )
+                ret = self.dispatch_event( "mouse_exited", self )
+                # print("dispatch event 'mouse_exited' for %s: return: %s"%(self.name, ret))
             self.mouse_inside = False
 
 
@@ -671,13 +693,15 @@ def change_container( container, action ):
 
             if not container.parent:
                 # if the containter doesn't have a parent then it must be the root
-
-                if container.child_count == 0:
-                    container.ratio = 0.5
-                    c1 = Container(name = container.name + "_cleft", batch=container.batch, window=container.window)
-                    c2 = Container(name = container.name + "_cright", batch=container.batch, window=container.window)
-                    container.add_child(c1)
-                    container.add_child(c2)
+                if isinstance(container, SplitContainer):
+                    #print("%s is a SplitContainer (%s)"%(container.name,type(container)))
+                    if container.child_count == 0:
+                        # if container is a SplitContainer with no children, give it two children
+                        container.ratio = 0.5
+                        c1 = Container(name = container.name + "_cleft", batch=container.batch, window=container.window)
+                        c2 = Container(name = container.name + "_cright", batch=container.batch, window=container.window)
+                        container.add_child(c1)
+                        container.add_child(c2)
             else:
                 new_c = HSplitContainer( name= container.name + "_splith",
                     window=container.window,
@@ -699,7 +723,7 @@ def change_container( container, action ):
         case Container.ACTION_SPLIT_VERTICAL:
             print("--- [---] change_container: 'split vertical' on '%s'"%container.name)
 
-        
+
         case Container.ACTION_CLOSE:
             print("--- [ x ] change_container: 'close' on '%s'"%container.name)
 
@@ -761,48 +785,48 @@ if __name__ == "__main__":
                         width= 615,
                         height=320,
                         use_explicit_dimensions=True)
-    c.push_handlers( mouse_entered = mouse_entered_container )
-    c.push_handlers( mouse_exited = mouse_exited_container )
+    # # c.push_handlers( mouse_entered = mouse_entered_container )
+    # # c.push_handlers( mouse_exited = mouse_exited_container )
 
     # # ---
     # c_l = Container(name = "left_panel", batch = line_batch)
-    # c_l.push_handlers( mouse_entered = mouse_entered_container )
-    # c_l.push_handlers( mouse_exited = mouse_exited_container )
+    # # c_l.push_handlers( mouse_entered = mouse_entered_container )
+    # # c_l.push_handlers( mouse_exited = mouse_exited_container )
     # c.add_child( c_l )
 
     # c_r = VSplitContainer(name= "right_panel", batch = line_batch, ratio = 0.333,color=(128,128,255,0))
-    # c_r.push_handlers( mouse_entered = mouse_entered_container )
-    # c_r.push_handlers( mouse_exited = mouse_exited_container )
+    # # c_r.push_handlers( mouse_entered = mouse_entered_container )
+    # # c_r.push_handlers( mouse_exited = mouse_exited_container )
     # c.add_child( c_r )
 
     # c_r_one = Container(name="right_panel_bottom", batch = line_batch, color=(128, 255, 128, 128))
-    # c_r_one.push_handlers( mouse_entered = mouse_entered_container )
-    # c_r_one.push_handlers( mouse_exited = mouse_exited_container )
+    # # c_r_one.push_handlers( mouse_entered = mouse_entered_container )
+    # # c_r_one.push_handlers( mouse_exited = mouse_exited_container )
     # c_r.add_child( c_r_one )
 
     # c_fh = HSplitContainer(name="top_final_split", batch = line_batch, ratio = 0.65, color=(128,128,255,0))
-    # c_fh.push_handlers( mouse_entered = mouse_entered_container )
-    # c_fh.push_handlers( mouse_exited = mouse_exited_container )
+    # # c_fh.push_handlers( mouse_entered = mouse_entered_container )
+    # # c_fh.push_handlers( mouse_exited = mouse_exited_container )
     # c_r.add_child( c_fh )
 
     # cfh_left = VSplitContainer(name="final_split_left", batch=line_batch, color=(128,128,255,0))#, color=(255, 180, 10, 128))
-    # cfh_left.push_handlers( mouse_entered = mouse_entered_container )
-    # cfh_left.push_handlers( mouse_exited = mouse_exited_container )
+    # # cfh_left.push_handlers( mouse_entered = mouse_entered_container )
+    # # cfh_left.push_handlers( mouse_exited = mouse_exited_container )
     # c_fh.add_child( cfh_left )
 
     # cfh_left_bottom = Container(name ="final_split_left_bottom", batch=line_batch, color=(255, 180, 10, 128))
-    # cfh_left_bottom.push_handlers( mouse_entered = mouse_entered_container )
-    # cfh_left_bottom.push_handlers( mouse_exited = mouse_exited_container )
+    # # cfh_left_bottom.push_handlers( mouse_entered = mouse_entered_container )
+    # # cfh_left_bottom.push_handlers( mouse_exited = mouse_exited_container )
     # cfh_left.add_child(cfh_left_bottom)
 
     # cfh_left_top = Container(name ="final_split_left_top", batch=line_batch, color=(255, 180, 10, 128))
-    # cfh_left_top.push_handlers( mouse_entered = mouse_entered_container )
-    # cfh_left_top.push_handlers( mouse_exited = mouse_exited_container )
+    # # cfh_left_top.push_handlers( mouse_entered = mouse_entered_container )
+    # # cfh_left_top.push_handlers( mouse_exited = mouse_exited_container )
     # cfh_left.add_child(cfh_left_top)
 
     # cfh_right_vp = ViewportContainer(name="final_viewport", batch=line_batch, color=(255,255,255,128))
-    # cfh_right_vp.push_handlers( mouse_entered = mouse_entered_container )
-    # cfh_right_vp.push_handlers( mouse_exited = mouse_exited_container )
+    # # cfh_right_vp.push_handlers( mouse_entered = mouse_entered_container )
+    # # cfh_right_vp.push_handlers( mouse_exited = mouse_exited_container )
     # c_fh.add_child( cfh_right_vp )
     # # ---
 
