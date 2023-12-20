@@ -48,14 +48,22 @@ class Container( pyglet.event.EventDispatcher ):
         "window" : window_image.get_texture(),
     }
 
-    container_view_combo_items = ["graph", "3d", "parameters", "spreadsheet", "python", "log"]
+    container_view_types = ["graph", "3d", "parameters", "spreadsheet", "python", "log"]
 
-    container_actions_combo_items = [\
+    # TODO: replace these ACTION constants/lables with enum.Enum type?
+    container_action_labels = [\
                             "split horizontal",
                             "split vertical",
                             "close",
                             "close split",
                             "close others"]
+    
+    ACTION_SPLIT_HORIZONTAL = 0     # split this container into a HSplitContainer with two child Containers.
+    ACTION_SPLIT_VERTICAL = 1       # split this container into a VSplitCOntainer with two child Containers.
+    ACTION_CLOSE = 2                # close this container, if in a split container convert the split to a single.
+    ACTION_CLOSE_SPLIT = 3          # replace the parent SplitContainer with this one.
+    ACTION_CLOSE_OTHERS = 4         # close all other containers, leaving this one.
+
 
     def __init__(self,
             name="container",
@@ -176,12 +184,9 @@ class Container( pyglet.event.EventDispatcher ):
         """
         idx = None
         if old_child in self.children:
-            # print("before remove child: %s"%[i.name for i in self.children])
             idx = self.remove_child(old_child)
-            # print("after remove child: %s (idx %s)"%([i.name for i in self.children if i is not None], idx))
             if idx is not None:
                 self.set_child( new_child, idx )
-                # print("after set_child: %s"%[i.name for i in self.children])
         return idx
 
 
@@ -414,10 +419,10 @@ class Container( pyglet.event.EventDispatcher ):
             # combo ------------------------------------------------------------
             if imgui.begin_combo(\
                             "##view combo",
-                            Container.container_view_combo_items[self.container_view_combo_selected],
+                            Container.container_view_types[self.container_view_combo_selected],
                             flags = imgui.COMBO_NO_PREVIEW):
                 imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(3.0, 3.0))
-                for i, item in enumerate(Container.container_view_combo_items):
+                for i, item in enumerate(Container.container_view_types):
                     is_selected = (i==self.container_view_combo_selected)
                     if imgui.selectable( item, is_selected )[0]:
                         self.container_view_combo_selected = i
@@ -437,16 +442,17 @@ class Container( pyglet.event.EventDispatcher ):
             do_container_action = False
             if imgui.begin_combo(\
                         "##action combo",
-                        Container.container_actions_combo_items[self.container_actions_combo_selected],
+                        Container.container_action_labels[self.container_actions_combo_selected],
                         flags = imgui.COMBO_NO_PREVIEW):
                 imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(3.0, 3.0))
-                for i2, item2 in enumerate(Container.container_actions_combo_items):
-                    if i2 == 2:#len(self.container_actions_combo_items) - 2:
+                for i2, item2 in enumerate(Container.container_action_labels):
+                    if i2 == 2:
+                        # add a seperator after two items
                         imgui.separator()
                     if imgui.selectable( item2, selected = False )[0]:
                         self.container_actions_combo_selected = i2
                         print("container action: '%s' (%s)"%(\
-                                    Container.container_actions_combo_items[self.container_actions_combo_selected],
+                                    Container.container_action_labels[self.container_actions_combo_selected],
                                     self.name))
                         do_container_action = True
                 imgui.pop_style_var(1)
@@ -460,7 +466,8 @@ class Container( pyglet.event.EventDispatcher ):
 
         if do_container_action:
             print(self.container_actions_combo_selected)
-            change_container( self, Container.container_actions_combo_items[self.container_actions_combo_selected] )
+            # change_container( self, Container.container_action_labels[self.container_actions_combo_selected] )
+            change_container( self, self.container_actions_combo_selected )
 
 
     def on_mouse_motion(self, x, y, ds, dy) -> None:
@@ -652,10 +659,14 @@ def _tree_info_preorder(root) -> None:
 
 
 def change_container( container, action ):
-    """invoked from gui option to split or close containers"""
+    """invoked from gui option to split or close containers, or operate an action upon a container
+    `args`:
+        `container` : `Container` -  the container to operate on
+        `action` : `int` - container action, a Container.ACTION_* constant
+    """
 
     match action:
-        case "split horizontal":
+        case Container.ACTION_SPLIT_HORIZONTAL:
             print("--- [ | ] change_container: 'split horizontal' on '%s'"%container.name)
 
             if not container.parent:
@@ -684,9 +695,12 @@ def change_container( container, action ):
             root.update()
             root.pprint_tree()
 
-        case "split vertical":
+
+        case Container.ACTION_SPLIT_VERTICAL:
             print("--- [---] change_container: 'split vertical' on '%s'"%container.name)
-        case "close":
+
+        
+        case Container.ACTION_CLOSE:
             print("--- [ x ] change_container: 'close' on '%s'"%container.name)
 
 
