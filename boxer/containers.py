@@ -1,5 +1,7 @@
 """heirarchical Containers for a forms-like structure.
 For building windowareas and partitions et cetera.
+
+The root container must be a Container (non-SplitContainer-type)
 """
 import math
 
@@ -148,9 +150,9 @@ class Container( pyglet.event.EventDispatcher ):
     def remove_children(self) -> list:
         """clear all children"""
         old_children=self.children.copy()
-        for c in children:
-            c.parent = None
-            c.window = None
+        for child in self.children:
+            child.parent = None
+            child.window = None
         self.children=[]
         return old_children
 
@@ -162,8 +164,8 @@ class Container( pyglet.event.EventDispatcher ):
             child.parent = None
             child.window = None
             idx = self.children.index( child )
-            # TODO: pop handlers for this child from window
-            self.window.remove_handlers(on_mouse_motion=child.on_mouse_motion)
+            if self.window:
+                self.window.remove_handlers(on_mouse_motion=child.on_mouse_motion)
             self.children[idx] = None
         return idx
 
@@ -173,7 +175,7 @@ class Container( pyglet.event.EventDispatcher ):
         if the index > len(self.children) the children list is extended by Nones
         to length.
         """
-        if len(self.children) < index:
+        if len(self.children) <= index:
             # extend list to length==(index+1)
             self.children.extend( [None] * ( index + 1 - len(self.children) ))
         child.parent = self
@@ -193,6 +195,27 @@ class Container( pyglet.event.EventDispatcher ):
             if idx is not None:
                 self.set_child( new_child, idx )
         return idx
+
+
+    def replace_by( self, new_container ) -> None:
+        """replace self with a new container
+        
+        must always get the return value, eg:
+        `container = container.replace_by( new_container )`
+        """
+        # TODO: adressing #2
+        parent = self.parent
+        this_container = self
+        if parent:
+            parent.replace_child( self, new_container )
+            return new_container
+        else:
+            new_container.use_explicit_dimensions = self.use_explicit_dimensions
+            new_container.position = self.position
+            new_container.width = self.width
+            new_container.height = self.height
+            new_container.window = self.window
+            return new_container
 
 
     def get_child_size(self, this) -> tuple:
@@ -280,7 +303,7 @@ class Container( pyglet.event.EventDispatcher ):
         self.debug_label_name.x = self.position[0] + 5
         self.debug_label_name.y = self.position[1] + self.height - 2 - 15
         self.debug_label_name.text =\
-            self.name +\
+            self.name + " (%s)"%(type(self).__name__) +\
             "\n.is_leaf " +\
             str(self.is_leaf) +\
             "\n.mouse_inside " +\
@@ -344,8 +367,7 @@ class Container( pyglet.event.EventDispatcher ):
 
         # ----------------------------------------------------------------------
         # remove all handlers first?
-        # TODO: popped mouse handlers
-        # TODO: how to parameterise functions to pop handlers from        
+        # TODO: how to parameterise functions to pop handlers from #3 @ioxu
         if self.window:
             self.window.remove_handlers(on_mouse_motion=self.on_mouse_motion)
             self.remove_handlers( mouse_entered = mouse_entered_container )
@@ -356,8 +378,7 @@ class Container( pyglet.event.EventDispatcher ):
             self.is_leaf = True
             leaves.append( self )
             # add handers for leaves -------------------------------------------
-            # TODO: pushed mouse handlers
-            # TODO: how to parameterise functions to push handlers to
+            # TODO: how to parameterise functions to push handlers to #3 @ioxu
             if self.window:
                 self.window.push_handlers(on_mouse_motion=self.on_mouse_motion)
                 self.push_handlers( mouse_entered = mouse_entered_container )
@@ -368,12 +389,7 @@ class Container( pyglet.event.EventDispatcher ):
             self.mouse_inside = False
             if self in leaves:
                 leaves.remove(self)
-            # ------------------------------------------------------------------
-            # if self.window:
-            #     self.window.remove_handlers(on_mouse_motion=self.on_mouse_motion)
-            #     self.remove_handlers( mouse_entered = mouse_entered_container )
-            #     self.remove_handlers( mouse_exited = mouse_exited_container )
-            # # ------------------------------------------------------------------
+
             for child in self.children:
                 count, leaves = child.update_structure( depth+1, count, leaves )
         
@@ -522,9 +538,23 @@ class SplitContainer( Container ):
     """container that mannages a split view of two children"""
     def __init__(self,
             ratio : float = 0.5,
+            create_default_children : bool = False,
             **kwargs):
         Container.__init__( self, **kwargs )
         self.ratio = ratio
+        self.create_default_children = create_default_children
+        if self.create_default_children:
+            self._default_children()
+
+    def _default_children( self ):
+        """generates default children
+        for SplitContainer (a half abstract class) this will generate two children
+        This method should be overwritten in subclasses
+        """
+        c1 = Container(name = self.name + "_cone", batch=self.batch, window=self.window)
+        c2 = Container(name = self.name + "_ctwo", batch=self.batch, window=self.window)
+        self.set_child( c1, 0 )
+        self.set_child( c2, 1 )
 
 
 class HSplitContainer( SplitContainer ):
@@ -533,6 +563,13 @@ class HSplitContainer( SplitContainer ):
     """
     def __init__(self, **kwargs):
         SplitContainer.__init__( self, **kwargs )
+
+
+    def _default_children(self):
+        c1 = Container(name = self.name + "_cleft", batch=self.batch, window=self.window)
+        c2 = Container(name = self.name + "_cright", batch=self.batch, window=self.window)
+        self.set_child( c1, 0 )
+        self.set_child( c2, 1 )
 
 
     def get_child_size(self, this) -> tuple:
@@ -559,6 +596,13 @@ class VSplitContainer( SplitContainer ):
     """
     def __init__(self, **kwargs):
         SplitContainer.__init__( self, **kwargs )
+
+
+    def _default_children(self):
+        c1 = Container(name = self.name + "_cbottom", batch=self.batch, window=self.window)
+        c2 = Container(name = self.name + "_ctop", batch=self.batch, window=self.window)
+        self.set_child( c1, 0 )
+        self.set_child( c2, 1 )
 
 
     def get_child_size(self, this) -> tuple:
@@ -691,29 +735,15 @@ def change_container( container, action ):
         case Container.ACTION_SPLIT_HORIZONTAL:
             print("--- [ | ] change_container: 'split horizontal' on '%s'"%container.name)
 
-            if not container.parent:
-                # if the containter doesn't have a parent then it must be the root
-                if isinstance(container, SplitContainer):
-                    #print("%s is a SplitContainer (%s)"%(container.name,type(container)))
-                    if container.child_count == 0:
-                        # if container is a SplitContainer with no children, give it two children
-                        container.ratio = 0.5
-                        c1 = Container(name = container.name + "_cleft", batch=container.batch, window=container.window)
-                        c2 = Container(name = container.name + "_cright", batch=container.batch, window=container.window)
-                        container.add_child(c1)
-                        container.add_child(c2)
+            new_container = HSplitContainer(name = container.name + "_hsplit",
+                                window = container.window,
+                                batch = container.batch,
+                                create_default_children = True)
+
+            if container.parent is None:
+                container.set_child( new_container, 0 )
             else:
-                new_c = HSplitContainer( name= container.name + "_splith",
-                    window=container.window,
-                    batch=container.batch)
-                parent : Container = container.parent
-                parent.replace_child( container, new_c )
-                container = new_c
-                
-                c1 = Container(name = container.name + "_cleft", batch=container.batch, window=container.window)
-                c2 = Container(name = container.name + "_cright", batch=container.batch, window=container.window)
-                container.add_child(c1)
-                container.add_child(c2)
+                container = container.replace_by( new_container )
 
             root = container.get_root_container()
             root.update()
@@ -777,14 +807,22 @@ if __name__ == "__main__":
 
     # container tree -----------------------------------------------------------
     # c = HSplitContainer(name="root_container", ratio=0.36, window = win, batch = line_batch)
-    c = HSplitContainer(name="root_container",
-                        ratio=0.36,
+    # c = HSplitContainer(name="root_container",
+    #                     ratio=0.36,
+    #                     window = win,
+    #                     batch = line_batch,
+    #                     position=pyglet.math.Vec2(50,50),
+    #                     width= 615,
+    #                     height=320,
+    #                     use_explicit_dimensions=True)
+    c = Container(name="root_container",
                         window = win,
                         batch = line_batch,
                         position=pyglet.math.Vec2(50,50),
                         width= 615,
                         height=320,
                         use_explicit_dimensions=True)
+
     # # c.push_handlers( mouse_entered = mouse_entered_container )
     # # c.push_handlers( mouse_exited = mouse_exited_container )
 
