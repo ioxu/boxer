@@ -198,7 +198,9 @@ class Container( pyglet.event.EventDispatcher ):
 
 
     def replace_by( self, new_container ) -> None:
-        """replace self with a new container
+        """either replace self in the parents' children
+        OR
+        return a configured copy
         
         must always get the return value, eg:
         `container = container.replace_by( new_container )`
@@ -753,9 +755,31 @@ def change_container( container, action ):
         case Container.ACTION_SPLIT_VERTICAL:
             print("--- [---] change_container: 'split vertical' on '%s'"%container.name)
 
+            new_container = VSplitContainer(name = container.name + "_vsplit",
+                                window = container.window,
+                                batch = container.batch,
+                                create_default_children = True)
+            
+            if container.parent is None:
+                container.set_child( new_container, 0 )
+            else:
+                container = container.replace_by( new_container )
+
+            root = container.get_root_container()
+            root.update()
+            root.pprint_tree()
+
 
         case Container.ACTION_CLOSE:
             print("--- [ x ] change_container: 'close' on '%s'"%container.name)
+
+
+        case Container.ACTION_CLOSE_SPLIT:
+            print("--- [<-x] change_container: 'close split' on '%s'"%container.name)
+
+
+        case Container.ACTION_CLOSE_OTHERS:
+            print("--- [xxO] change_container: 'close others' on '%s'"%container.name)
 
 
 # ------------------------------------------------------------------------------
