@@ -772,6 +772,33 @@ def change_container( container, action ):
 
         case Container.ACTION_CLOSE:
             print("--- [ x ] change_container: 'close' on '%s'"%container.name)
+            # TODO: ACTION_CLOSE #4
+            if container.parent is None:
+                raise RuntimeWarning("closing a root container is not allowed yet")
+            parent : Container = container.parent
+            if isinstance(parent, SplitContainer):
+
+                # get sibling
+                sibling = None
+                if parent.children[0] is not container:
+                    sibling = parent.children[0]
+                elif parent.children[1] is not container:
+                    sibling = parent.children[1]
+
+                parent.remove_child( container )
+
+                if sibling:
+                    # get the grandparent
+                    grandparent : Container = parent.parent
+                    # remove the parent (SplitContainer)
+                    idx = grandparent.remove_child( parent )
+                    # add the sibling as the new child of grandparent
+                    grandparent.set_child( sibling, idx )
+
+
+            root = sibling.get_root_container()
+            root.update()
+            root.pprint_tree()
 
 
         case Container.ACTION_CLOSE_SPLIT:
@@ -804,7 +831,7 @@ if __name__ == "__main__":
         double_buffer = True,
     )
 
-    win = pyglet.window.Window( width=960, height=540, config=_window_config )
+    win = pyglet.window.Window( width=960, height=540, config=_window_config, resizable=True )
     line_batch = pyglet.graphics.Batch()
 
 

@@ -179,6 +179,28 @@ def test_Container_get_root_container() -> None:
 
 
 # ------------------------------------------------------------------------------
+# container actions
+
+def test_Container_action_close_with_no_parent() -> None :
+    """test that closing a root container (container with no parent)
+    raises a RuntimeWarning"""
+    import pytest
+    c_parent = containers.Container(name="root")
+    with pytest.raises(RuntimeWarning, match='closing a root container is not allowed yet'):
+        containers.change_container( c_parent, containers.Container.ACTION_CLOSE )
+
+
+def test_Container_action_close() -> None:
+    # test removing a grandchild
+    c_parent = containers.Container(name="root")
+    c_child1 = containers.HSplitContainer( name="hsplit", create_default_children=True )
+    c_parent.add_child( c_child1 )
+    containers.change_container(c_parent.children[0].children[1], containers.Container.ACTION_CLOSE)
+    assert c_parent.child_count == 1
+    assert isinstance(c_parent.children[0], containers.Container)
+
+
+# ------------------------------------------------------------------------------
 # SplitContainer
 def test_SplitContainer_create_default_children() -> None:
     """test SplitContainers creating two default children on
