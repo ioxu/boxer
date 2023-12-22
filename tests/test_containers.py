@@ -132,7 +132,25 @@ def test_Container_remove_children_return_list() -> None:
     c_parent.add_child(c_child2)
     c_parent.add_child(c_child3)
     ex_child_list = c_parent.remove_children()
+    print("ex_child_list: %s"%ex_child_list)
     assert ex_child_list == [c_child1, c_child2, c_child3]
+
+
+def test_Container_remove_children_recursive() -> None:
+    """test that a .remove_children will remove the childrens children etc
+    (test the recursiveness)"""
+    c_parent = containers.Container("parent")
+    c_child1 = containers.Container("child1")
+    c_parent.add_child(c_child1)
+    c_child2 = containers.Container("child2")
+    c_child1.add_child(c_child2)
+    c_child3 = containers.Container("child3")
+    c_child2.add_child(c_child3)
+    c_child4 = containers.Container("child4")
+    c_child3.add_child(c_child4)
+    removed_children = c_parent.remove_children()
+    print("removed children: %s"%removed_children)
+    assert removed_children == [c_child1, c_child2, c_child3, c_child4]
 
 
 def test_Container_replace_child() -> None:

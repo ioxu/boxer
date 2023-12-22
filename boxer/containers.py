@@ -138,6 +138,10 @@ class Container( pyglet.event.EventDispatcher ):
         self.container_actions_combo_selected =0
 
 
+    def __repr__(self):
+        return "%s at %s name:'%s'"%(type(self), id(self),self.name)
+
+
     def add_child(self, child) -> None:
         """add a child to this Container"""
         if child not in self.children:
@@ -147,18 +151,37 @@ class Container( pyglet.event.EventDispatcher ):
             self.children.append( child )
 
 
-    def remove_children(self) -> list:
+    def remove_children(self, old_children = None) -> list:
         """clear all children"""
-        old_children=self.children.copy()
+        # WTF, argument of a static mutable, never realised it before:
+        # https://stackoverflow.com/questions/1132941/least-astonishment-and-the-mutable-default-argument
+
+        if old_children is None:
+            old_children = []
+
+        old_children = self.children + old_children
         for child in self.children:
-            child.parent = None
-            child.window = None
+            if child is not None:
+                child.parent = None
+                idx = self.children.index( child )
+                self.children[idx] = None
+    
+                if child.window:
+                    # self.window.remove_handlers(on_mouse_motion=child.on_mouse_motion)
+                    child.window.remove_handlers(on_mouse_motion=child.on_mouse_motion)
+                    child.remove_handlers( )
+                    child.window = None
+                child.remove_children( old_children )
+  
         self.children=[]
         return old_children
 
 
     def remove_child(self, child ):
-        """remove a child from children list"""
+        """remove a child from children list
+        `return`
+            `index` : `int` : index of removed child
+        """
         idx = None
         if child in self.children:
             child.parent = None
@@ -166,6 +189,7 @@ class Container( pyglet.event.EventDispatcher ):
             idx = self.children.index( child )
             if self.window:
                 self.window.remove_handlers(on_mouse_motion=child.on_mouse_motion)
+                self.remove_handlers( )
             self.children[idx] = None
         return idx
 
@@ -251,6 +275,7 @@ class Container( pyglet.event.EventDispatcher ):
 
 
     def get_root_container(self):
+        """scans up to find rootiest node"""
         # print("get root container %s"%self.name)
         if self.parent == None:
             return self
@@ -355,13 +380,16 @@ class Container( pyglet.event.EventDispatcher ):
             child.update_geometries()
 
 
-    def update_structure( self, depth : int = 0, count : int = 0, leaves : list = list() ) -> int:
+    # def update_structure( self, depth : int = 0, count : int = 0, leaves : list = list() ) -> int:
+    def update_structure( self, depth : int = 0, count : int = 0, leaves = None ) -> int:
         """Update internal structure data, like is_leaf, unique ids, pushing and
         popping events handlers.
         Push and pop handlers to additional subscribers.
         Call this after adding or removing or replacing children of the tree.
         """
-
+        if leaves is None:
+            print("LEAVES IS NONE")
+            leaves = []
 
         self._depth = depth
         self._node_id = count
@@ -394,7 +422,7 @@ class Container( pyglet.event.EventDispatcher ):
 
             for child in self.children:
                 count, leaves = child.update_structure( depth+1, count, leaves )
-        
+        print("RETURN LEAVES: %s"%leaves)
         return count, leaves
 
 
@@ -405,8 +433,9 @@ class Container( pyglet.event.EventDispatcher ):
         self.update_structure()
         self.update_geometries()
         """
-        self.leaves = []
-        _, self.leaves = self.update_structure(leaves=self.leaves)
+        # self.leaves = []
+        # _, self.leaves = self.update_structure(leaves=self.leaves)
+        _, self.leaves = self.update_structure()
         self.update_geometries()
 
 
@@ -414,6 +443,10 @@ class Container( pyglet.event.EventDispatcher ):
         """future draw method"""
         # maybe just draw a coloured outline
         # NO DRAW, ONLY BATCH.
+
+        if self.window is None:
+            print("DRAW: %s .window is None"%self)
+            return
 
         pos = self.position
 
@@ -807,6 +840,19 @@ def change_container( container, action ):
 
         case Container.ACTION_CLOSE_OTHERS:
             print("--- [xxO] change_container: 'close others' on '%s'"%container.name)
+            # Stash this container.
+            # Find root.
+            # Remove children of root.
+            # Add stashed this-container to the root.
+            root = container.get_root_container()
+
+            idx = container.parent.children.index( container )
+            container.parent.children[idx] = None
+
+            root.remove_children()
+            root.set_child( container, 0 )
+            root.update()
+            root.pprint_tree()
 
 
 # ------------------------------------------------------------------------------
