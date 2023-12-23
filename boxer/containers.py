@@ -380,7 +380,7 @@ class Container( pyglet.event.EventDispatcher ):
             child.update_geometries()
 
 
-    # def update_structure( self, depth : int = 0, count : int = 0, leaves : list = list() ) -> int:
+    #def update_structure( self, depth : int = 0, count : int = 0, leaves : list = list() ) -> int:
     def update_structure( self, depth : int = 0, count : int = 0, leaves = None ) -> int:
         """Update internal structure data, like is_leaf, unique ids, pushing and
         popping events handlers.
@@ -388,7 +388,6 @@ class Container( pyglet.event.EventDispatcher ):
         Call this after adding or removing or replacing children of the tree.
         """
         if leaves is None:
-            print("LEAVES IS NONE")
             leaves = []
 
         self._depth = depth
@@ -422,7 +421,6 @@ class Container( pyglet.event.EventDispatcher ):
 
             for child in self.children:
                 count, leaves = child.update_structure( depth+1, count, leaves )
-        print("RETURN LEAVES: %s"%leaves)
         return count, leaves
 
 
@@ -444,9 +442,16 @@ class Container( pyglet.event.EventDispatcher ):
         # maybe just draw a coloured outline
         # NO DRAW, ONLY BATCH.
 
+        # ----------------------------------------------------------------------
+        # TODO: work out why this happens
+        # something about when ACTION_CLOSE_OTHERS and/or
+        # recursive .remove_children() removes a child that
+        # is stil in the list of .leaves being drawn in main loop
         if self.window is None:
             print("DRAW: %s .window is None"%self)
             return
+        # ----------------------------------------------------------------------
+
 
         pos = self.position
 
@@ -511,12 +516,16 @@ class Container( pyglet.event.EventDispatcher ):
             
             # container action combo -------------------------------------------
             do_container_action = False
+            action_item_hovered = None
+            do_draw_container_action_hint = False
             if imgui.begin_combo(\
                         "##action combo",
                         Container.container_action_labels[self.container_actions_combo_selected],
                         flags = imgui.COMBO_NO_PREVIEW):
                 imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(3.0, 3.0))
                 for i2, item2 in enumerate(Container.container_action_labels):
+
+                    
                     if i2 == 2:
                         # add a seperator after two items
                         imgui.separator()
@@ -526,6 +535,12 @@ class Container( pyglet.event.EventDispatcher ):
                                     Container.container_action_labels[self.container_actions_combo_selected],
                                     self.name))
                         do_container_action = True
+                    if imgui.is_item_hovered():
+                        action_item_hovered = i2
+                        # print( "HOVERED %s:'%s' (on '%s')"%(action_item_hovered,Container.container_action_labels[action_item_hovered], self.name) )
+                        do_draw_container_action_hint = True
+
+
                 imgui.pop_style_var(1)
                 imgui.end_combo()
 
@@ -539,6 +554,19 @@ class Container( pyglet.event.EventDispatcher ):
             print(self.container_actions_combo_selected)
             # change_container( self, Container.container_action_labels[self.container_actions_combo_selected] )
             change_container( self, self.container_actions_combo_selected )
+
+        if do_draw_container_action_hint:
+            #draw_container_action_hint(  )
+            # print( "DO HINT %s:'%s' (on '%s')"%(action_item_hovered,Container.container_action_labels[action_item_hovered], self.name) )
+            match action_item_hovered:
+                case Container.ACTION_SPLIT_HORIZONTAL:
+                    # print("hsplit")
+                    _x = self.position[0] + int(self.width/2.0)
+                    pyglet.shapes.Line( _x, self.position[1], _x, self.position[1]+self.height, batch=None, color=(255,0,0,180)  ).draw()
+                case Container.ACTION_SPLIT_VERTICAL:
+                    # print("vsplit")
+                    _y = self.position[1] + int(self.height/2.0)
+                    pyglet.shapes.Line( self.position[0], _y, self.position[0] + self.width, _y, batch=None, color=(255,0,0,180)  ).draw()
 
 
     def on_mouse_motion(self, x, y, ds, dy) -> None:
@@ -836,6 +864,8 @@ def change_container( container, action ):
 
         case Container.ACTION_CLOSE_SPLIT:
             print("--- [<-x] change_container: 'close split' on '%s'"%container.name)
+            # close a sibling if parent is a split container
+            # (I think it nearly always is, if using the menu to change containers)
 
 
         case Container.ACTION_CLOSE_OTHERS:
@@ -878,6 +908,10 @@ if __name__ == "__main__":
     )
 
     win = pyglet.window.Window( width=960, height=540, config=_window_config, resizable=True )
+    
+    fps_display = pyglet.window.FPSDisplay(win)
+    fps_display.update_period = 0.2
+
     line_batch = pyglet.graphics.Batch()
 
 
@@ -1034,5 +1068,7 @@ if __name__ == "__main__":
 
         imgui.render()
         imgui_renderer.render(imgui.get_draw_data())
+
+        fps_display.draw()
 
     app.run()
