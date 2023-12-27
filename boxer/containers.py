@@ -16,6 +16,7 @@ import pyglet.graphics
 import pyglet.shapes
 import boxer.camera
 import boxer.shapes
+import boxer.shaders
 
 import imgui
 
@@ -80,6 +81,7 @@ class Container( pyglet.event.EventDispatcher ):
             color = (255, 255, 255, 60),
             batch : pyglet.graphics.Batch = None,
             group : pyglet.graphics.Group = None,
+            overlay_batch : pyglet.graphics.Batch = None
             ):
 
         self.name = name
@@ -91,6 +93,7 @@ class Container( pyglet.event.EventDispatcher ):
         self.use_explicit_dimensions = use_explicit_dimensions 
         self.color = color
         self.batch = batch
+        self.overlay_batch = overlay_batch
         self.group = group
 
         self.children = []
@@ -102,6 +105,8 @@ class Container( pyglet.event.EventDispatcher ):
         self.leaves = []
 
         self.is_leaf = False
+        self.is_root = False
+        self.root_container = None
 
         self.mouse_inside = False
 
@@ -132,6 +137,30 @@ class Container( pyglet.event.EventDispatcher ):
                         color=( 255, 255, 255, 50),
                         width = 100,
                         multiline=True,)
+
+
+        self.do_draw_overlay = False
+        self._marchinglines_time = 0.0
+        #self._marchinglines_shader = pyglet.shapes.get_default_shader()
+        self._marchinglines_shader = boxer.shaders.get_marchinglines_shader()
+        
+        self._marchinglines_shader["color_one"] = (1.0, 0.1, 0.0, 0.25)
+        self._marchinglines_shader["time"] = 0.0
+        self._marchinglines_shader["ir_bl"] = (70.0, 70.0)    # inner rect, bottom left
+        self._marchinglines_shader["ir_tr"] = (120.0, 120.0)    # inner rect, top right
+        self._marchinglines_shader["positive"] = 1.0        # value of inner rect (1.0
+                                                            # means black outside, 0.0 means black inside)
+
+        _points = boxer.shapes.rectangle_centered_vertices( 130, 230, 200, 200 )
+        _colors = (1.0, 1.0, 1.0, 1.0) * 4
+        self.overlay_quad = self._marchinglines_shader.vertex_list_indexed( 4,
+                                        gl.GL_TRIANGLES,
+                                        (0,1,2,0,2,3),
+                                        self.overlay_batch,
+                                        None,
+                                        position = ('f', _points),
+                                        colors = ('f', _colors),
+                                        )
 
         # imgui
         self.container_view_combo_selected = 0
@@ -336,6 +365,12 @@ class Container( pyglet.event.EventDispatcher ):
             "\n.mouse_inside " +\
             str(self.mouse_inside)
 
+        if self.is_root:
+            self.overlay_quad.position = (self.position.x, self.position.y + self.height, 0.0,
+                                            self.position.x + self.width, self.position.y + self.height, 0.0,
+                                            self.position.x + self.width, self.position.y, 0.0,
+                                            self.position.x, self.position.y, 0.0)
+
         if self.is_leaf:
             self.debug_label_name.opacity = 50
         else:
@@ -381,7 +416,7 @@ class Container( pyglet.event.EventDispatcher ):
 
 
     #def update_structure( self, depth : int = 0, count : int = 0, leaves : list = list() ) -> int:
-    def update_structure( self, depth : int = 0, count : int = 0, leaves = None ) -> int:
+    def update_structure( self, depth : int = 0, count : int = 0, leaves = None, root = None ) -> int:
         """Update internal structure data, like is_leaf, unique ids, pushing and
         popping events handlers.
         Push and pop handlers to additional subscribers.
@@ -393,6 +428,13 @@ class Container( pyglet.event.EventDispatcher ):
         self._depth = depth
         self._node_id = count
         count += 1
+
+        if depth == 0:
+            self.is_root = True
+            root = self
+            self.root_container = self
+        else:
+            self.root_container = root
 
         # ----------------------------------------------------------------------
         # remove all handlers first?
@@ -420,8 +462,8 @@ class Container( pyglet.event.EventDispatcher ):
                 leaves.remove(self)
 
             for child in self.children:
-                count, leaves = child.update_structure( depth+1, count, leaves )
-        return count, leaves
+                count, leaves, root = child.update_structure( depth+1, count, leaves, root )
+        return count, leaves, root
 
 
     def update(self) -> None:
@@ -433,7 +475,7 @@ class Container( pyglet.event.EventDispatcher ):
         """
         # self.leaves = []
         # _, self.leaves = self.update_structure(leaves=self.leaves)
-        _, self.leaves = self.update_structure()
+        _, self.leaves, _ = self.update_structure()
         self.update_geometries()
 
 
@@ -539,7 +581,8 @@ class Container( pyglet.event.EventDispatcher ):
                         action_item_hovered = i2
                         # print( "HOVERED %s:'%s' (on '%s')"%(action_item_hovered,Container.container_action_labels[action_item_hovered], self.name) )
                         do_draw_container_action_hint = True
-
+                    else:
+                        self.root_container.do_draw_overlay = False
 
                 imgui.pop_style_var(1)
                 imgui.end_combo()
@@ -550,14 +593,8 @@ class Container( pyglet.event.EventDispatcher ):
             imgui.pop_clip_rect()
         imgui.pop_style_var()
 
-        if do_container_action:
-            print(self.container_actions_combo_selected)
-            # change_container( self, Container.container_action_labels[self.container_actions_combo_selected] )
-            change_container( self, self.container_actions_combo_selected )
 
         if do_draw_container_action_hint:
-            #draw_container_action_hint(  )
-            # print( "DO HINT %s:'%s' (on '%s')"%(action_item_hovered,Container.container_action_labels[action_item_hovered], self.name) )
             match action_item_hovered:
                 case Container.ACTION_SPLIT_HORIZONTAL:
                     # print("hsplit")
@@ -567,6 +604,53 @@ class Container( pyglet.event.EventDispatcher ):
                     # print("vsplit")
                     _y = self.position[1] + int(self.height/2.0)
                     pyglet.shapes.Line( self.position[0], _y, self.position[0] + self.width, _y, batch=None, color=(255,0,0,180)  ).draw()
+                case Container.ACTION_CLOSE:
+                    self.root_container.do_draw_overlay = True
+                    bl = self.position
+                    tr = ( bl[0] + self.width, bl[1] + self.height )
+                    self.root_container._marchinglines_shader["ir_bl"] = bl
+                    self.root_container._marchinglines_shader["ir_tr"] = tr
+                    self.root_container._marchinglines_shader["positive"] = 1.0
+
+                case Container.ACTION_CLOSE_SPLIT:
+                    self.root_container.do_draw_overlay = True
+
+                    # get sibling
+                    sibling = None
+                    if self.parent.children[0] is not self:
+                        sibling = self.parent.children[0]
+                    elif self.parent.children[1] is not self:
+                        sibling = self.parent.children[1]
+
+                    bl = sibling.position
+                    tr = ( bl[0] + sibling.width, bl[1] + sibling.height )
+                    self.root_container._marchinglines_shader["ir_bl"] = bl
+                    self.root_container._marchinglines_shader["ir_tr"] = tr
+                    self.root_container._marchinglines_shader["positive"] = 1.0
+
+                case Container.ACTION_CLOSE_OTHERS:
+                    self.root_container.do_draw_overlay = True
+                    bl = self.position
+                    tr = ( bl[0] + self.width, bl[1] + self.height )
+                    self.root_container._marchinglines_shader["ir_bl"] = bl
+                    self.root_container._marchinglines_shader["ir_tr"] = tr                   
+                    self.root_container._marchinglines_shader["positive"] = 0.0
+
+                case _:
+                    self.root_container.do_draw_overlay = False
+
+
+        if do_container_action:
+            print(self.container_actions_combo_selected)
+            # change_container( self, Container.container_action_labels[self.container_actions_combo_selected] )
+            change_container( self, self.container_actions_combo_selected )
+
+
+    def draw_overlay(self) -> None:
+        if self.root_container.do_draw_overlay:
+            self._marchinglines_time += 1.5
+            self._marchinglines_shader["time"] = self._marchinglines_time
+            self.overlay_batch.draw()
 
 
     def on_mouse_motion(self, x, y, ds, dy) -> None:
@@ -856,8 +940,8 @@ def change_container( container, action ):
                     # add the sibling as the new child of grandparent
                     grandparent.set_child( sibling, idx )
 
-
             root = sibling.get_root_container()
+            root.do_draw_overlay = False
             root.update()
             root.pprint_tree()
 
@@ -866,6 +950,8 @@ def change_container( container, action ):
             print("--- [<-x] change_container: 'close split' on '%s'"%container.name)
             # close a sibling if parent is a split container
             # (I think it nearly always is, if using the menu to change containers)
+            root = container.get_root_container()
+            root.do_draw_overlay = False
 
 
         case Container.ACTION_CLOSE_OTHERS:
@@ -875,6 +961,7 @@ def change_container( container, action ):
             # Remove children of root.
             # Add stashed this-container to the root.
             root = container.get_root_container()
+            root.do_draw_overlay = False
 
             idx = container.parent.children.index( container )
             container.parent.children[idx] = None
@@ -896,23 +983,31 @@ if __name__ == "__main__":
     # import boxer.camera
     import pyglet.window
     from pyglet import app
+    from pyglet.window import key
     import boxer.shaping
     from time import perf_counter
     # import math
 
     _window_config = gl.Config(
         sample_buffers = 1,
-        samples = 1,#16,
+        buffer_size = 32,
+        samples = 16,
         depth_size = 16,
         double_buffer = True,
     )
 
-    win = pyglet.window.Window( width=960, height=540, config=_window_config, resizable=True )
+    win = pyglet.window.Window(\
+                        width=960,
+                        height=540,
+                        resizable=True,
+                        config=_window_config,
+                        )
     
     fps_display = pyglet.window.FPSDisplay(win)
     fps_display.update_period = 0.2
 
     line_batch = pyglet.graphics.Batch()
+    overlay_batch = pyglet.graphics.Batch()
 
 
     # test container events: ---------------------------------------------------
@@ -949,6 +1044,7 @@ if __name__ == "__main__":
     c = Container(name="root_container",
                         window = win,
                         batch = line_batch,
+                        overlay_batch=overlay_batch,
                         position=pyglet.math.Vec2(50,50),
                         width= 615,
                         height=320,
@@ -1028,6 +1124,17 @@ if __name__ == "__main__":
         # print("on_resize (%s, %s)"%(width, height))
         c.update_geometries()
 
+
+    @win.event
+    def on_key_press(symbol, modifiers):
+        if symbol == key.B:
+            #####################################
+            # make sure there is a breakpoint added
+            # on the next 'print' line.
+            #####################################
+            print("break")
+
+
     @win.event
     def on_draw():
         """draw"""
@@ -1042,18 +1149,28 @@ if __name__ == "__main__":
         # c_fh.ratio = ss3
         # cfh_left.ratio = ss4
 
+        
+        
         c.update_geometries()
 
-        win.clear()
+
+
+        pyglet.gl.glClearColor(0.1, 0.1, 0.1, 1)
+        
+        win.clear( )
+
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
 
+
         imgui.new_frame()
-        # imgui.begin("Container imgui")
         imgui.push_font(font_default)
         line_batch.draw()
 
+        gl.glEnable(gl.GL_BLEND)
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        c.root_container.draw_overlay()
 
         for l in c.leaves:
             l.draw()
@@ -1069,6 +1186,6 @@ if __name__ == "__main__":
         imgui.render()
         imgui_renderer.render(imgui.get_draw_data())
 
-        fps_display.draw()
 
+        fps_display.draw()
     app.run()

@@ -34,9 +34,8 @@ def rectangle_centered_vertices(\
         height:float ) -> tuple:
     """
     Create counter-clockwise vertices for a 2d rectangle centred on a position, on the XY plane
-    
     The vertex order is [0,1,2,3]
-
+    Starting top left corner
     The index list for GL_TRIANGLES is [0,1,2,0,2,3]
 
     Arguments:
