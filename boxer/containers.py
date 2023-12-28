@@ -188,7 +188,7 @@ class Container( pyglet.event.EventDispatcher ):
         if old_children is None:
             old_children = []
 
-        old_children = self.children + old_children
+        old_children = old_children + self.children
         for child in self.children:
             if child is not None:
                 child.parent = None
@@ -200,7 +200,7 @@ class Container( pyglet.event.EventDispatcher ):
                     child.window.remove_handlers(on_mouse_motion=child.on_mouse_motion)
                     child.remove_handlers( )
                     child.window = None
-                child.remove_children( old_children )
+                old_children = child.remove_children( old_children )
   
         self.children=[]
         return old_children
