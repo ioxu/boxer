@@ -40,6 +40,13 @@ class Application(pyglet.event.EventDispatcher):
 
         # create window before anything else
         self.window : pyglet.window.Window = _create_window(res_x, res_y)
+        print("  pixel ratio: %s"%self.window.get_pixel_ratio())
+        print("  context: %s"%self.window.context)
+        glinfo = self.window.context.get_info()
+        print("  context info: %s"%glinfo)
+        print("    renderer: %s"%glinfo.renderer)
+        print("    version: %s"%glinfo.version)
+
         self.window.set_icon(
             # pyglet.image.load("boxer/resources/icon-64.png"),
             # pyglet.image.load("boxer/resources/icon-32.png"),
@@ -433,7 +440,7 @@ def _create_window(res_x, res_y):
     """window creator helper"""
     _window_config = gl.Config(
         sample_buffers = 1,
-        samples = 16,
+        samples = 8,
         depth_size = 16,
         double_buffer = True,
     )
