@@ -14,9 +14,12 @@ import pyglet
 import pyglet.gl as gl
 import pyglet.graphics
 import pyglet.shapes
+import pyglet.math
 import boxer.camera
 import boxer.shapes
 import boxer.shaders
+import boxer.handles
+import boxer.mouse
 
 import imgui
 
@@ -106,7 +109,7 @@ class Container( pyglet.event.EventDispatcher ):
 
         self.is_leaf = False
         self.is_root = False
-        self.root_container = None
+        self.root_container = self#None
 
         self.mouse_inside = False
 
@@ -165,6 +168,11 @@ class Container( pyglet.event.EventDispatcher ):
         # imgui
         self.container_view_combo_selected = 0
         self.container_actions_combo_selected =0
+
+
+    def __del__(self) -> None:
+        # print("\033[31m[X]\033[0m '%s' being deleted."%self.name)
+        print("\033[38;5;52m[X]\033[0m '%s' being deleted."%self.name)
 
 
     def __repr__(self):
@@ -278,7 +286,7 @@ class Container( pyglet.event.EventDispatcher ):
         ('this' is normally self!)
         subclasses should override this method for their own caclulations
         """
-        return (self.width, self.height)
+        return pyglet.math.Vec2(self.width, self.height)
 
 
     def get_available_size_from_parent( self ) -> tuple:
@@ -329,7 +337,7 @@ class Container( pyglet.event.EventDispatcher ):
         if self.parent is None:
             # maybe its a pyglet.window.Window ?
             if self.window and not self.use_explicit_dimensions:
-                self.position = (0,0)
+                self.position = pyglet.math.Vec2(0,0)
             return self.position
         return (None, None)
 
@@ -351,19 +359,14 @@ class Container( pyglet.event.EventDispatcher ):
 
     def update_geometries( self ) -> None:
         """traverse all children and update all geometries, positions, etc"""
+        # print("\033[38;5;215mContainer update_geometries\033[0m (%s)"%self.name)
         self.get_available_size_from_parent()
         self.get_position_from_parent()
 
         margin = 1#3
 
-        self.debug_label_name.x = self.position[0] + 5
-        self.debug_label_name.y = self.position[1] + self.height - 2 - 15
-        self.debug_label_name.text =\
-            self.name + " (%s)"%(type(self).__name__) +\
-            "\n.is_leaf " +\
-            str(self.is_leaf) +\
-            "\n.mouse_inside " +\
-            str(self.mouse_inside)
+        self.debug_label_name.x = self.position.x + 5
+        self.debug_label_name.y = self.position.y + self.height - 2 - 15
 
         if self.is_root:
             self.overlay_quad.position = (self.position.x, self.position.y + self.height, 0.0,
@@ -376,46 +379,58 @@ class Container( pyglet.event.EventDispatcher ):
         else:
             self.debug_label_name.opacity = 0
 
-        self.lines["left"].x = self.position[0] + margin
-        self.lines["left"].y = self.position[1] + margin
-        self.lines["left"].x2 = self.position[0] + margin
-        self.lines["left"].y2 = self.position[1] + self.height - margin
+        self.lines["left"].x = self.position.x + margin
+        self.lines["left"].y = self.position.y + margin
+        self.lines["left"].x2 = self.position.x + margin
+        self.lines["left"].y2 = self.position.y + self.height - margin
 
-        self.lines["top"].x = self.position[0] + margin #-1
-        self.lines["top"].y = self.position[1] + self.height - margin
-        self.lines["top"].x2 = self.position[0] + self.width - margin
-        self.lines["top"].y2 = self.position[1] + self.height - margin
+        self.lines["top"].x = self.position.x + margin #-1
+        self.lines["top"].y = self.position.y + self.height - margin
+        self.lines["top"].x2 = self.position.x + self.width - margin
+        self.lines["top"].y2 = self.position.y + self.height - margin
 
-        self.lines["right"].x = self.position[0] + self.width - margin
-        self.lines["right"].y = self.position[1] + self.height - margin
-        self.lines["right"].x2 = self.position[0] + self.width - margin
-        self.lines["right"].y2 = self.position[1] + margin #+ 1
+        self.lines["right"].x = self.position.x + self.width - margin
+        self.lines["right"].y = self.position.y + self.height - margin
+        self.lines["right"].x2 = self.position.x + self.width - margin
+        self.lines["right"].y2 = self.position.y + margin #+ 1
 
-        self.lines["bottom"].x = self.position[0] + margin
-        self.lines["bottom"].y = self.position[1] + margin
-        self.lines["bottom"].x2 = self.position[0] + self.width -margin
-        self.lines["bottom"].y2 = self.position[1] + margin
+        self.lines["bottom"].x = self.position.x + margin
+        self.lines["bottom"].y = self.position.y + margin
+        self.lines["bottom"].x2 = self.position.x + self.width -margin
+        self.lines["bottom"].y2 = self.position.y + margin
 
-        if self.mouse_inside:
-            for lk in self.lines.items(): #self.lines.keys():
-                # self.lines[lk].width = 3
-                lk[1].width = 0.5#1.5
-                lk[1].opacity = 255
-        else:
-            if self.is_leaf:
-                for lk in self.lines.items():#keys():
-                    lk[1].width = .5
-                    lk[1].opacity = self._lines_original_color[3]
-                    # self.lines[lk].width = 1
-            else:
-                for lk in self.lines.items():
-                    lk[1].opacity = 0
+        self.update_display()
 
         for child in [c for c in self.children if c is not None]:
             child.update_geometries()
 
 
-    #def update_structure( self, depth : int = 0, count : int = 0, leaves : list = list() ) -> int:
+    def update_display( self, ) -> None:
+        """update graphical display/feedback things
+        lables, inside/outside line colours/opacities etc
+        """
+        if self.is_leaf:
+            self.debug_label_name.text =\
+                self.name + " (%s)"%(type(self).__name__) +\
+                "\n.is_leaf " +\
+                str(self.is_leaf) +\
+                "\n.mouse_inside " +\
+                str(self.mouse_inside)
+
+        if self.mouse_inside:
+            for lk in self.lines.items():
+                lk[1].width = 0.5#1.5
+                lk[1].opacity = 255
+        else:
+            if self.is_leaf:
+                for lk in self.lines.items():
+                    lk[1].width = .5
+                    lk[1].opacity = self._lines_original_color[3]
+            else:
+                for lk in self.lines.items():
+                    lk[1].opacity = 0        
+
+
     def update_structure( self, depth : int = 0, count : int = 0, leaves = None, root = None ) -> int:
         """Update internal structure data, like is_leaf, unique ids, pushing and
         popping events handlers.
@@ -473,10 +488,20 @@ class Container( pyglet.event.EventDispatcher ):
         self.update_structure()
         self.update_geometries()
         """
-        # self.leaves = []
-        # _, self.leaves = self.update_structure(leaves=self.leaves)
+
         _, self.leaves, _ = self.update_structure()
         self.update_geometries()
+
+        # TODO: make update() support updating the downstream child-tree of THIS node.
+        # if self._node_id == None:
+        #     self._node_id = 0
+
+        # _, self.root_container.leaves, _ = self.update_structure(
+        #                             depth = self._depth,
+        #                             count = self._node_id,
+        #                             leaves = self.root_container.leaves,
+        #                             root = self.root_container)
+        # self.update_geometries()
 
 
     def draw(self):
@@ -493,7 +518,6 @@ class Container( pyglet.event.EventDispatcher ):
             print("DRAW: %s .window is None"%self)
             return
         # ----------------------------------------------------------------------
-
 
         pos = self.position
 
@@ -594,16 +618,26 @@ class Container( pyglet.event.EventDispatcher ):
         imgui.pop_style_var()
 
 
+        split_line_hint_width = 15.0
+
         if do_draw_container_action_hint:
             match action_item_hovered:
                 case Container.ACTION_SPLIT_HORIZONTAL:
-                    # print("hsplit")
-                    _x = self.position[0] + int(self.width/2.0)
-                    pyglet.shapes.Line( _x, self.position[1], _x, self.position[1]+self.height, batch=None, color=(255,0,0,180)  ).draw()
+                    self.root_container.do_draw_overlay = True
+                    bl = self.position + pyglet.math.Vec2((self.width / 2.0) - (split_line_hint_width/2.0), 0.0)
+                    tr = ( bl[0] + split_line_hint_width, bl[1] + self.height )
+                    self.root_container._marchinglines_shader["ir_bl"] = bl
+                    self.root_container._marchinglines_shader["ir_tr"] = tr
+                    self.root_container._marchinglines_shader["positive"] = 1.0               
+
                 case Container.ACTION_SPLIT_VERTICAL:
-                    # print("vsplit")
-                    _y = self.position[1] + int(self.height/2.0)
-                    pyglet.shapes.Line( self.position[0], _y, self.position[0] + self.width, _y, batch=None, color=(255,0,0,180)  ).draw()
+                    self.root_container.do_draw_overlay = True
+                    bl = self.position + pyglet.math.Vec2( 0.0, (self.height/2.0) - (split_line_hint_width / 2.0 ) )
+                    tr = ( bl[0] + self.width, bl[1] + split_line_hint_width )
+                    self.root_container._marchinglines_shader["ir_bl"] = bl
+                    self.root_container._marchinglines_shader["ir_tr"] = tr
+                    self.root_container._marchinglines_shader["positive"] = 1.0               
+
                 case Container.ACTION_CLOSE:
                     self.root_container.do_draw_overlay = True
                     bl = self.position
@@ -613,20 +647,20 @@ class Container( pyglet.event.EventDispatcher ):
                     self.root_container._marchinglines_shader["positive"] = 1.0
 
                 case Container.ACTION_CLOSE_SPLIT:
-                    self.root_container.do_draw_overlay = True
-
                     # get sibling
                     sibling = None
-                    if self.parent.children[0] is not self:
-                        sibling = self.parent.children[0]
-                    elif self.parent.children[1] is not self:
-                        sibling = self.parent.children[1]
+                    if self.parent:
+                        self.root_container.do_draw_overlay = True
+                        if self.parent.children[0] is not self:
+                            sibling = self.parent.children[0]
+                        elif self.parent.children[1] is not self:
+                            sibling = self.parent.children[1]
 
-                    bl = sibling.position
-                    tr = ( bl[0] + sibling.width, bl[1] + sibling.height )
-                    self.root_container._marchinglines_shader["ir_bl"] = bl
-                    self.root_container._marchinglines_shader["ir_tr"] = tr
-                    self.root_container._marchinglines_shader["positive"] = 1.0
+                        bl = sibling.position
+                        tr = ( bl[0] + sibling.width, bl[1] + sibling.height )
+                        self.root_container._marchinglines_shader["ir_bl"] = bl
+                        self.root_container._marchinglines_shader["ir_tr"] = tr
+                        self.root_container._marchinglines_shader["positive"] = 1.0
 
                 case Container.ACTION_CLOSE_OTHERS:
                     self.root_container.do_draw_overlay = True
@@ -642,7 +676,7 @@ class Container( pyglet.event.EventDispatcher ):
 
         if do_container_action:
             print(self.container_actions_combo_selected)
-            # change_container( self, Container.container_action_labels[self.container_actions_combo_selected] )
+            self.root_container.do_draw_overlay = False
             change_container( self, self.container_actions_combo_selected )
 
 
@@ -655,20 +689,23 @@ class Container( pyglet.event.EventDispatcher ):
 
     def on_mouse_motion(self, x, y, ds, dy) -> None:
         """to be bound to a pyglet.window.Window's mouse events"""
+        _prev_mouse_inside = self.mouse_inside
         if boxer.shapes.point_in_box( x, y,
-                self.position[0],
-                self.position[1],
-                self.position[0]+self.width,
-                self.position[1]+self.height ):
-            if self.mouse_inside is not True:
+                self.position.x,
+                self.position.y,
+                self.position.x+self.width,
+                self.position.y+self.height ):
+            self.mouse_inside = True
+            if _prev_mouse_inside is not True:
+                self.update_display()
                 ret = self.dispatch_event( "mouse_entered", self )
                 # print("dispatch event 'mouse_entered' for %s: return: %s"%(self.name, ret))
-            self.mouse_inside = True
         else:
-            if self.mouse_inside is True:
+            self.mouse_inside = False
+            if _prev_mouse_inside is True:
+                self.update_display()
                 ret = self.dispatch_event( "mouse_exited", self )
                 # print("dispatch event 'mouse_exited' for %s: return: %s"%(self.name, ret))
-            self.mouse_inside = False
 
 
 # ------------------------------------------------------------------------------
@@ -689,9 +726,29 @@ class SplitContainer( Container ):
             **kwargs):
         Container.__init__( self, **kwargs )
         self.ratio = ratio
+        self.ratio_margin = 15 # limit from hitting 0 or 1, in pixels
         self.create_default_children = create_default_children
         if self.create_default_children:
             self._default_children()
+
+        self.split_handle = boxer.handles.PointHandle(\
+                position = pyglet.math.Vec2( 0.0, 0.0 ),
+                name = self.name + "_RatioHandle",
+                display_radius = 2.0,
+                hit_radius = 10.0,
+                mouse = None,#self.mouse,
+                debug = True,
+                space = boxer.handles.Handle.SPACE_WORLD,
+                batch = self.batch )
+
+        if self.window:
+            self.window.push_handlers( on_mouse_motion = self.split_handle.on_mouse_motion )
+            self.window.push_handlers( on_mouse_press = self.split_handle.on_mouse_press )
+            self.window.push_handlers( on_mouse_release = self.split_handle.on_mouse_release )
+            self.window.push_handlers( on_mouse_drag = self.split_handle.on_mouse_drag )
+
+        self.split_handle.push_handlers( on_position_updated = self.on_split_handle_position_updated )
+
 
     def _default_children( self ):
         """generates default children
@@ -702,6 +759,15 @@ class SplitContainer( Container ):
         c2 = Container(name = self.name + "_ctwo", batch=self.batch, window=self.window)
         self.set_child( c1, 0 )
         self.set_child( c2, 1 )
+
+
+    def update_geometries(self, *args, **kwargs) -> None:
+        # print("\033[38;5;216mSplitContainer update_geometries\033[0m (%s)"%self.name)
+        super().update_geometries(*args, **kwargs)
+
+
+    def on_split_handle_position_updated(self, position) -> None:
+        print("\033[38;5;123m%s.split_handle position:\033[0m %s"%(self.name, position))
 
 
 class HSplitContainer( SplitContainer ):
@@ -721,20 +787,40 @@ class HSplitContainer( SplitContainer ):
 
     def get_child_size(self, this) -> tuple:
         if this == self.children[0]:
-            return (math.floor(self.width*self.ratio) -1 , self.height  )
+            return pyglet.math.Vec2(math.floor(self.width*self.ratio) -1 , self.height  )
         else:
-            return (math.ceil(self.width*(1-self.ratio)), self.height  )
+            return pyglet.math.Vec2(math.ceil(self.width*(1-self.ratio)), self.height  )
 
 
     def get_child_position(self, this) -> tuple:
         if this == self.children[0]:
-            x = self.position[0]
-            y = self.position[1]
-            return (x, y)
+            x = self.position.x
+            y = self.position.y
         else:
-            x = self.position[0] + math.floor(self.width*self.ratio)
-            y = self.position[1]
-            return (x, y)
+            x = self.position.x + math.floor(self.width*self.ratio)
+            y = self.position.y
+        return pyglet.math.Vec2(x, y)
+
+
+    def update_geometries(self, *args, **kwargs) -> None:
+        print("\033[38;5;217mHSplitContainer update_geometries\033[0m (%s)"%self.name)
+        super().update_geometries(*args, **kwargs)
+
+        if self.split_handle:
+            self.split_handle.position = pyglet.math.Vec2(\
+                                self.position.x + (self.width * self.ratio),
+                                self.position.y + (self.height * 0.5 ))
+            print("H update_position( dispatch_event = False ) ")
+            self.split_handle.update_position(dispatch_event = False)
+
+
+    def on_split_handle_position_updated(self, position) -> None:
+        self.split_handle.position.y = self.position.x + int(self.height * 0.5 )
+        x = min( self.position.x + self.width - self.ratio_margin, max( self.position.x + self.ratio_margin, self.split_handle.position.x ) )
+        self.split_handle.position.x = x
+        new_ratio = (x - self.position.x) / float(self.width)
+        self.ratio = new_ratio
+        self.update_geometries()
 
 
 class VSplitContainer( SplitContainer ):
@@ -754,20 +840,40 @@ class VSplitContainer( SplitContainer ):
 
     def get_child_size(self, this) -> tuple:
         if this == self.children[0]:
-            return (self.width , math.floor(self.height * self.ratio) -1 )
-        else:
-            return (self.width , math.ceil(self.height * (1.0 - self.ratio))  )
+            return pyglet.math.Vec2(self.width , math.floor(self.height * self.ratio) -1 )
+        return pyglet.math.Vec2(self.width , math.ceil(self.height * (1.0 - self.ratio))  )
 
 
     def get_child_position(self, this) -> tuple:
         if this == self.children[0]:
-            x = self.position[0]
-            y = self.position[1]
-            return (x, y)
+            x = self.position.x
+            y = self.position.y
         else:
-            x = self.position[0]
-            y = self.position[1] + math.floor(self.height*self.ratio)
-            return (x, y)
+            x = self.position.x
+            y = self.position.y + math.floor(self.height*self.ratio)
+        return pyglet.math.Vec2(x, y)
+
+
+    def update_geometries(self, *args, **kwargs) -> None:
+        # print("%s.update_geometries"%self.name)
+        print("\033[38;5;217mVSplitContainer update_geometries\033[0m (%s)"%self.name)
+        super().update_geometries(*args, **kwargs)
+
+        if self.split_handle:
+            self.split_handle.position = pyglet.math.Vec2(\
+                                self.position.x + (self.width * 0.5),
+                                self.position.y + (self.height * self.ratio ))
+            print("V update_position( dispatch_event = False ) ")
+            self.split_handle.update_position(dispatch_event = False)
+
+
+    def on_split_handle_position_updated(self, position) -> None:
+        self.split_handle.position.x = self.position.x + int(self.width * 0.5 )
+        y = min( self.position.y + self.height - self.ratio_margin, max( self.position.y + self.ratio_margin, self.split_handle.position.y ) )
+        self.split_handle.position.y = y
+        new_ratio = ( y - self.position.y) / float(self.height)
+        self.ratio = new_ratio
+        self.update_geometries()
 
 
 class ViewportContainer( Container ):
@@ -1032,15 +1138,6 @@ if __name__ == "__main__":
 
 
     # container tree -----------------------------------------------------------
-    # c = HSplitContainer(name="root_container", ratio=0.36, window = win, batch = line_batch)
-    # c = HSplitContainer(name="root_container",
-    #                     ratio=0.36,
-    #                     window = win,
-    #                     batch = line_batch,
-    #                     position=pyglet.math.Vec2(50,50),
-    #                     width= 615,
-    #                     height=320,
-    #                     use_explicit_dimensions=True)
     c = Container(name="root_container",
                         window = win,
                         batch = line_batch,
@@ -1050,55 +1147,10 @@ if __name__ == "__main__":
                         height=320,
                         use_explicit_dimensions=True)
 
-    # # c.push_handlers( mouse_entered = mouse_entered_container )
-    # # c.push_handlers( mouse_exited = mouse_exited_container )
-
-    # # ---
-    # c_l = Container(name = "left_panel", batch = line_batch)
-    # # c_l.push_handlers( mouse_entered = mouse_entered_container )
-    # # c_l.push_handlers( mouse_exited = mouse_exited_container )
-    # c.add_child( c_l )
-
-    # c_r = VSplitContainer(name= "right_panel", batch = line_batch, ratio = 0.333,color=(128,128,255,0))
-    # # c_r.push_handlers( mouse_entered = mouse_entered_container )
-    # # c_r.push_handlers( mouse_exited = mouse_exited_container )
-    # c.add_child( c_r )
-
-    # c_r_one = Container(name="right_panel_bottom", batch = line_batch, color=(128, 255, 128, 128))
-    # # c_r_one.push_handlers( mouse_entered = mouse_entered_container )
-    # # c_r_one.push_handlers( mouse_exited = mouse_exited_container )
-    # c_r.add_child( c_r_one )
-
-    # c_fh = HSplitContainer(name="top_final_split", batch = line_batch, ratio = 0.65, color=(128,128,255,0))
-    # # c_fh.push_handlers( mouse_entered = mouse_entered_container )
-    # # c_fh.push_handlers( mouse_exited = mouse_exited_container )
-    # c_r.add_child( c_fh )
-
-    # cfh_left = VSplitContainer(name="final_split_left", batch=line_batch, color=(128,128,255,0))#, color=(255, 180, 10, 128))
-    # # cfh_left.push_handlers( mouse_entered = mouse_entered_container )
-    # # cfh_left.push_handlers( mouse_exited = mouse_exited_container )
-    # c_fh.add_child( cfh_left )
-
-    # cfh_left_bottom = Container(name ="final_split_left_bottom", batch=line_batch, color=(255, 180, 10, 128))
-    # # cfh_left_bottom.push_handlers( mouse_entered = mouse_entered_container )
-    # # cfh_left_bottom.push_handlers( mouse_exited = mouse_exited_container )
-    # cfh_left.add_child(cfh_left_bottom)
-
-    # cfh_left_top = Container(name ="final_split_left_top", batch=line_batch, color=(255, 180, 10, 128))
-    # # cfh_left_top.push_handlers( mouse_entered = mouse_entered_container )
-    # # cfh_left_top.push_handlers( mouse_exited = mouse_exited_container )
-    # cfh_left.add_child(cfh_left_top)
-
-    # cfh_right_vp = ViewportContainer(name="final_viewport", batch=line_batch, color=(255,255,255,128))
-    # # cfh_right_vp.push_handlers( mouse_entered = mouse_entered_container )
-    # # cfh_right_vp.push_handlers( mouse_exited = mouse_exited_container )
-    # c_fh.add_child( cfh_right_vp )
     # # ---
 
 
     t1_start = perf_counter()
-    # count, leaves = c.update_structure()
-    # c.update_geometries()#count = 0)
     c.update()
     t1_stop = perf_counter()
 
@@ -1121,12 +1173,13 @@ if __name__ == "__main__":
     @win.event
     def on_resize( width, height ):
         """resize"""
-        # print("on_resize (%s, %s)"%(width, height))
+        print("main.on_resize (%s, %s)"%(width, height))
         c.update_geometries()
 
 
     @win.event
-    def on_key_press(symbol, modifiers):
+    def on_key_press(symbol, _modifiers):
+        """key events"""
         if symbol == key.B:
             #####################################
             # make sure there is a breakpoint added
@@ -1148,15 +1201,12 @@ if __name__ == "__main__":
         # c_r.ratio = ss2
         # c_fh.ratio = ss3
         # cfh_left.ratio = ss4
-
-        
-        
-        c.update_geometries()
+        #c.update_geometries()
 
 
 
         pyglet.gl.glClearColor(0.1, 0.1, 0.1, 1)
-        
+
         win.clear( )
 
         gl.glEnable(gl.GL_BLEND)
