@@ -1090,7 +1090,6 @@ if __name__ == "__main__":
     import pyglet.window
     from pyglet import app
     from pyglet.window import key
-    import boxer.shaping
     from time import perf_counter
     # import math
 
@@ -1190,20 +1189,6 @@ if __name__ == "__main__":
 
     @win.event
     def on_draw():
-        """draw"""
-        # global gtime, ss1, ss2, ss3
-        # gtime += 0.02
-        # ss1 = boxer.shaping.remap(math.sin( gtime *0.05 ), -1.0, 1.0, 0.2, 0.52)
-        # ss2 = boxer.shaping.remap(math.sin( gtime * .2 + .7447), -1.0, 1.0, 0.2, 0.82)
-        # ss3 = boxer.shaping.remap(math.sin( gtime * .9 + -.7447), -1.0, 1.0, 0.45, 0.5)
-        # ss4 = boxer.shaping.remap(math.sin( gtime * 1.6 + -1.656), -1.0, 1.0, 0.3, 0.7)
-        # c.ratio = ss1
-        # c_r.ratio = ss2
-        # c_fh.ratio = ss3
-        # cfh_left.ratio = ss4
-        #c.update_geometries()
-
-
 
         pyglet.gl.glClearColor(0.1, 0.1, 0.1, 1)
 
@@ -1236,6 +1221,11 @@ if __name__ == "__main__":
         imgui.render()
         imgui_renderer.render(imgui.get_draw_data())
 
+        # ------ >8
+        rect = pyglet.shapes.Rectangle( 20,20 ,30, 30 )
+        rect.anchor_position = (15,15)
+        rect.draw()
+        # 8< ------
 
         fps_display.draw()
     app.run()

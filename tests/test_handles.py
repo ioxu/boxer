@@ -43,3 +43,29 @@ def test_Handle_dispatch_event_on_position_uppdated() -> None:
     h.x = 66.6
     assert output[0] == 66.6
 
+# ------------------------------------------------------------------------------
+# BoxHandle
+
+def test_BoxHandle_instantiate() -> None:
+    h = handles.BoxHandle(
+        name = "BoxHandle_tester",
+        hit_width=250.0,
+        hit_height=45.0,
+        display_width=225.0,
+        display_height=30.0,
+    )
+
+    assert isinstance(h,handles.BoxHandle)
+
+def test_BoxHandle_is_inside_using_in() -> None:
+    h = handles.BoxHandle(
+        name = "BoxHandle_tester",
+        position =pyglet.math.Vec2(0.0, 0.0),
+        hit_width = 250.0,
+        hit_height = 45.0,
+        display_width = 225.0,
+        display_height = 30.0,
+    )
+
+    assert h.is_inside( pyglet.math.Vec2( 10.0, 10.0 ) ) == True
+
