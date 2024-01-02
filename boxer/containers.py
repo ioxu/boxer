@@ -649,7 +649,7 @@ class Container( pyglet.event.EventDispatcher ):
                 case Container.ACTION_CLOSE_SPLIT:
                     # get sibling
                     sibling = None
-                    if self.parent:
+                    if self.parent and isinstance(self.parent, SplitContainer):
                         self.root_container.do_draw_overlay = True
                         if self.parent.children[0] is not self:
                             sibling = self.parent.children[0]
