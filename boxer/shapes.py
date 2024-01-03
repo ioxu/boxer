@@ -149,6 +149,36 @@ class RectangleLine( pyglet.shapes.Rectangle ):
         self._update_vertices()
 
 
+    @property
+    def width(self):
+        """The width of the rectangle.
+
+        :type: float
+        """
+        return self._width
+
+    @width.setter
+    def width(self, value):
+        self._width = value
+        self._update_vertices()
+
+    @property
+    def height(self):
+        """The height of the rectangle.
+
+        :type: float
+        """
+        return self._height
+
+    @height.setter
+    def height(self, value):
+        self._height = value
+        self._update_vertices()
+
+
+# ------------------------------------------------------------------------------
+
+
 def rectangle_centered_vertices(\
         centre_x:float,
         centre_y:float,
@@ -212,6 +242,7 @@ def quad_texcoords(
 
 
 # ------------------------------------------------------------------------------
+
 
 def point_in_box( x, y, bottom_left_x, bottom_left_y, top_right_x, top_right_y ) -> bool:
     """test if point is inside a box

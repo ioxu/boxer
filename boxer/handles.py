@@ -168,7 +168,7 @@ Handle.register_event_type("on_released")
 
 # ------------------------------------------------------------------------------
 
-class BoxHandle( Handle ):
+class BoxHandle( Handle):
     def __init__( self,
         name : str = "BoxHandle",
         position : pyglet.math.Vec2 = pyglet.math.Vec2(0.0, 0.0),
@@ -194,22 +194,72 @@ class BoxHandle( Handle ):
             group = group,
             )
 
-        self.hit_width = hit_width
-        self.hit_height = hit_height
-        self.display_width = display_width
-        self.display_height = display_height
+        self._hit_width = hit_width
+        self._hit_height = hit_height
+        self._display_width = display_width
+        self._display_height = display_height
 
         # _shapes dict
         self._shapes = {}
-        self._shapes["display"] = pyglet.shapes.Rectangle( self.position.x, self.position.y, self.display_width, self.display_height, color=DEBUG_SHAPE_COLOR, batch=self.batch)
-        self._shapes["hit"] = pyglet.shapes.Rectangle( self.position.x, self.position.y, self.hit_width, self.hit_height, color=DEBUG_HIT_SHAPE_COLOR, batch=self.batch)
-        self._shapes["highlight"] = boxer.shapes.RectangleLine(  self.position.x, self.position.y, self.hit_width+2, self.hit_height+2, line_width = 1, color=(255, 255, 255), batch=self.batch)
+        self._shapes["display"] = pyglet.shapes.Rectangle( self.position.x, self.position.y, self._display_width, self._display_height, color=DEBUG_SHAPE_COLOR, batch=self.batch)
+        self._shapes["hit"] = pyglet.shapes.Rectangle( self.position.x, self.position.y, self._hit_width, self._hit_height, color=DEBUG_HIT_SHAPE_COLOR, batch=self.batch)
+        self._shapes["highlight"] = boxer.shapes.RectangleLine(  self.position.x, self.position.y, self._hit_width+2, self._hit_height+2, line_width = 1, color=(255, 255, 255), batch=self.batch)
         self._shapes["highlight"].opacity = 20
-        self._shapes["select"] = boxer.shapes.RectangleLine(  self.position.x, self.position.y, self.hit_width+4, self.hit_height+4, line_width = 1, color=(255,70,70), batch=self.batch)
+        self._shapes["select"] = boxer.shapes.RectangleLine(  self.position.x, self.position.y, self._hit_width+4, self._hit_height+4, line_width = 1, color=(255,70,70), batch=self.batch)
         self._shapes["select"].opacity = 20
         # self._shapes["temp"] = boxer.shapes.RectangleLine(  self.position.x, self.position.y, self.hit_width+35, self.hit_height+35, line_width = 15, color=(30,255,180), batch=self.batch)
         # self._shapes["temp"].opacity = 10
         self.set_shape_anchors()
+
+
+    @property
+    def hit_width(self):
+        return self._hit_width
+
+
+    @hit_width.setter
+    def hit_width(self, value):
+        self._hit_width = value
+        self._shapes["hit"].width = value
+        self._shapes["highlight"].width = value +2
+        self._shapes["select"].width = value + 4
+ 
+
+    @property
+    def hit_height(self):
+        return self._hit_height
+ 
+
+    @hit_height.setter
+    def hit_height(self, value):
+        self._hit_height = value
+        self._shapes["hit"].height = value
+        self._shapes["highlight"].height = value +2
+        self._shapes["select"].height = value + 4
+
+
+    @property
+    def display_width(self):
+        return self._display_width
+
+    
+    @display_width.setter
+    def display_width(self, value):
+        self._display_width = value
+        self._shapes["display"].width = value
+
+
+    @property
+    def display_height(self):
+        return self._display_height
+
+
+    @display_height.setter
+    def display_height(self, value):
+        self._display_height = value
+        self._shapes["display"].height = value
+
+
 
 
     def is_inside(self, position : pyglet.math.Vec2 = pyglet.math.Vec2()) -> bool:
@@ -220,8 +270,8 @@ class BoxHandle( Handle ):
 
     def set_shape_anchors(self) -> tuple:
         """sets the anchor position at the centres of self.*_width and self.*_height"""
-        self._shapes["display"].anchor_position = (self.display_width / 2.0, self.display_height/2.0)
-        self._shapes["hit"].anchor_position = (self.hit_width / 2.0, self.hit_height/2.0)
+        self._shapes["display"].anchor_position = (self._display_width / 2.0, self._display_height/2.0)
+        self._shapes["hit"].anchor_position = (self._hit_width / 2.0, self._hit_height/2.0)
         self._shapes["highlight"].anchor_position = ( self._shapes["highlight"]._width/2.0, self._shapes["highlight"]._height/2.0 )
         self._shapes["select"].anchor_position = ( self._shapes["select"]._width/2.0, self._shapes["select"]._height/2.0 )
         # self._shapes["temp"].anchor_position = ( self._shapes["temp"]._width/2.0, self._shapes["temp"]._height/2.0 )
@@ -278,11 +328,14 @@ class PointHandle( Handle ):
 
 # ------------------------------------------------------------------------------
 if __name__ == "__main__":
+    """handles sandbox"""
     print("run handles.py main:")
     
     sys.path.extend("..")
     import pyglet.window
     from pyglet import app
+    from pyglet.window import key
+    import math
 
     _window_config = gl.Config(
         sample_buffers = 1,
@@ -307,6 +360,9 @@ if __name__ == "__main__":
 
     handle_batch = pyglet.graphics.Batch()
 
+    win.global_time = 0.0
+    win.delta_time = 0.0
+
     bh = BoxHandle( name = "BoxHandle_tester",
         position = (win.size[0] /2.0, win.size[1] - 100.0),
         hit_width = 96,
@@ -320,6 +376,22 @@ if __name__ == "__main__":
     win.push_handlers( on_mouse_press = bh.on_mouse_press )
     win.push_handlers( on_mouse_release = bh.on_mouse_release )
     win.push_handlers( on_mouse_drag = bh.on_mouse_drag )
+
+
+    bh_square = BoxHandle( name = "BoxHandle_square_tester",
+        position = (win.size[0] /2.0, win.size[1] - 300.0),
+        hit_width = 20,
+        hit_height = 20,
+        display_width = 10,
+        display_height = 10,
+        batch=handle_batch
+        )
+
+    win.push_handlers( on_mouse_motion = bh_square.on_mouse_motion )
+    win.push_handlers( on_mouse_press = bh_square.on_mouse_press )
+    win.push_handlers( on_mouse_release = bh_square.on_mouse_release )
+    win.push_handlers( on_mouse_drag = bh_square.on_mouse_drag )
+
 
 
     ph = PointHandle( name = "PointHandle_tester",
@@ -338,6 +410,25 @@ if __name__ == "__main__":
         """resize"""
         print("main.on_resize (%s, %s)"%(width, height))
 
+    
+    
+    def on_update(dt):
+        win.global_time += dt
+        win.delta_time = dt
+    
+    win.on_update = on_update
+
+
+    @win.event
+    def on_key_press(symbol, _modifiers):
+        """key events"""
+        if symbol == key.B:
+            #####################################
+            # make sure there is a breakpoint added
+            # on the next 'print' line.
+            #####################################
+            print("break")
+
 
     @win.event
     def on_draw():
@@ -345,7 +436,20 @@ if __name__ == "__main__":
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
+
+        s1 = boxer.shaping.remap(math.sin( win.global_time * 8.0 ), -1.0, 1.0, 0.0, 1.0 )
+        s1 = boxer.shaping.bias(s1, 0.15)
+        s1 = boxer.shaping.remap( s1, 0.0, 1.0, 20.0, 40.0 )
+        bh_square.display_width = s1
+        bh_square.display_height = s1
+        bh_square.hit_width = s1 + 20
+        bh_square.hit_height = s1 + 20
+        bh_square.set_shape_anchors()
+
         handle_batch.draw()
 
         fps_display.draw()
+    
+    
+    pyglet.clock.schedule_interval(win.on_update, 1 / 60.0 )
     app.run()        

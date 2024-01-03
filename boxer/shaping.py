@@ -28,3 +28,7 @@ def remap( input, start1, stop1, start2, stop2):
 
 	"""
 	return start2 + (stop2 - start2) * ((input - start1) / (stop1 - start1))
+
+
+def bias( t : float = 0.0, b : float = 0.5) -> float:
+	return ( t / ((((1.0/b) - 2.0) *(1.0 - t)) + 1.0 ))

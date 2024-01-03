@@ -731,15 +731,18 @@ class SplitContainer( Container ):
         if self.create_default_children:
             self._default_children()
 
-        self.split_handle = boxer.handles.PointHandle(\
+        self.split_handle = boxer.handles.BoxHandle(\
                 position = pyglet.math.Vec2( 0.0, 0.0 ),
                 name = self.name + "_RatioHandle",
-                display_radius = 2.0,
-                hit_radius = 10.0,
+                display_width = 5.0,
+                display_height = 5.0,
+                hit_width = 15.0,
+                hit_height = 15.0,
                 mouse = None,#self.mouse,
-                debug = True,
+                debug = False,
                 space = boxer.handles.Handle.SPACE_WORLD,
                 batch = self.batch )
+
 
         if self.window:
             self.window.push_handlers( on_mouse_motion = self.split_handle.on_mouse_motion )
@@ -810,6 +813,12 @@ class HSplitContainer( SplitContainer ):
             self.split_handle.position = pyglet.math.Vec2(\
                                 self.position.x + (self.width * self.ratio),
                                 self.position.y + (self.height * 0.5 ))
+            self.split_handle.hit_width = 10.0
+            self.split_handle.hit_height = self.height - 20.0
+            self.split_handle.display_width = 3.0
+            self.split_handle.display_height = self.split_handle.hit_height - 2.0
+            self.split_handle.set_shape_anchors()
+            
             print("H update_position( dispatch_event = False ) ")
             self.split_handle.update_position(dispatch_event = False)
 
@@ -863,6 +872,12 @@ class VSplitContainer( SplitContainer ):
             self.split_handle.position = pyglet.math.Vec2(\
                                 self.position.x + (self.width * 0.5),
                                 self.position.y + (self.height * self.ratio ))
+            self.split_handle.hit_width = self.width - 20.0
+            self.split_handle.hit_height = 10.0
+            self.split_handle.display_width = self.split_handle.hit_width - 2.0
+            self.split_handle.display_height = 3.0 
+            self.split_handle.set_shape_anchors()
+
             print("V update_position( dispatch_event = False ) ")
             self.split_handle.update_position(dispatch_event = False)
 
