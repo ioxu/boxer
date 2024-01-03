@@ -10,11 +10,6 @@ import boxer
 import boxer.mouse
 import boxer.shapes
 
-# # ui containers
-# if __name__ == "__main__":
-#     import sys
-#     sys.path.extend("..")
-
 DEBUG_SHAPE_COLOR = (255, 80, 20, 128)
 DEBUG_HIT_SHAPE_COLOR = (255, 240, 20, 20)
 
@@ -45,6 +40,7 @@ class Handle(pyglet.event.EventDispatcher):
         self.batch = batch or None
         self.group = group or None
 
+        self._shapes = {}
 
     @property
     def x(self):
@@ -72,7 +68,7 @@ class Handle(pyglet.event.EventDispatcher):
     # def position(self):
     #     return self.position
 
-    
+
     # @position.setter
     # def position(self, value):
     #     """must by a two-tuple"""
@@ -81,26 +77,6 @@ class Handle(pyglet.event.EventDispatcher):
 
     def is_inside(self, position : pyglet.math.Vec2 = pyglet.math.Vec2() ) -> bool:
         raise NotImplementedError()
-
-
-    # def update_position(self, dispatch_event = True) -> None:
-    #     """subclasses should call super().update_position() BEFORE doing
-    #     any final setting of positions so that other objects have a chance to
-    #     constrain positions before the Handle sets itself
-
-    #     eg, for horizontal and/or constrained sliders
-
-    #     ie:
-    #     `def update_position( self ) -> None:
-    #         super().update_position()`
-    #     """
-
-    #     # get super to dispatch update signal lets
-    #     # observers have a chance to constrain the transform
-    #     # before it gets drawn
-    #     if dispatch_event == True:
-    #         ret = self.dispatch_event( "on_position_updated", self.position )
-    #         print("dispatch on_position_updated (return %s) on %s"%(ret, self.name) )
 
 
     def draw(self) -> None:
@@ -114,21 +90,6 @@ class Handle(pyglet.event.EventDispatcher):
         """immediate draw stuff if self.debug = True"""
         raise NotImplementedError()
 
-
-    # def on_mouse_motion(self, x, y, ds, dy):
-    #     raise NotImplementedError()
-
-
-    # def on_mouse_press(self, x, y, buttons, modifiers):
-    #     raise NotImplementedError()
-
-
-    # def on_mouse_release(self, x, y, buttons, modifiers):
-    #     raise NotImplementedError()
-
-
-    # def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers ):
-    #     raise NotImplementedError()
 
     def on_mouse_press( self, x, y, buttons, modifiers ):
         if self.hilighted and buttons & pyglet.window.mouse.LEFT:
@@ -166,6 +127,7 @@ class Handle(pyglet.event.EventDispatcher):
 
     def on_mouse_motion( self, x, y, dx, dy):
         # TODO: fix this, always checks if mouse on every callback
+        # ... and only checking here for the test cases that don't set up a boxer mouse
         if self.mouse:
             if not self.mouse.captured_by_ui:
                 if self.space == Handle.SPACE_WORLD:
@@ -189,22 +151,13 @@ class Handle(pyglet.event.EventDispatcher):
             self._shapes["highlight"].opacity = 10
 
 
-    def update_position( self, dispatch_event = True ) -> None:
-        # get super to dispatch update signal lets
-        # observers have a chance to constrain the transform
-        # before it gets drawn
+    def update_position( self, dispatch_event = True, update_all_shapes_positions = True ) -> None:
         if dispatch_event == True:
             ret = self.dispatch_event( "on_position_updated", self.position )
-            print("dispatch on_position_updated (return %s) on %s"%(ret, self.name) )        
-        # super().update_position( dispatch_event )
-        self._shapes["display"].x = self.position.x
-        self._shapes["display"].y = self.position.y
-        self._shapes["hit"].x = self.position.x
-        self._shapes["hit"].y = self.position.y
-        self._shapes["highlight"].x = self.position.x
-        self._shapes["highlight"].y = self.position.y
-        self._shapes["select"].x = self.position.x
-        self._shapes["select"].y = self.position.y
+        if update_all_shapes_positions:
+            for k, v in self._shapes.items():
+                v.x = self.position.x
+                v.y = self.position.y
 
 
 # ------------------------------------------------------------------------------
@@ -254,13 +207,14 @@ class BoxHandle( Handle ):
         self._shapes["highlight"].opacity = 20
         self._shapes["select"] = boxer.shapes.RectangleLine(  self.position.x, self.position.y, self.hit_width+4, self.hit_height+4, line_width = 1, color=(255,70,70), batch=self.batch)
         self._shapes["select"].opacity = 20
-
-        # NB: need to keep anchors update along with positions and width/heights
-        
+        # self._shapes["temp"] = boxer.shapes.RectangleLine(  self.position.x, self.position.y, self.hit_width+35, self.hit_height+35, line_width = 15, color=(30,255,180), batch=self.batch)
+        # self._shapes["temp"].opacity = 10
         self.set_shape_anchors()
 
 
     def is_inside(self, position : pyglet.math.Vec2 = pyglet.math.Vec2()) -> bool:
+        """point inside test"""
+        # using pyglet.shapes 'in' overloading
         return (position.x, position.y) in self._shapes["hit"]
 
 
@@ -270,6 +224,7 @@ class BoxHandle( Handle ):
         self._shapes["hit"].anchor_position = (self.hit_width / 2.0, self.hit_height/2.0)
         self._shapes["highlight"].anchor_position = ( self._shapes["highlight"]._width/2.0, self._shapes["highlight"]._height/2.0 )
         self._shapes["select"].anchor_position = ( self._shapes["select"]._width/2.0, self._shapes["select"]._height/2.0 )
+        # self._shapes["temp"].anchor_position = ( self._shapes["temp"]._width/2.0, self._shapes["temp"]._height/2.0 )
 
 
 class PointHandle( Handle ):
@@ -301,11 +256,11 @@ class PointHandle( Handle ):
 
         # dictionary?
         self._shapes = {}
-        self._shapes["display"] = pyglet.shapes.Circle( self.position.x, self.position.y, radius=self.display_radius, segments=32, color=DEBUG_SHAPE_COLOR, batch=self.batch)
-        self._shapes["hit"] = pyglet.shapes.Circle( self.position.x, self.position.y, radius=self.hit_radius, segments=32, color=DEBUG_HIT_SHAPE_COLOR, batch=self.batch)
-        self._shapes["highlight"] = boxer.shapes.Arc( self.position.x, self.position.y, radius=self.hit_radius+1, segments=32, color=(255,255,255), batch=self.batch )
+        self._shapes["display"] = pyglet.shapes.Circle( self.position.x, self.position.y, radius=self.display_radius, segments=24, color=DEBUG_SHAPE_COLOR, batch=self.batch)
+        self._shapes["hit"] = pyglet.shapes.Circle( self.position.x, self.position.y, radius=self.hit_radius, segments=24, color=DEBUG_HIT_SHAPE_COLOR, batch=self.batch)
+        self._shapes["highlight"] = boxer.shapes.Arc( self.position.x, self.position.y, radius=self.hit_radius+1, segments=24, color=(255,255,255), batch=self.batch )
         self._shapes["highlight"].opacity = 20
-        self._shapes["select"] = boxer.shapes.Arc( self.position.x, self.position.y, radius=self.hit_radius+3, segments=32, color=(255,70,70), batch=self.batch )
+        self._shapes["select"] = boxer.shapes.Arc( self.position.x, self.position.y, radius=self.hit_radius+3, segments=24, color=(255,70,70), batch=self.batch )
         self._shapes["select"].opacity = 20
 
 
@@ -315,81 +270,10 @@ class PointHandle( Handle ):
   
 
     def is_inside( self, position : pyglet.math.Vec2 = pyglet.math.Vec2() ) -> bool:
-        return  position.distance( self.position ) < self.hit_radius
-
-
-    # def on_mouse_press( self, x, y, buttons, modifiers ):
-    #     if self.hilighted and buttons & pyglet.window.mouse.LEFT:
-    #         self.selected = True
-    #         self._shapes["select"].opacity = 220
-    #     else:
-    #         self.selected = False
-    #         self._shapes["select"].opacity = 0
-
-
-    # def on_mouse_release( self, x, y, buttons, modifiers ):
-    #     if self.hilighted and buttons & pyglet.window.mouse.LEFT:
-    #         self.dispatch_event("on_released")
-    #         self.selected = False
-    #         self._shapes["select"].opacity = 0
-    #     else:
-    #         self.selected = False
-    #         self._shapes["select"].opacity = 0
-
-
-    # def on_mouse_drag( self, x, y, dx, dy, buttons, modifiers):
-    #     if self.selected:
-    #         self.dispatch_event( "on_dragged" )
-    #         # TODO: camera info!! be class method for converting spaces
-    #         # OR ask mouse for world-space conversion (mouse holds a camera transform)
-    #         if self.mouse:
-    #             if self.space == Handle.SPACE_WORLD:
-    #                 self.position += pyglet.math.Vec2(dx, dy)*(1.0/self.mouse.camera_zoom)
-    #             else:
-    #                 self.position += pyglet.math.Vec2(dx, dy)
-    #         else:
-    #             self.position += pyglet.math.Vec2(dx, dy)
-    #         self.update_position()
-
-
-    # def on_mouse_motion( self, x, y, dx, dy):
-    #     # TODO: fix this, always checks if mouse on every callback
-    #     if self.mouse:
-    #         if not self.mouse.captured_by_ui:
-    #             if self.space == Handle.SPACE_WORLD:
-    #                 mp = self.mouse.world_position
-    #             else:
-    #                 mp = self.mouse.position
-    #             if self.is_inside( pyglet.math.Vec2( mp.x, mp.y ) ):
-    #                 self.hilighted = True
-    #             else:
-    #                 self.hilighted = False
-    #     else:
-    #         if self.is_inside( pyglet.math.Vec2( x, y ) ):
-    #             self.hilighted = True
-    #         else:
-    #             self.hilighted = False
-
-
-    #     if self.hilighted:
-    #         self._shapes["highlight"].opacity = 120
-    #     else:
-    #         self._shapes["highlight"].opacity = 10
-
-
-    # def update_position( self, dispatch_event = True ) -> None:
-    #     # get super to dispatch update signal lets
-    #     # observers have a chance to constrain the transform
-    #     # before it gets drawn
-    #     super().update_position( dispatch_event )
-    #     self._shapes["display"].x = self.position.x
-    #     self._shapes["display"].y = self.position.y
-    #     self._shapes["hit"].x = self.position.x
-    #     self._shapes["hit"].y = self.position.y
-    #     self._shapes["highlight"].x = self.position.x
-    #     self._shapes["highlight"].y = self.position.y
-    #     self._shapes["select"].x = self.position.x
-    #     self._shapes["select"].y = self.position.y
+        """point inside test"""
+        # using pyglet.shapes 'in' overloading
+        #return  position.distance( self.position ) < self.hit_radius
+        return  position in self._shapes["hit"]
 
 
 # ------------------------------------------------------------------------------
@@ -416,6 +300,8 @@ if __name__ == "__main__":
                         )
     
     pyglet.gl.glClearColor(0.1, 0.1, 0.1, 1)
+    # pyglet.gl.glPolygonMode( pyglet.gl.GL_FRONT_AND_BACK, pyglet.gl.GL_LINE )
+
     fps_display = pyglet.window.FPSDisplay(win)
     fps_display.update_period = 0.2
 

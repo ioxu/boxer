@@ -57,7 +57,6 @@ class RectangleLine( pyglet.shapes.Rectangle ):
 
     def _create_vertex_list(self):
         verts = self._get_vertices()
-        print("HERE %s (length: %s)"%(verts, len(verts)))
         self._vertex_list = self._group.program.vertex_list(
             self._num_verts, self._draw_mode, self._batch, self._group,
             position=('f', self._get_vertices()),

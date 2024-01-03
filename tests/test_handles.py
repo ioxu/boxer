@@ -16,7 +16,7 @@ def test_Handle_position_getset_y() -> None:
 
 def test_Handle_position_index() -> None:
     h = handles.Handle(position = (6.0, -5.0) )
-    assert h.position == (6.0, -5.0)
+    assert h.position == pyglet.math.Vec2(6.0, -5.0)
 
 
 def test_Handle_position_index_0() -> None:

@@ -1221,11 +1221,5 @@ if __name__ == "__main__":
         imgui.render()
         imgui_renderer.render(imgui.get_draw_data())
 
-        # ------ >8
-        rect = pyglet.shapes.Rectangle( 20,20 ,30, 30 )
-        rect.anchor_position = (15,15)
-        rect.draw()
-        # 8< ------
-
         fps_display.draw()
     app.run()
