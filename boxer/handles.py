@@ -26,7 +26,11 @@ class Handle(pyglet.event.EventDispatcher):
         space : int = SPACE_WORLD,
         mouse : boxer.mouse.Mouse = None,
         batch : pyglet.graphics.Batch = None,
-        group : pyglet.graphics.Group = None
+        debug_batch : pyglet.graphics.Batch = None,
+        group : pyglet.graphics.Group = None,
+        base_opacity : float = 1.0,
+        highlighted_opacity : float = 1.0,
+        selected_opacity : float = 1.0
         ):
 
         self.name = name
@@ -37,9 +41,12 @@ class Handle(pyglet.event.EventDispatcher):
         self.hilighted = False
         self.debug : bool = debug
         self.space : int = space
-        self.batch = batch or None
+        self.batch = batch or pyglet.graphics.Batch()
+        self.debug_batch = debug_batch or pyglet.graphics.Batch()
         self.group = group or None
-
+        self.base_opacity = base_opacity
+        self.highlighted_opacity = highlighted_opacity
+        self.selected_opacity = selected_opacity
         self._shapes = {}
 
     @property
@@ -80,10 +87,11 @@ class Handle(pyglet.event.EventDispatcher):
 
 
     def draw(self) -> None:
-        if self.batch:
-            self.batch.draw()
+        # if self.batch:
+        #     self.batch.draw()
         if self.debug:
             self.draw_debug()
+
 
 
     def draw_debug(self) -> None:
@@ -94,20 +102,20 @@ class Handle(pyglet.event.EventDispatcher):
     def on_mouse_press( self, x, y, buttons, modifiers ):
         if self.hilighted and buttons & pyglet.window.mouse.LEFT:
             self.selected = True
-            self._shapes["select"].opacity = 220
+            self._shapes["select"].opacity = 220 * int(self.selected_opacity)
         else:
             self.selected = False
-            self._shapes["select"].opacity = 0
+            self._shapes["select"].opacity = 0 * int(self.selected_opacity)
 
 
     def on_mouse_release( self, x, y, buttons, modifiers ):
         if self.hilighted and buttons & pyglet.window.mouse.LEFT:
             self.dispatch_event("on_released")
             self.selected = False
-            self._shapes["select"].opacity = 0
+            self._shapes["select"].opacity = 0 * int(self.selected_opacity)
         else:
             self.selected = False
-            self._shapes["select"].opacity = 0
+            self._shapes["select"].opacity = 0 * int(self.selected_opacity)
 
 
     def on_mouse_drag( self, x, y, dx, dy, buttons, modifiers):
@@ -146,9 +154,9 @@ class Handle(pyglet.event.EventDispatcher):
 
 
         if self.hilighted:
-            self._shapes["highlight"].opacity = 120
+            self._shapes["highlight"].opacity = int(120 * self.highlighted_opacity)
         else:
-            self._shapes["highlight"].opacity = 10
+            self._shapes["highlight"].opacity = int(10 * self.highlighted_opacity)
 
 
     def update_position( self, dispatch_event = True, update_all_shapes_positions = True ) -> None:
@@ -183,6 +191,12 @@ class BoxHandle( Handle):
         color_hover = (255, 255, 255, 255),
         batch : pyglet.graphics.Batch = None,
         group : pyglet.graphics.Group = None,
+        base_opacity : float = 1.0,
+        highlighted_opacity : float = 1.0,
+        highlighted_color = (255, 255, 255),
+        selected_opacity : float = 1.0,
+        selected_color = (255, 0, 0),
+        **kwargs
     ):
         Handle.__init__(self,
             name = name,
@@ -192,7 +206,14 @@ class BoxHandle( Handle):
             space = space,
             batch = batch,
             group = group,
+            base_opacity = base_opacity,
+            highlighted_opacity = highlighted_opacity,
+            selected_opacity = selected_opacity,
+            **kwargs
             )
+
+        self._highlighted_color = highlighted_color
+        self._selected_color = selected_color
 
         self._hit_width = hit_width
         self._hit_height = hit_height
@@ -201,11 +222,11 @@ class BoxHandle( Handle):
 
         # _shapes dict
         self._shapes = {}
-        self._shapes["display"] = pyglet.shapes.Rectangle( self.position.x, self.position.y, self._display_width, self._display_height, color=DEBUG_SHAPE_COLOR, batch=self.batch)
-        self._shapes["hit"] = pyglet.shapes.Rectangle( self.position.x, self.position.y, self._hit_width, self._hit_height, color=DEBUG_HIT_SHAPE_COLOR, batch=self.batch)
-        self._shapes["highlight"] = boxer.shapes.RectangleLine(  self.position.x, self.position.y, self._hit_width+2, self._hit_height+2, line_width = 1, color=(255, 255, 255), batch=self.batch)
+        self._shapes["display"] = pyglet.shapes.Rectangle( self.position.x, self.position.y, self._display_width, self._display_height, color=DEBUG_SHAPE_COLOR, batch=self.debug_batch)
+        self._shapes["hit"] = pyglet.shapes.Rectangle( self.position.x, self.position.y, self._hit_width, self._hit_height, color=DEBUG_HIT_SHAPE_COLOR, batch=self.debug_batch)
+        self._shapes["highlight"] = boxer.shapes.RectangleLine(  self.position.x, self.position.y, self._hit_width+2, self._hit_height+2, line_width = 1, color = self._highlighted_color, batch=self.batch)
         self._shapes["highlight"].opacity = 20
-        self._shapes["select"] = boxer.shapes.RectangleLine(  self.position.x, self.position.y, self._hit_width+4, self._hit_height+4, line_width = 1, color=(255,70,70), batch=self.batch)
+        self._shapes["select"] = boxer.shapes.RectangleLine(  self.position.x, self.position.y, self._hit_width+4, self._hit_height+4, line_width = 1, color = self._selected_color, batch=self.batch)
         self._shapes["select"].opacity = 20
         # self._shapes["temp"] = boxer.shapes.RectangleLine(  self.position.x, self.position.y, self.hit_width+35, self.hit_height+35, line_width = 15, color=(30,255,180), batch=self.batch)
         # self._shapes["temp"].opacity = 10
@@ -289,7 +310,11 @@ class PointHandle( Handle ):
         color = (255, 255, 90, 255),
         color_hover = (255, 255, 255, 255),
         batch : pyglet.graphics.Batch = None,
-        group : pyglet.graphics.Group = None
+        group : pyglet.graphics.Group = None,
+        base_opacity : float = 1.0,
+        highlighted_opacity : float = 1.0,
+        selected_opacity : float = 1.0,
+        **kwargs
         ):
         
         Handle.__init__(self,
@@ -299,7 +324,12 @@ class PointHandle( Handle ):
             debug = debug,
             space = space,
             batch = batch,
-            group = group)
+            group = group,
+            base_opacity = base_opacity,
+            highlighted_opacity = highlighted_opacity,
+            selected_opacity = selected_opacity,
+            **kwargs
+            )
         
         self.hit_radius : float = hit_radius
         self.display_radius : float = display_radius
@@ -359,6 +389,7 @@ if __name__ == "__main__":
     fps_display.update_period = 0.2
 
     handle_batch = pyglet.graphics.Batch()
+    handle_debug_batch = pyglet.graphics.Batch()
 
     win.global_time = 0.0
     win.delta_time = 0.0
@@ -369,7 +400,8 @@ if __name__ == "__main__":
         hit_height = 26,
         display_width = 96 -20,
         display_height = 6,
-        batch=handle_batch
+        batch=handle_batch,
+        debug_batch=handle_debug_batch,
         )
 
     win.push_handlers( on_mouse_motion = bh.on_mouse_motion )
@@ -379,12 +411,13 @@ if __name__ == "__main__":
 
 
     bh_square = BoxHandle( name = "BoxHandle_square_tester",
-        position = (win.size[0] /2.0, win.size[1] - 300.0),
+        position = (win.size[0] /2.0, win.size[1] - 400.0),
         hit_width = 20,
         hit_height = 20,
         display_width = 10,
         display_height = 10,
-        batch=handle_batch
+        batch=handle_batch,
+        debug_batch=handle_debug_batch,        
         )
 
     win.push_handlers( on_mouse_motion = bh_square.on_mouse_motion )
@@ -392,6 +425,23 @@ if __name__ == "__main__":
     win.push_handlers( on_mouse_release = bh_square.on_mouse_release )
     win.push_handlers( on_mouse_drag = bh_square.on_mouse_drag )
 
+
+    bh_square2 = BoxHandle( name = "BoxHandle_square_tester",
+        position = (win.size[0] /2.0, win.size[1] - 300.0),
+        hit_width = 20,
+        hit_height = 20,
+        display_width = 10,
+        display_height = 10,
+        batch=handle_batch,
+        debug_batch=handle_debug_batch,        
+        selected_opacity=1.0,
+        highlighted_opacity=0.2
+        )
+
+    win.push_handlers( on_mouse_motion = bh_square2.on_mouse_motion )
+    win.push_handlers( on_mouse_press = bh_square2.on_mouse_press )
+    win.push_handlers( on_mouse_release = bh_square2.on_mouse_release )
+    win.push_handlers( on_mouse_drag = bh_square2.on_mouse_drag )
 
 
     ph = PointHandle( name = "PointHandle_tester",
@@ -440,10 +490,17 @@ if __name__ == "__main__":
         s1 = boxer.shaping.remap(math.sin( win.global_time * 8.0 ), -1.0, 1.0, 0.0, 1.0 )
         s1 = boxer.shaping.bias(s1, 0.15)
         s1 = boxer.shaping.remap( s1, 0.0, 1.0, 20.0, 40.0 )
-        bh_square.display_width = s1
-        bh_square.display_height = s1
-        bh_square.hit_width = s1 + 20
-        bh_square.hit_height = s1 + 20
+
+        s2 = boxer.shaping.remap(math.sin( (win.global_time - 0.24)  * 8.0 ), -1.0, 1.0, 0.0, 1.0 )
+        s2 = boxer.shaping.bias(s2, 0.15)
+        s2 = boxer.shaping.remap( s2, 0.0, 1.0, 20.0, 50.0 )
+
+        s3 = max(s1, s2)
+
+        bh_square.display_width = s3
+        bh_square.display_height = s3
+        bh_square.hit_width = s3 + 20
+        bh_square.hit_height = s3 + 20
         bh_square.set_shape_anchors()
 
         handle_batch.draw()

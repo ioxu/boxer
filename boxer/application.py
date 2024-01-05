@@ -130,7 +130,7 @@ class Application(pyglet.event.EventDispatcher):
             rx = random.random()*600
             ry = random.random()*600 -150
             handle = boxer.handles.PointHandle(\
-                pyglet.math.Vec2( rx, ry ),
+                position = pyglet.math.Vec2( rx, ry ),
                 mouse = self.mouse,
                 debug = True,
                 space = boxer.handles.Handle.SPACE_WORLD,
@@ -145,7 +145,7 @@ class Application(pyglet.event.EventDispatcher):
         self.test_screen_handles = []
         self.test_screen_handles_batch = pyglet.graphics.Batch()
         handle = boxer.handles.PointHandle(
-            pyglet.math.Vec2( 100, 100 ),
+            position = pyglet.math.Vec2( 100, 100 ),
             mouse = self.mouse,
             debug = True,
             space = boxer.handles.Handle.SPACE_SCREEN,

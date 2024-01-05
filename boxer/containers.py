@@ -57,7 +57,7 @@ class Container( pyglet.event.EventDispatcher ):
         "window" : window_image.get_texture(),
     }
 
-    container_view_types = ["graph", "3d", "parameters", "spreadsheet", "python", "log"]
+    container_view_types = ["none", "graph", "3d", "parameters", "spreadsheet", "python", "log"]
 
     # TODO: replace these ACTION constants/lables with enum.Enum type?
     container_action_labels = [\
@@ -127,6 +127,10 @@ class Container( pyglet.event.EventDispatcher ):
                                             batch = self.batch,
                                             color = self.color )
         self.lines["bottom"] = pyglet.shapes.Line( 0, 0, 1, 0,
+                                            batch = self.batch,
+                                            color = self.color )
+
+        self.lines["top_bar"] = pyglet.shapes.Line( 0, 0, 1, 0,
                                             batch = self.batch,
                                             color = self.color )
 
@@ -375,7 +379,7 @@ class Container( pyglet.event.EventDispatcher ):
                                             self.position.x, self.position.y, 0.0)
 
         if self.is_leaf:
-            self.debug_label_name.opacity = 50
+            self.debug_label_name.opacity = 0#50
         else:
             self.debug_label_name.opacity = 0
 
@@ -398,6 +402,12 @@ class Container( pyglet.event.EventDispatcher ):
         self.lines["bottom"].y = self.position.y + margin
         self.lines["bottom"].x2 = self.position.x + self.width -margin
         self.lines["bottom"].y2 = self.position.y + margin
+
+
+        self.lines["top_bar"].x = self.position.x + margin #-1
+        self.lines["top_bar"].y = self.position.y + self.height - margin - 18.0
+        self.lines["top_bar"].x2 = self.position.x + self.width - margin
+        self.lines["top_bar"].y2 = self.position.y + self.height - margin - 18.0
 
         self.update_display()
 
@@ -542,7 +552,14 @@ class Container( pyglet.event.EventDispatcher ):
                             self.width-1,
                             self.height)
 
-        imgui.push_style_var(imgui.STYLE_WINDOW_PADDING , imgui.Vec2(0.0, 0.0))
+        imgui.push_style_var(imgui.STYLE_WINDOW_PADDING , imgui.Vec2(3.0, 3.0))
+
+        imgui.push_style_var(imgui.STYLE_FRAME_ROUNDING, 2.0)
+        imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(-1.0, 0.0))
+        imgui.push_style_color(imgui.COLOR_BUTTON, 0.0, 0.0, 0.0, 0.0)
+        imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 1.0, 1.0, 1.0, 0.3)
+        imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 1.0, 1.0, 1.0, 0.2)
+        
         with imgui.begin(self.name, flags = container_imwindow_flags ) as imgui_window:
             imgui.push_clip_rect(\
                             pos[0],
@@ -559,12 +576,15 @@ class Container( pyglet.event.EventDispatcher ):
             imgui.push_item_width(80)
 
             # combo ------------------------------------------------------------
+
             if imgui.begin_combo(\
                             "##view combo",
                             Container.container_view_types[self.container_view_combo_selected],
-                            flags = imgui.COMBO_NO_PREVIEW):
+                            flags = imgui.COMBO_NO_PREVIEW | imgui.COMBO_HEIGHT_LARGE):
                 imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(3.0, 3.0))
                 for i, item in enumerate(Container.container_view_types):
+                    if i==1:
+                        imgui.separator()
                     is_selected = (i==self.container_view_combo_selected)
                     if imgui.selectable( item, is_selected )[0]:
                         self.container_view_combo_selected = i
@@ -572,13 +592,14 @@ class Container( pyglet.event.EventDispatcher ):
                         imgui.set_item_default_focus()
                 imgui.pop_style_var(1)
                 imgui.end_combo()
+                        
             # ------------------------------------------------------------------
             imgui.pop_item_width()
 
-            imgui.same_line()
-            imgui.text(self.name)
+            # imgui.same_line()
+            # imgui.text(self.name)
 
-            imgui.set_cursor_pos( (self.width - 15, 0) )
+            imgui.set_cursor_pos( (self.width - (15+3.0) , 3.0) )
             
             # container action combo -------------------------------------------
             do_container_action = False
@@ -615,6 +636,11 @@ class Container( pyglet.event.EventDispatcher ):
 
             imgui.pop_style_var(2)
             imgui.pop_clip_rect()
+        
+        imgui.pop_style_color(3) # button colors
+        imgui.pop_style_var(1) # item spacing
+        imgui.pop_style_var(1) # rounded buttons
+        
         imgui.pop_style_var()
 
 
@@ -770,7 +796,8 @@ class SplitContainer( Container ):
 
 
     def on_split_handle_position_updated(self, position) -> None:
-        print("\033[38;5;123m%s.split_handle position:\033[0m %s"%(self.name, position))
+        # print("\033[38;5;123m%s.split_handle position:\033[0m %s"%(self.name, position))
+        ...
 
 
 class HSplitContainer( SplitContainer ):
@@ -806,7 +833,7 @@ class HSplitContainer( SplitContainer ):
 
 
     def update_geometries(self, *args, **kwargs) -> None:
-        print("\033[38;5;217mHSplitContainer update_geometries\033[0m (%s)"%self.name)
+        # print("\033[38;5;217mHSplitContainer update_geometries\033[0m (%s)"%self.name)
         super().update_geometries(*args, **kwargs)
 
         if self.split_handle:
@@ -815,11 +842,11 @@ class HSplitContainer( SplitContainer ):
                                 self.position.y + (self.height * 0.5 ))
             self.split_handle.hit_width = 10.0
             self.split_handle.hit_height = self.height - 20.0
-            self.split_handle.display_width = 3.0
+            self.split_handle.display_width = 2.0
             self.split_handle.display_height = self.split_handle.hit_height - 2.0
             self.split_handle.set_shape_anchors()
             
-            print("H update_position( dispatch_event = False ) ")
+            # print("H update_position( dispatch_event = False ) ")
             self.split_handle.update_position(dispatch_event = False)
 
 
@@ -865,7 +892,7 @@ class VSplitContainer( SplitContainer ):
 
     def update_geometries(self, *args, **kwargs) -> None:
         # print("%s.update_geometries"%self.name)
-        print("\033[38;5;217mVSplitContainer update_geometries\033[0m (%s)"%self.name)
+        # print("\033[38;5;217mVSplitContainer update_geometries\033[0m (%s)"%self.name)
         super().update_geometries(*args, **kwargs)
 
         if self.split_handle:
@@ -875,10 +902,10 @@ class VSplitContainer( SplitContainer ):
             self.split_handle.hit_width = self.width - 20.0
             self.split_handle.hit_height = 10.0
             self.split_handle.display_width = self.split_handle.hit_width - 2.0
-            self.split_handle.display_height = 3.0 
+            self.split_handle.display_height = 2.0 
             self.split_handle.set_shape_anchors()
 
-            print("V update_position( dispatch_event = False ) ")
+            # print("V update_position( dispatch_event = False ) ")
             self.split_handle.update_position(dispatch_event = False)
 
 
@@ -952,6 +979,7 @@ def draw_container_tree_info( root : Container ) -> None:
     expects tree to be initiaised with Container.update_structure() (?)
     """
     imgui.begin("Container info (%s)"%root.name,
+                closable=True,
                 flags = imgui.WINDOW_NO_SAVED_SETTINGS)
 
     _tree_info_preorder(root)
