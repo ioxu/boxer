@@ -432,7 +432,7 @@ class Container( pyglet.event.EventDispatcher ):
         if self.mouse_inside:
             for lk in self.lines.items():
                 lk[1].width = 0.5#1.5
-                lk[1].opacity = 255
+                lk[1].opacity = self._lines_original_color[3] + 65 #255
         else:
             if self.is_leaf:
                 for lk in self.lines.items():
@@ -862,10 +862,13 @@ class HSplitContainer( SplitContainer ):
 
 
     def get_child_size(self, this) -> tuple:
+        s0 = math.floor(self.width*self.ratio) -1.0
         if this == self.children[0]:
-            return pyglet.math.Vec2(math.floor(self.width*self.ratio) -1 , self.height  )
+            # return pyglet.math.Vec2(math.floor(self.width*self.ratio) -1.0 , self.height  )
+            return pyglet.math.Vec2( s0 , self.height  )
         else:
-            return pyglet.math.Vec2(math.ceil(self.width*(1-self.ratio)), self.height  )
+            # return pyglet.math.Vec2(math.ceil(self.width*(1-self.ratio)), self.height  )
+            return pyglet.math.Vec2(self.width - s0 -1.0, self.height  )
 
 
     def get_child_position(self, this) -> tuple:
@@ -921,9 +924,13 @@ class VSplitContainer( SplitContainer ):
 
 
     def get_child_size(self, this) -> tuple:
+        s0 = math.floor(self.height * self.ratio) -1.0
+        
         if this == self.children[0]:
-            return pyglet.math.Vec2(self.width , math.floor(self.height * self.ratio) -1 )
-        return pyglet.math.Vec2(self.width , math.ceil(self.height * (1.0 - self.ratio))  )
+            # return pyglet.math.Vec2(self.width , math.floor(self.height * self.ratio) -1.0 )
+            return pyglet.math.Vec2(self.width, s0)
+        # return pyglet.math.Vec2(self.width , math.ceil(self.height * (1.0 - self.ratio))  )
+        return pyglet.math.Vec2(self.width, self.height - s0 -1.0)
 
 
     def get_child_position(self, this) -> tuple:
