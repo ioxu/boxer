@@ -52,9 +52,11 @@ class Container( pyglet.event.EventDispatcher ):
 
     cog_image = pyglet.image.load("boxer/resources/cog_16.png")
     window_image = pyglet.image.load("boxer/resources/window_16.png")
+    downarrow_image = pyglet.image.load("boxer/resources/downarrow_16.png")
     textures = {
         "cog" : cog_image.get_texture(),
         "window" : window_image.get_texture(),
+        "downarrow" : downarrow_image.get_texture(),
     }
 
     container_view_types = ["none", "graph", "3d", "parameters", "spreadsheet", "python", "log"]
@@ -596,43 +598,86 @@ class Container( pyglet.event.EventDispatcher ):
             # ------------------------------------------------------------------
             imgui.pop_item_width()
 
-            # imgui.same_line()
-            # imgui.text(self.name)
+            imgui.same_line()
+            #imgui.text(self.name)
 
-            imgui.set_cursor_pos( (self.width - (15+3.0) , 3.0) )
-            
             # container action combo -------------------------------------------
+            # button image popup test
+
             do_container_action = False
             action_item_hovered = None
             do_draw_container_action_hint = False
-            if imgui.begin_combo(\
-                        "##action combo",
-                        Container.container_action_labels[self.container_actions_combo_selected],
-                        flags = imgui.COMBO_NO_PREVIEW):
-                imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(3.0, 3.0))
-                for i2, item2 in enumerate(Container.container_action_labels):
 
-                    
-                    if i2 == 2:
-                        # add a seperator after two items
-                        imgui.separator()
-                    if imgui.selectable( item2, selected = False )[0]:
-                        self.container_actions_combo_selected = i2
-                        print("container action: '%s' (%s)"%(\
+
+            imgui.set_cursor_pos( (self.width - (15+3.0) , 3.0) )
+
+            if imgui.image_button( self.textures["downarrow"].id, 12, 12, uv0=(0,1), uv1=(1,0) ):
+
+                # popup_pos = imgui.Vec2( self.position.x + self.width - (15+3.0) *2, self.position.y + 139.0 )
+                popup_pos = imgui.Vec2( self.position.x + self.width - (15+3.0) , self.window.height - self.position.y - self.height +19)
+                imgui.set_next_window_position( popup_pos.x, popup_pos.y )
+                imgui.open_popup("container-actions")
+
+            imgui.same_line()
+            with imgui.begin_popup("container-actions") as select_popup:
+                imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(3.0, 3.0))
+                if select_popup.opened:
+                    imgui.text("container-actions")
+                    imgui.separator()
+    
+                    for action_index, action_item in enumerate( Container.container_action_labels):
+
+                        if action_index == 2:
+                            imgui.separator()
+
+                        if imgui.selectable( action_item, selected = False )[0]:
+                            self.container_actions_combo_selected = action_index
+                            print("container action: '%s' (%s)"%(\
                                     Container.container_action_labels[self.container_actions_combo_selected],
-                                    self.name))
-                        do_container_action = True
-                    if imgui.is_item_hovered():
-                        action_item_hovered = i2
-                        # print( "HOVERED %s:'%s' (on '%s')"%(action_item_hovered,Container.container_action_labels[action_item_hovered], self.name) )
-                        do_draw_container_action_hint = True
-                    else:
-                        self.root_container.do_draw_overlay = False
+                                    self.name)
+                            )
+                            do_container_action = True
+                        if imgui.is_item_hovered():
+                            action_item_hovered = action_index
+                            do_draw_container_action_hint = True
+                        else:
+                            self.root_container.do_draw_overlay = False
 
                 imgui.pop_style_var(1)
-                imgui.end_combo()
 
-            # ------------------------------------------------------------------
+            
+            # # container action combo -------------------------------------------
+            # # original style, imgui combo button with a solid downward triangle
+            # imgui.set_cursor_pos( (self.width - (15+3.0) , 3.0) )
+            # if imgui.begin_combo(\
+            #             "##action combo",
+            #             Container.container_action_labels[self.container_actions_combo_selected],
+            #             flags = imgui.COMBO_NO_PREVIEW | imgui.COMBO_HEIGHT_LARGE):
+            #             #flags = imgui.COMBO_NO_ARROW_BUTTON):
+            #     imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(3.0, 3.0))
+            #     for i2, item2 in enumerate(Container.container_action_labels):
+
+                    
+            #         if i2 == 2:
+            #             # add a seperator after two items
+            #             imgui.separator()
+            #         if imgui.selectable( item2, selected = False )[0]:
+            #             self.container_actions_combo_selected = i2
+            #             print("container action: '%s' (%s)"%(\
+            #                         Container.container_action_labels[self.container_actions_combo_selected],
+            #                         self.name))
+            #             do_container_action = True
+            #         if imgui.is_item_hovered():
+            #             action_item_hovered = i2
+            #             # print( "HOVERED %s:'%s' (on '%s')"%(action_item_hovered,Container.container_action_labels[action_item_hovered], self.name) )
+            #             do_draw_container_action_hint = True
+            #         else:
+            #             self.root_container.do_draw_overlay = False
+
+            #     imgui.pop_style_var(1)
+            #     imgui.end_combo()
+
+            # # ------------------------------------------------------------------
 
             imgui.pop_style_var(2)
             imgui.pop_clip_rect()
@@ -767,7 +812,8 @@ class SplitContainer( Container ):
                 mouse = None,#self.mouse,
                 debug = False,
                 space = boxer.handles.Handle.SPACE_WORLD,
-                batch = self.batch )
+                #batch = self.batch,
+                )
 
 
         if self.window:
