@@ -53,10 +53,12 @@ class Container( pyglet.event.EventDispatcher ):
     cog_image = pyglet.image.load("boxer/resources/cog_16.png")
     window_image = pyglet.image.load("boxer/resources/window_16.png")
     downarrow_image = pyglet.image.load("boxer/resources/downarrow_16.png")
+    diamond_image = pyglet.image.load("boxer/resources/diamond_16.png")
     textures = {
         "cog" : cog_image.get_texture(),
         "window" : window_image.get_texture(),
         "downarrow" : downarrow_image.get_texture(),
+        "view-combo" : diamond_image.get_texture(),
     }
 
     container_view_types = ["none", "graph", "3d", "parameters", "spreadsheet", "python", "log"]
@@ -132,9 +134,9 @@ class Container( pyglet.event.EventDispatcher ):
                                             batch = self.batch,
                                             color = self.color )
 
-        self.lines["top_bar"] = pyglet.shapes.Line( 0, 0, 1, 0,
-                                            batch = self.batch,
-                                            color = self.color )
+        # self.lines["top_bar"] = pyglet.shapes.Line( 0, 0, 1, 0,
+        #                                     batch = self.batch,
+        #                                     color = self.color )
 
         self._lines_original_color = self.color
 
@@ -406,10 +408,10 @@ class Container( pyglet.event.EventDispatcher ):
         self.lines["bottom"].y2 = self.position.y + margin
 
 
-        self.lines["top_bar"].x = self.position.x + margin #-1
-        self.lines["top_bar"].y = self.position.y + self.height - margin - 18.0
-        self.lines["top_bar"].x2 = self.position.x + self.width - margin
-        self.lines["top_bar"].y2 = self.position.y + self.height - margin - 18.0
+        # self.lines["top_bar"].x = self.position.x + margin #-1
+        # self.lines["top_bar"].y = self.position.y + self.height - margin - 18.0
+        # self.lines["top_bar"].x2 = self.position.x + self.width - margin
+        # self.lines["top_bar"].y2 = self.position.y + self.height - margin - 18.0
 
         self.update_display()
 
@@ -572,28 +574,56 @@ class Container( pyglet.event.EventDispatcher ):
             imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(0.0, 0.0))
             imgui.image_button( self.textures["cog"].id, 12, 12)
             imgui.same_line()
-            imgui.image_button( self.textures["window"].id, 12, 12)
-            imgui.same_line()
+            # imgui.image_button( self.textures["window"].id, 12, 12)
+            # imgui.same_line()
             
             imgui.push_item_width(80)
 
-            # combo ------------------------------------------------------------
+            # viewtype combo ---------------------------------------------------
 
-            if imgui.begin_combo(\
-                            "##view combo",
-                            Container.container_view_types[self.container_view_combo_selected],
-                            flags = imgui.COMBO_NO_PREVIEW | imgui.COMBO_HEIGHT_LARGE):
+            
+            if imgui.image_button( self.textures["view-combo"].id, 12, 12, uv0=(0.0, 1.0), uv1=(1.0, 0.0) ):
+                print("container view combo")
+                curr_cursor_pos = imgui.get_cursor_screen_position()
+                popup_pos = imgui.Vec2( curr_cursor_pos.x+12, curr_cursor_pos.y )
+                imgui.set_next_window_position( popup_pos.x, popup_pos.y )
+                imgui.open_popup( "container-view-type" )
+
+            imgui.same_line()
+            with imgui.begin_popup( "container-view-type" ) as container_view_popup:
                 imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(3.0, 3.0))
-                for i, item in enumerate(Container.container_view_types):
-                    if i==1:
-                        imgui.separator()
-                    is_selected = (i==self.container_view_combo_selected)
-                    if imgui.selectable( item, is_selected )[0]:
-                        self.container_view_combo_selected = i
-                    if is_selected:
-                        imgui.set_item_default_focus()
+                if container_view_popup.opened:
+                    imgui.text("view type")
+                    imgui.separator()
+
+                    for container_view_index, container_view_item in enumerate( Container.container_view_types ):
+                        if container_view_index ==1:
+                            imgui.separator()
+                        is_view_selected = (container_view_index == self.container_view_combo_selected)
+                        if imgui.selectable( container_view_item, is_view_selected )[0]:
+                            self.container_view_combo_selected = container_view_index
+                        if is_view_selected:
+                            imgui.set_item_default_focus()
                 imgui.pop_style_var(1)
-                imgui.end_combo()
+
+                            
+
+
+            # if imgui.begin_combo(\
+            #                 "##view combo",
+            #                 Container.container_view_types[self.container_view_combo_selected],
+            #                 flags = imgui.COMBO_NO_PREVIEW | imgui.COMBO_HEIGHT_LARGE):
+            #     imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(3.0, 3.0))
+            #     for i, item in enumerate(Container.container_view_types):
+            #         if i==1:
+            #             imgui.separator()
+            #         is_selected = (i==self.container_view_combo_selected)
+            #         if imgui.selectable( item, is_selected )[0]:
+            #             self.container_view_combo_selected = i
+            #         if is_selected:
+            #             imgui.set_item_default_focus()
+            #     imgui.pop_style_var(1)
+            #     imgui.end_combo()
                         
             # ------------------------------------------------------------------
             imgui.pop_item_width()
@@ -612,8 +642,7 @@ class Container( pyglet.event.EventDispatcher ):
             imgui.set_cursor_pos( (self.width - (15+3.0) , 3.0) )
 
             if imgui.image_button( self.textures["downarrow"].id, 12, 12, uv0=(0,1), uv1=(1,0) ):
-
-                # popup_pos = imgui.Vec2( self.position.x + self.width - (15+3.0) *2, self.position.y + 139.0 )
+                print("container action combo")
                 popup_pos = imgui.Vec2( self.position.x + self.width - (15+3.0) , self.window.height - self.position.y - self.height +19)
                 imgui.set_next_window_position( popup_pos.x, popup_pos.y )
                 imgui.open_popup("container-actions")
