@@ -851,7 +851,17 @@ class SplitContainer( Container ):
             self.window.push_handlers( on_mouse_release = self.split_handle.on_mouse_release )
             self.window.push_handlers( on_mouse_drag = self.split_handle.on_mouse_drag )
 
-        self.split_handle.push_handlers( on_position_updated = self.on_split_handle_position_updated )
+        self.split_handle.push_handlers( position_updated = self.on_split_handle_position_updated )
+        self.split_handle.push_handlers( mouse_entered = self.on_split_handle_mouse_entered )
+        self.split_handle.push_handlers( mouse_exited = self.on_split_handle_mouse_exited )
+
+        self.ratio_line = pyglet.shapes.Line( 0.0, 0.0, 1.0, 1.0,
+                                            width = 4.0,
+                                            color=(255,255,255,180),
+                                            batch=self.batch )
+
+        self._ratio_line_original_color = self.ratio_line.color
+        self.ratio_line.color = self._ratio_line_original_color[:3]+(0,)
 
 
     def _default_children( self ):
@@ -873,6 +883,14 @@ class SplitContainer( Container ):
     def on_split_handle_position_updated(self, position) -> None:
         # print("\033[38;5;123m%s.split_handle position:\033[0m %s"%(self.name, position))
         ...
+
+    def on_split_handle_mouse_entered(self):
+        print("\033[38;5;10m--> \033[38;5;237m[h]\033[38;5;245m on_split_handle_mouse_entered %s \033[0m"%self.name)
+        self.ratio_line.color = self._ratio_line_original_color
+
+    def on_split_handle_mouse_exited(self):
+        print("\033[38;5;173mo-- \033[38;5;237m[h]\033[38;5;245m on_split_handle_mouse_exited %s \033[0m"%self.name)
+        self.ratio_line.color = self._ratio_line_original_color[:3]+(0,)
 
 
 class HSplitContainer( SplitContainer ):
@@ -923,8 +941,12 @@ class HSplitContainer( SplitContainer ):
             self.split_handle.display_width = 2.0
             self.split_handle.display_height = self.split_handle.hit_height - 2.0
             self.split_handle.set_shape_anchors()
-            
-            # print("H update_position( dispatch_event = False ) ")
+
+            self.ratio_line.x = self.position.x + (self.width * self.ratio) -1.0
+            self.ratio_line.y = self.position.y + 0.5 
+            self.ratio_line.x2 = self.ratio_line.x
+            self.ratio_line.y2 = self.ratio_line.y + self.height - 1.0
+
             self.split_handle.update_position(dispatch_event = False)
 
 
@@ -987,7 +1009,11 @@ class VSplitContainer( SplitContainer ):
             self.split_handle.display_height = 2.0 
             self.split_handle.set_shape_anchors()
 
-            # print("V update_position( dispatch_event = False ) ")
+            self.ratio_line.x = self.position.x + 0.5
+            self.ratio_line.y = self.position.y + (self.height * self.ratio) -1.0
+            self.ratio_line.x2 = self.ratio_line.x + self.width - 1.0
+            self.ratio_line.y2 = self.ratio_line.y
+
             self.split_handle.update_position(dispatch_event = False)
 
 

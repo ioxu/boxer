@@ -37,6 +37,7 @@ class Handle(pyglet.event.EventDispatcher):
             position = pyglet.math.Vec2( position[0], position[1] )
         self.position = position
         self.mouse = mouse or None
+        self.mouse_inside = False
         self.hilighted = False
         self.debug : bool = debug
         self.space : int = space
@@ -107,7 +108,7 @@ class Handle(pyglet.event.EventDispatcher):
 
     def on_mouse_release( self, x, y, buttons, modifiers ):
         if self.hilighted and buttons & pyglet.window.mouse.LEFT:
-            self.dispatch_event("on_released")
+            self.dispatch_event("released")
             self.selected = False
             self._shapes["select"].opacity = 0 * int(self.selected_opacity)
         else:
@@ -117,7 +118,7 @@ class Handle(pyglet.event.EventDispatcher):
 
     def on_mouse_drag( self, x, y, dx, dy, buttons, modifiers):
         if self.selected:
-            self.dispatch_event( "on_dragged" )
+            self.dispatch_event( "dragged" )
             # TODO: camera info!! be class method for converting spaces
             # OR ask mouse for world-space conversion (mouse holds a camera transform)
             if self.mouse:
@@ -133,6 +134,7 @@ class Handle(pyglet.event.EventDispatcher):
     def on_mouse_motion( self, x, y, dx, dy):
         # TODO: fix this, always checks if mouse on every callback
         # ... and only checking here for the test cases that don't set up a boxer mouse
+        _prev_mouse_inside = self.mouse_inside
         if self.mouse:
             if not self.mouse.captured_by_ui:
                 if self.space == Handle.SPACE_WORLD:
@@ -141,13 +143,26 @@ class Handle(pyglet.event.EventDispatcher):
                     mp = self.mouse.position
                 if self.is_inside( pyglet.math.Vec2( mp.x, mp.y ) ):
                     self.hilighted = True
+                    self.mouse_inside = True
+                    if _prev_mouse_inside is not True:
+                        self.dispatch_event("mouse_entered")
                 else:
                     self.hilighted = False
+                    self.mouse_inside = False
+                    if _prev_mouse_inside is True:
+                        self.dispatch_event("mouse_exited")
         else:
             if self.is_inside( pyglet.math.Vec2( x, y ) ):
                 self.hilighted = True
+                self.mouse_inside = True
+                if _prev_mouse_inside is not True:
+                    self.dispatch_event("mouse_entered")
+
             else:
                 self.hilighted = False
+                self.mouse_inside = False
+                if _prev_mouse_inside is True:
+                    self.dispatch_event("mouse_exited")
 
 
         if self.hilighted:
@@ -158,7 +173,7 @@ class Handle(pyglet.event.EventDispatcher):
 
     def update_position( self, dispatch_event = True, update_all_shapes_positions = True ) -> None:
         if dispatch_event == True:
-            ret = self.dispatch_event( "on_position_updated", self.position )
+            ret = self.dispatch_event( "position_updated", self.position )
         if update_all_shapes_positions:
             for k, v in self._shapes.items():
                 v.x = self.position.x
@@ -167,9 +182,11 @@ class Handle(pyglet.event.EventDispatcher):
 
 # ------------------------------------------------------------------------------
 # events
-Handle.register_event_type("on_position_updated")
-Handle.register_event_type("on_dragged")
-Handle.register_event_type("on_released")
+Handle.register_event_type("mouse_entered")
+Handle.register_event_type("mouse_exited")
+Handle.register_event_type("position_updated")
+Handle.register_event_type("dragged")
+Handle.register_event_type("released")
 
 # ------------------------------------------------------------------------------
 
