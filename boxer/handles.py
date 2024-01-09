@@ -134,6 +134,7 @@ class Handle(pyglet.event.EventDispatcher):
     def on_mouse_motion( self, x, y, dx, dy):
         # TODO: fix this, always checks if mouse on every callback
         # ... and only checking here for the test cases that don't set up a boxer mouse
+        # ... and is pretty darn WET.
         _prev_mouse_inside = self.mouse_inside
         if self.mouse:
             if not self.mouse.captured_by_ui:

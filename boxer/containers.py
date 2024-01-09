@@ -582,8 +582,10 @@ class Container( pyglet.event.EventDispatcher ):
             # viewtype combo ---------------------------------------------------
 
             
-            if imgui.image_button( self.textures["view-combo"].id, 12, 12, uv0=(0.0, 1.0), uv1=(1.0, 0.0) ):
-                print("container view combo")
+            # if imgui.image_button( self.textures["view-combo"].id, 12, 12, uv0=(0.0, 1.0), uv1=(1.0, 0.0) ):
+            imgui.image_button( self.textures["view-combo"].id, 12, 12, uv0=(0.0, 1.0), uv1=(1.0, 0.0) )
+            if imgui.is_item_clicked( 0 ):
+                # print("container view combo")
                 curr_cursor_pos = imgui.get_cursor_screen_position()
                 popup_pos = imgui.Vec2( curr_cursor_pos.x+12, curr_cursor_pos.y )
                 imgui.set_next_window_position( popup_pos.x, popup_pos.y )
@@ -600,10 +602,18 @@ class Container( pyglet.event.EventDispatcher ):
                         if container_view_index ==1:
                             imgui.separator()
                         is_view_selected = (container_view_index == self.container_view_combo_selected)
-                        if imgui.selectable( container_view_item, is_view_selected )[0]:
+                        
+                        # if imgui.selectable( container_view_item, is_view_selected )[0]:
+                        imgui.selectable( container_view_item, is_view_selected )
+                        if imgui.is_mouse_released(0) and imgui.is_item_hovered():
                             self.container_view_combo_selected = container_view_index
+                            
+                            imgui.close_current_popup()
+                        
                         if is_view_selected:
                             imgui.set_item_default_focus()
+
+                        
                 imgui.pop_style_var(1)
 
                             
@@ -641,8 +651,10 @@ class Container( pyglet.event.EventDispatcher ):
 
             imgui.set_cursor_pos( (self.width - (15+3.0) , 3.0) )
 
-            if imgui.image_button( self.textures["downarrow"].id, 12, 12, uv0=(0,1), uv1=(1,0) ):
-                print("container action combo")
+            #if imgui.image_button( self.textures["downarrow"].id, 12, 12, uv0=(0,1), uv1=(1,0) ):
+            imgui.image_button( self.textures["downarrow"].id, 12, 12, uv0=(0,1), uv1=(1,0) )
+            if imgui.is_item_clicked( 0 ):
+                # print("container action combo")
                 popup_pos = imgui.Vec2( self.position.x + self.width - (15+3.0) , self.window.height - self.position.y - self.height +19)
                 imgui.set_next_window_position( popup_pos.x, popup_pos.y )
                 imgui.open_popup("container-actions")
@@ -659,13 +671,18 @@ class Container( pyglet.event.EventDispatcher ):
                         if action_index == 2:
                             imgui.separator()
 
-                        if imgui.selectable( action_item, selected = False )[0]:
+                        # if imgui.selectable( action_item, selected = False )[0]:
+                        _, selected = imgui.selectable( action_item, selected = False )
+
+                        if imgui.is_mouse_released(0) and imgui.is_item_hovered():
                             self.container_actions_combo_selected = action_index
                             print("container action: '%s' (%s)"%(\
                                     Container.container_action_labels[self.container_actions_combo_selected],
                                     self.name)
                             )
                             do_container_action = True
+                            imgui.close_current_popup()
+
                         if imgui.is_item_hovered():
                             action_item_hovered = action_index
                             do_draw_container_action_hint = True

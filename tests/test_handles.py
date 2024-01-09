@@ -39,7 +39,7 @@ def test_Handle_dispatch_event_on_position_uppdated() -> None:
     output = [0.0]
     def handler(position):
         output[0] = position.x
-    h.push_handlers(on_position_updated = handler)
+    h.push_handlers(position_updated = handler)
     h.x = 66.6
     assert output[0] == 66.6
 
