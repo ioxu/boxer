@@ -61,7 +61,16 @@ class Container( pyglet.event.EventDispatcher ):
         "view-combo" : diamond_image.get_texture(),
     }
 
-    container_view_types = ["none", "graph", "3d", "parameters", "spreadsheet", "python", "log"]
+    # container_view_types = ["none",
+    #                     "graph",
+    #                     "3d",
+    #                     "parameters",
+    #                     "spreadsheet",
+    #                     "python",
+    #                     "log",
+    #                     "container debug"]
+    container_view_types = ["none",
+                        ]
 
     # TODO: replace these ACTION constants/lables with enum.Enum type?
     container_action_labels = [\
@@ -541,7 +550,8 @@ class Container( pyglet.event.EventDispatcher ):
                             | imgui.WINDOW_NO_BACKGROUND\
                             | imgui.WINDOW_NO_RESIZE\
                             | imgui.WINDOW_NO_SAVED_SETTINGS\
-                            | imgui.WINDOW_NO_SCROLLBAR
+                            | imgui.WINDOW_NO_SCROLLBAR\
+                            | imgui.WINDOW_NO_BRING_TO_FRONT_ON_FOCUS
 
         # with title bar
         container_imwindow_flags2 = imgui.WINDOW_NO_BACKGROUND\
@@ -608,6 +618,9 @@ class Container( pyglet.event.EventDispatcher ):
                         if imgui.is_mouse_released(0) and imgui.is_item_hovered():
                             self.container_view_combo_selected = container_view_index
                             
+                            if not is_view_selected:
+                                self.get_root_container().dispatch_event( "view_changed", self, container_view_item )
+
                             imgui.close_current_popup()
                         
                         if is_view_selected:
@@ -827,11 +840,25 @@ class Container( pyglet.event.EventDispatcher ):
 
 # ------------------------------------------------------------------------------
 # Container events
+
+# mouse entering container
 Container.register_event_type("mouse_entered")
+
+# mouse exiting container
 Container.register_event_type("mouse_exited")
-Container.register_event_type("resized") #      TODO
-Container.register_event_type("split") #        TODO
-Container.register_event_type("collapsed") #    TODO
+
+# a container view type changed (by menu or method)
+# self.dispatch_event( "view_changed", container : Container, view_name : str )
+Container.register_event_type("view_changed")
+
+# TODO: container size changed
+Container.register_event_type("resized")
+
+# TODO: container split
+Container.register_event_type("split")
+
+# TODO: container deleted/collapsed
+Container.register_event_type("collapsed")
 # ------------------------------------------------------------------------------
 
 
@@ -1269,6 +1296,8 @@ if __name__ == "__main__":
         double_buffer = True,
     )
 
+    fullscreen = False
+
     win = pyglet.window.Window(\
                         width=960,
                         height=540,
@@ -1283,6 +1312,7 @@ if __name__ == "__main__":
     overlay_batch = pyglet.graphics.Batch()
 
 
+
     # test container events: ---------------------------------------------------
     def mouse_entered_container( container ) -> None:
         """test"""
@@ -1291,6 +1321,10 @@ if __name__ == "__main__":
     def mouse_exited_container( container ) -> None:
         """test"""
         print("o-- mouse exited %s"%container.name)
+
+
+    def on_container_view_changed( container : Container, view_type : str ) -> None:
+        print('view type changed on %s to "%s"'%(container.name, view_type)  )
 
 
     # imgui --------------------------------------------------------------------
@@ -1304,6 +1338,10 @@ if __name__ == "__main__":
     imgui_renderer.refresh_font_texture()
 
 
+    # container types ----------------------------------------------------------
+    Container.container_view_types += ["blue view"]
+
+
     # container tree -----------------------------------------------------------
     c = Container(name="root_container",
                         window = win,
@@ -1312,10 +1350,10 @@ if __name__ == "__main__":
                         position=pyglet.math.Vec2(50,50),
                         width= 615,
                         height=320,
-                        use_explicit_dimensions=True)
+                        use_explicit_dimensions=False)
 
-    # # ---
-
+    c.push_handlers( view_changed = on_container_view_changed )
+    # ---------------
 
     t1_start = perf_counter()
     c.update()
@@ -1331,12 +1369,9 @@ if __name__ == "__main__":
     print("time to 'update': %s"%( t1_stop - t1_start ))
 
     gtime = 0.0
-    ss1 = 1.0
-    ss2 = 1.0
-    ss3 = 1.0
-    ss4 = 1.0
 
 
+    # ---------------
     @win.event
     def on_resize( width, height ):
         """resize"""
@@ -1353,6 +1388,19 @@ if __name__ == "__main__":
             # on the next 'print' line.
             #####################################
             print("break")
+
+        # Alt-Enter: toggle fullscreen
+        if symbol == key.ENTER:
+            if _modifiers & key.MOD_ALT:
+                toggle_fullscreen()
+
+
+    def toggle_fullscreen() -> None:
+        """toggles fullscreen window mode"""
+        global fullscreen
+        fullscreen = not fullscreen
+        win.set_fullscreen( fullscreen )
+    # ---------------
 
 
     @win.event
