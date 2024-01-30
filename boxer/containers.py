@@ -69,7 +69,7 @@ class Container( pyglet.event.EventDispatcher ):
     #                     "python",
     #                     "log",
     #                     "container debug"]
-    container_view_types = ["none",
+    container_view_types = [["none", None],
                         ]
 
     # TODO: replace these ACTION constants/lables with enum.Enum type?
@@ -613,8 +613,8 @@ class Container( pyglet.event.EventDispatcher ):
                             imgui.separator()
                         is_view_selected = (container_view_index == self.container_view_combo_selected)
                         
-                        # if imgui.selectable( container_view_item, is_view_selected )[0]:
-                        imgui.selectable( container_view_item, is_view_selected )
+                        # if imgui.selectable( container_view_item[0], is_view_selected )[0]:
+                        imgui.selectable( container_view_item[0], is_view_selected )
                         if imgui.is_mouse_released(0) and imgui.is_item_hovered():
                             self.container_view_combo_selected = container_view_index
                             
@@ -758,7 +758,7 @@ class Container( pyglet.event.EventDispatcher ):
                     tr = ( bl[0] + split_line_hint_width, bl[1] + self.height )
                     self.root_container._marchinglines_shader["ir_bl"] = bl
                     self.root_container._marchinglines_shader["ir_tr"] = tr
-                    self.root_container._marchinglines_shader["positive"] = 1.0               
+                    self.root_container._marchinglines_shader["positive"] = 1.0
 
                 case Container.ACTION_SPLIT_VERTICAL:
                     self.root_container.do_draw_overlay = True
@@ -848,14 +848,17 @@ Container.register_event_type("mouse_entered")
 Container.register_event_type("mouse_exited")
 
 # a container view type changed (by menu or method)
-# self.dispatch_event( "view_changed", container : Container, view_name : str )
+# self.dispatch_event( "view_changed", container : Container, view : List(view_name, class) )
 Container.register_event_type("view_changed")
+
+# self.dispatch_event( "split",
+#   container : Container, # the container that was split
+#   new_containers : List # a list of the new child containers )
+Container.register_event_type("split")
 
 # TODO: container size changed
 Container.register_event_type("resized")
 
-# TODO: container split
-Container.register_event_type("split")
 
 # TODO: container deleted/collapsed
 Container.register_event_type("collapsed")
@@ -1188,6 +1191,8 @@ def change_container( container, action ):
                                 batch = container.batch,
                                 create_default_children = True)
 
+            original_container = container
+
             if container.parent is None:
                 container.set_child( new_container, 0 )
             else:
@@ -1196,6 +1201,15 @@ def change_container( container, action ):
             root = container.get_root_container()
             root.update()
             root.pprint_tree()
+            root.dispatch_event( "split", original_container, new_container.children.copy() )
+
+            ####################################################################
+            ####################################################################
+            # the original ocntainer can't get deleted because it's still in the outer
+            # dictionary of containers and views
+            # dispatch a delete_container event???????????
+            ####################################################################
+            ####################################################################
 
 
         case Container.ACTION_SPLIT_VERTICAL:
@@ -1312,7 +1326,51 @@ if __name__ == "__main__":
     overlay_batch = pyglet.graphics.Batch()
 
 
+    #---------------------------------------------------------------------------
+    # container view types -----------------------------------------------------
+    #---------------------------------------------------------------------------
 
+
+
+
+    class ContainerView( pyglet.event.EventDispatcher ):
+        ...
+
+
+    class BlueView( ContainerView ):
+        def __init__( self,
+                color = (52, 35, 128, 255),
+                batch : pyglet.graphics.Batch = None):
+            _points = boxer.shapes.rectangle_centered_vertices( 130, 230, 200, 200 )
+            _colors = color * 4
+            
+            self.batch = batch or pyglet.graphics.Batch()
+            self._marchinglines_time = 0.0
+            self._marchinglines_shader = boxer.shaders.get_marchinglines_shader()
+            self.vertex_list = self._marchinglines_shader.vertex_list_indexed( 4,
+                                            gl.GL_TRIANGLES,
+                                            (0,1,2,0,2,3),
+                                            self.batch,
+                                            None,
+                                            position = ('f', _points),
+                                            colors = ('f', _colors),
+                                            )
+
+
+    # add a container view type
+    Container.container_view_types += [ ["blue view", BlueView], ]
+
+    # set up container view batch
+    container_view_batch = pyglet.graphics.Batch()
+
+    # keep a dictionary of views 
+    # { container_key = {view_type = view} }
+    container_views = {}
+
+
+
+    #---------------------------------------------------------------------------
+    #---------------------------------------------------------------------------
     # test container events: ---------------------------------------------------
     def mouse_entered_container( container ) -> None:
         """test"""
@@ -1323,8 +1381,70 @@ if __name__ == "__main__":
         print("o-- mouse exited %s"%container.name)
 
 
-    def on_container_view_changed( container : Container, view_type : str ) -> None:
-        print('view type changed on %s to "%s"'%(container.name, view_type)  )
+    def on_container_view_changed( container : Container, view_type : list ) -> None:
+        print('\033[38;5;63m[view type]\033[0m changed on \033[38;5;63m%s\033[0m to \033[38;5;153m"%s"\033[0m'%(container.name, view_type)  )
+        if view_type[1] == None:
+            container_views[ container ] = None
+        else:
+            view = view_type[1](
+                batch = None #container_view_batch
+            )
+            print("instanciating %s "%view_type[1])
+            print("instanciating object: %s "%view)
+            container_views[ container ] = view
+
+
+        print("container_views:")
+        for k in container_views.keys():
+            print("   %s: %s"%(k, container_views[k])  )
+
+        # delete current view
+            # remove view from views
+        # instantiate new view
+            # add view to views
+
+
+    def on_container_split( container: Container, new_children : list ):
+        print("on_container_split %s %s"%( container, str(new_children) ))
+        print("  moving container view around to new child:")
+
+        # check if container (original_contaier) is in the container_views dict
+        if container in container_views.keys():
+            print( "  container IS in container_views.keys()" )
+            
+            # then pop the container out of the container_views dict, which returns the view it had
+            print("  popping the container %s out of 'container_views'")
+            this_view = container_views.pop( container, None)
+
+            # then pop the container out of the container_views dict
+            print( "  --> grabbed this view from the popped container: %s"%this_view )
+
+            print("  putting first, new child container, and view back into 'container_views'")
+            print("  first, new child container: %s"%new_children[0].name)
+            this_container : Container = new_children[0]
+            container_views[ this_container ] = this_view
+
+            print( container_views )
+
+            # set the view type on the new view-owner
+
+            # find the type index of this_view, in Container.container_view_types
+            type_index = None
+            for index, sublist in enumerate( Container.container_view_types ):
+                #if sublist[1] == BlueView :
+                this_view_type = sublist[1]
+                if this_view_type:
+                    if isinstance( this_view, this_view_type ):
+                        type_index = index
+
+            print("  type_index for %s is %s"%( this_view, type_index ) )
+
+            # set the view type of this_container to the type index
+            # TODO: need to make a Container method for setting the container view type,
+            # because doing it here won't fire the view_changed event
+            
+            if type_index:
+                this_container.container_view_combo_selected = type_index
 
 
     # imgui --------------------------------------------------------------------
@@ -1338,10 +1458,6 @@ if __name__ == "__main__":
     imgui_renderer.refresh_font_texture()
 
 
-    # container types ----------------------------------------------------------
-    Container.container_view_types += ["blue view"]
-
-
     # container tree -----------------------------------------------------------
     c = Container(name="root_container",
                         window = win,
@@ -1353,6 +1469,7 @@ if __name__ == "__main__":
                         use_explicit_dimensions=False)
 
     c.push_handlers( view_changed = on_container_view_changed )
+    c.push_handlers( split = on_container_split )
     # ---------------
 
     t1_start = perf_counter()
