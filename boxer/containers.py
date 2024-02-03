@@ -122,7 +122,7 @@ class Container( pyglet.event.EventDispatcher ):
 
         self.is_leaf = False
         self.is_root = False
-        self.root_container = self#None
+        self.root_container : Container = self#None
 
         self.mouse_inside = False
 
@@ -423,6 +423,9 @@ class Container( pyglet.event.EventDispatcher ):
         # self.lines["top_bar"].y2 = self.position.y + self.height - margin - 18.0
 
         self.update_display()
+
+        if self.is_leaf:
+            self.root_container.dispatch_event("resized", self)
 
         for child in [c for c in self.children if c is not None]:
             child.update_geometries()
@@ -859,8 +862,8 @@ Container.register_event_type("split")
 # TODO: container size changed
 Container.register_event_type("resized")
 
-
-# TODO: container deleted/collapsed
+# self.dispatch_event( "collapsed",
+#   container : Container, # the container that was collapsed)
 Container.register_event_type("collapsed")
 # ------------------------------------------------------------------------------
 
@@ -955,7 +958,7 @@ class HSplitContainer( SplitContainer ):
         self.set_child( c2, 1 )
 
 
-    def get_child_size(self, this) -> tuple:
+    def get_child_size(self, this) -> pyglet.math.Vec2: #tuple:
         s0 = math.floor(self.width*self.ratio) -1.0
         if this == self.children[0]:
             # return pyglet.math.Vec2(math.floor(self.width*self.ratio) -1.0 , self.height  )
@@ -965,7 +968,7 @@ class HSplitContainer( SplitContainer ):
             return pyglet.math.Vec2(self.width - s0 -1.0, self.height  )
 
 
-    def get_child_position(self, this) -> tuple:
+    def get_child_position(self, this) -> pyglet.math.Vec2: # tuple:
         if this == self.children[0]:
             x = self.position.x
             y = self.position.y
@@ -1212,6 +1215,8 @@ def change_container( container, action ):
                                 batch = container.batch,
                                 create_default_children = True)
             
+            original_container = container
+
             if container.parent is None:
                 container.set_child( new_container, 0 )
             else:
@@ -1220,6 +1225,7 @@ def change_container( container, action ):
             root = container.get_root_container()
             root.update()
             root.pprint_tree()
+            root.dispatch_event( "split", original_container, new_container.children.copy() )
 
 
         case Container.ACTION_CLOSE:
@@ -1341,6 +1347,9 @@ if __name__ == "__main__":
     class ContainerView( pyglet.event.EventDispatcher ):
         ...
 
+        def update_geometries( self, container : Container ) -> None:
+            raise NotImplementedError
+
 
     class BlueView( ContainerView ):
         def __init__( self,
@@ -1360,7 +1369,7 @@ if __name__ == "__main__":
             self._marchinglines_shader["positive"] = 0.0        # value of inner rect (1.0
                                                             # means black outside, 0.0 means black inside)
 
-            self.vertex_list = self._marchinglines_shader.vertex_list_indexed( 4,
+            self.vertex_list : pyglet.graphics.vertexdomain.VertexList = self._marchinglines_shader.vertex_list_indexed( 4,
                                             gl.GL_TRIANGLES,
                                             (0,1,2,0,2,3),
                                             self.batch,
@@ -1368,6 +1377,17 @@ if __name__ == "__main__":
                                             position = ('f', _points),
                                             colors = ('f', _colors),
                                             )
+
+        def __del__(self) -> None:
+            print("\033[38;5;52m[X]\033[0m '%s' being deleted."%self)
+            self.vertex_list.delete()
+
+
+        def update_geometries(self, container: Container) -> None:
+            self.vertex_list.position = ( container.position.x, container.position.y + container.height, 0.0,
+                                        container.position.x + container.width, container.position.y + container.height, 0.0,
+                                        container.position.x + container.width, container.position.y, 0.0,
+                                        container.position.x, container.position.y, 0.0)
 
 
     # add a container view type
@@ -1400,6 +1420,8 @@ if __name__ == "__main__":
 
 
     def on_container_view_changed( container : Container, view_type : list ) -> None:
+        """callback to be connected to container view being chnaged
+        controls instatiation of new views"""
         print('\033[38;5;63m[view type]\033[0m changed on \033[38;5;63m%s\033[0m to \033[38;5;153m"%s"\033[0m'%(container.name, view_type)  )
         if view_type[1] == None:
             #container_views[ container ] = None
@@ -1407,25 +1429,21 @@ if __name__ == "__main__":
         else:
             # instance the container view!
             print("instancing BlueView into batch: %s"%container_view_batch)
-            view = view_type[1](
+            view : ContainerView = view_type[1](
                 batch = container_view_batch
             )
             print("instanciating %s "%view_type[1])
             print("instanciating object: %s "%view)
             container_views[ container ] = view
-
+            view.update_geometries( container )
 
         print("container_views:")
         for k in container_views.keys():
             print("   %s: %s"%(k, container_views[k])  )
 
-        # delete current view
-            # remove view from views
-        # instantiate new view
-            # add view to views
-
 
     def on_container_split( container: Container, new_children : list ):
+        """callback to be connected to when containers are split"""
         print("on_container_split %s %s"%( container, str(new_children) ))
         print("  moving container view around to new child:")
 
@@ -1469,8 +1487,18 @@ if __name__ == "__main__":
 
 
     def on_container_collapsed( container : Container ):
+        """callback to be hooked up when a container is closed"""        
         print("\033[38;5;196mon_container_collapsed:\033[0m %s"%container)
+        
+        container_views.pop( container, None )
+        print(container_views)
 
+
+    def on_container_resized( container : Container ):
+        """callback to be connected to when container is resized"""
+        #print("\033[38;5;111mon_container_resized:\033[0m %s"%container)
+        if container in container_views.keys():
+            container_views[container].update_geometries( container )
 
 
     # imgui --------------------------------------------------------------------
@@ -1497,6 +1525,7 @@ if __name__ == "__main__":
     c.push_handlers( view_changed = on_container_view_changed )
     c.push_handlers( split = on_container_split )
     c.push_handlers( collapsed = on_container_collapsed )
+    c.push_handlers( resized = on_container_resized )
     # ---------------
 
     t1_start = perf_counter()
