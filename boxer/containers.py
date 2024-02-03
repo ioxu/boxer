@@ -1203,14 +1203,6 @@ def change_container( container, action ):
             root.pprint_tree()
             root.dispatch_event( "split", original_container, new_container.children.copy() )
 
-            ####################################################################
-            ####################################################################
-            # the original ocntainer can't get deleted because it's still in the outer
-            # dictionary of containers and views
-            # dispatch a delete_container event???????????
-            ####################################################################
-            ####################################################################
-
 
         case Container.ACTION_SPLIT_VERTICAL:
             print("--- [---] change_container: 'split vertical' on '%s'"%container.name)
@@ -1233,6 +1225,8 @@ def change_container( container, action ):
         case Container.ACTION_CLOSE:
             print("--- [ x ] change_container: 'close' on '%s'"%container.name)
             # TODO: ACTION_CLOSE #4
+            
+            do_close = False
             if container.parent is None:
                 raise RuntimeWarning("closing a root container is not allowed yet")
             parent : Container = container.parent
@@ -1245,6 +1239,7 @@ def change_container( container, action ):
                 elif parent.children[1] is not container:
                     sibling = parent.children[1]
 
+                do_close = True
                 parent.remove_child( container )
 
                 if sibling:
@@ -1256,6 +1251,8 @@ def change_container( container, action ):
                     grandparent.set_child( sibling, idx )
 
             root = sibling.get_root_container()
+            if do_close:
+                root.dispatch_event( "collapsed", container )
             root.do_draw_overlay = False
             root.update()
             root.pprint_tree()
@@ -1281,7 +1278,15 @@ def change_container( container, action ):
             idx = container.parent.children.index( container )
             container.parent.children[idx] = None
 
-            root.remove_children()
+            removed_children = root.remove_children()
+            
+            # ONLY emit "collapsed" signal on leaf containers
+            #TODO is this the right thing to do?
+            for c in removed_children:
+                if c and c.is_leaf:
+                    #print("REMOVED CHILD: %s (is_leaf %s)"%(c, c.is_leaf))
+                    root.dispatch_event("collapsed", c)
+
             root.set_child( container, 0 )
             root.update()
             root.pprint_tree()
@@ -1339,14 +1344,22 @@ if __name__ == "__main__":
 
     class BlueView( ContainerView ):
         def __init__( self,
-                color = (52, 35, 128, 255),
+                color = (52, 35, 255, 128),
                 batch : pyglet.graphics.Batch = None):
             _points = boxer.shapes.rectangle_centered_vertices( 130, 230, 200, 200 )
-            _colors = color * 4
+            _colors = (1.0, 1.0, 1.0, 1.0) * 4#color * 4
             
             self.batch = batch or pyglet.graphics.Batch()
             self._marchinglines_time = 0.0
             self._marchinglines_shader = boxer.shaders.get_marchinglines_shader()
+
+            self._marchinglines_shader["color_one"] = (color[0]/255.0, color[1]/255.0, color[2]/255.0, color[3]/255.0)#(1.0, 0.1, 0.0, 0.25)
+            self._marchinglines_shader["time"] = 0.0
+            self._marchinglines_shader["ir_bl"] = (0.0, 0.0)    # inner rect, bottom left
+            self._marchinglines_shader["ir_tr"] = (0.0, 0.0)    # inner rect, top right
+            self._marchinglines_shader["positive"] = 0.0        # value of inner rect (1.0
+                                                            # means black outside, 0.0 means black inside)
+
             self.vertex_list = self._marchinglines_shader.vertex_list_indexed( 4,
                                             gl.GL_TRIANGLES,
                                             (0,1,2,0,2,3),
@@ -1365,6 +1378,11 @@ if __name__ == "__main__":
 
     # keep a dictionary of views 
     # { container_key = {view_type = view} }
+    ########################################
+    # this dict MUST be kept in sync after
+    # container splits/collapses because references
+    # here will stop relesed containers from being GC'd
+    ########################################
     container_views = {}
 
 
@@ -1384,10 +1402,13 @@ if __name__ == "__main__":
     def on_container_view_changed( container : Container, view_type : list ) -> None:
         print('\033[38;5;63m[view type]\033[0m changed on \033[38;5;63m%s\033[0m to \033[38;5;153m"%s"\033[0m'%(container.name, view_type)  )
         if view_type[1] == None:
-            container_views[ container ] = None
+            #container_views[ container ] = None
+            container_views.pop( container )
         else:
+            # instance the container view!
+            print("instancing BlueView into batch: %s"%container_view_batch)
             view = view_type[1](
-                batch = None #container_view_batch
+                batch = container_view_batch
             )
             print("instanciating %s "%view_type[1])
             print("instanciating object: %s "%view)
@@ -1442,9 +1463,14 @@ if __name__ == "__main__":
             # set the view type of this_container to the type index
             # TODO: need to make a Container method for setting the container view type,
             # because doing it here won't fire the view_changed event
-            
+
             if type_index:
                 this_container.container_view_combo_selected = type_index
+
+
+    def on_container_collapsed( container : Container ):
+        print("\033[38;5;196mon_container_collapsed:\033[0m %s"%container)
+
 
 
     # imgui --------------------------------------------------------------------
@@ -1470,6 +1496,7 @@ if __name__ == "__main__":
 
     c.push_handlers( view_changed = on_container_view_changed )
     c.push_handlers( split = on_container_split )
+    c.push_handlers( collapsed = on_container_collapsed )
     # ---------------
 
     t1_start = perf_counter()
@@ -1530,12 +1557,14 @@ if __name__ == "__main__":
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
-
-
         imgui.new_frame()
         imgui.push_font(font_default)
         line_batch.draw()
 
+        gl.glEnable(gl.GL_BLEND)
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        container_view_batch.draw()
+        
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         c.root_container.draw_overlay()
@@ -1553,6 +1582,9 @@ if __name__ == "__main__":
 
         imgui.render()
         imgui_renderer.render(imgui.get_draw_data())
+
+
+
 
         fps_display.draw()
     app.run()
