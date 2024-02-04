@@ -162,6 +162,9 @@ _MarchingLines_fragment_source = """#version 330 core
     out vec4 final_color;
 
     uniform vec4 color_one;
+    uniform float line_ratio;
+    uniform float line_width;
+    uniform float gap_alpha;
     uniform float time;
 
     vec2 st = sposition;//gl_FragCoord.xy;///u_resolution.xy;
@@ -176,11 +179,13 @@ _MarchingLines_fragment_source = """#version 330 core
     float box = mix(box_shape, 1.0 - box_shape, step(positive, 0.5));
 
     // lines
-    float line_width = 25.0 * 2;
-    float diagonal = mod( ((gl_FragCoord.x+time) - gl_FragCoord.y)*(1.0/line_width) , 1.0);
-    float d1 = smoothstep( 0.45, 0.5, diagonal );
-    float d2 = smoothstep( 1.0, 0.95, diagonal );
-    float line = d1*d2;
+    float dx = fwidth( gl_FragCoord.x )/10.0;
+    float _line_width = line_width * 2.0;
+    float diagonal = mod( ((gl_FragCoord.x+time) - gl_FragCoord.y)*(1.0/_line_width) , 1.0);
+    //float d1 = smoothstep( line_ratio-0.05, line_ratio, diagonal );
+    float d1 = smoothstep( line_ratio-dx, line_ratio+dx, diagonal );
+    float d2 = smoothstep( 1.0, 1.0-dx*2.0, diagonal );    
+    float line = mix(gap_alpha, 1.0, d1*d2);
 
     vec4 col2 = vec4( 1.0, 1.0, 1.0, line * box  );
 
@@ -197,4 +202,10 @@ def get_marchinglines_shader():
     _vert_shader = pyglet.graphics.shader.Shader(_MarchingLines_vertex_source, 'vertex')
     _frag_shader = pyglet.graphics.shader.Shader(_MarchingLines_fragment_source, 'fragment')
     program = pyglet.graphics.shader.ShaderProgram(_vert_shader, _frag_shader)
+    
+    #set defaults
+    program["line_ratio"] = 0.5
+    program["line_width"] = 25.0
+    program["gap_alpha"] = 0.0
+    
     return program

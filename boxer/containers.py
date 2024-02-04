@@ -165,6 +165,7 @@ class Container( pyglet.event.EventDispatcher ):
         self._marchinglines_shader = boxer.shaders.get_marchinglines_shader()
         
         self._marchinglines_shader["color_one"] = (1.0, 0.1, 0.0, 0.25)
+        #self._marchinglines_shader["line_ratio"] = 0.5
         self._marchinglines_shader["time"] = 0.0
         self._marchinglines_shader["ir_bl"] = (70.0, 70.0)    # inner rect, bottom left
         self._marchinglines_shader["ir_tr"] = (120.0, 120.0)    # inner rect, top right
@@ -1353,7 +1354,7 @@ if __name__ == "__main__":
 
     class BlueView( ContainerView ):
         def __init__( self,
-                color = (52, 35, 255, 128),
+                color = (79, 110, 205, 128),
                 batch : pyglet.graphics.Batch = None):
             _points = boxer.shapes.rectangle_centered_vertices( 130, 230, 200, 200 )
             _colors = (1.0, 1.0, 1.0, 1.0) * 4#color * 4
@@ -1363,6 +1364,9 @@ if __name__ == "__main__":
             self._marchinglines_shader = boxer.shaders.get_marchinglines_shader()
 
             self._marchinglines_shader["color_one"] = (color[0]/255.0, color[1]/255.0, color[2]/255.0, color[3]/255.0)#(1.0, 0.1, 0.0, 0.25)
+            self._marchinglines_shader["line_ratio"] = 0.1
+            self._marchinglines_shader["line_width"] = 10
+            self._marchinglines_shader["gap_alpha"] = 0.8
             self._marchinglines_shader["time"] = 0.0
             self._marchinglines_shader["ir_bl"] = (0.0, 0.0)    # inner rect, bottom left
             self._marchinglines_shader["ir_tr"] = (0.0, 0.0)    # inner rect, top right
@@ -1384,6 +1388,8 @@ if __name__ == "__main__":
 
 
         def update_geometries(self, container: Container) -> None:
+            self._marchinglines_time -= 0.5
+            self._marchinglines_shader["time"] = self._marchinglines_time
             self.vertex_list.position = ( container.position.x, container.position.y + container.height, 0.0,
                                         container.position.x + container.width, container.position.y + container.height, 0.0,
                                         container.position.x + container.width, container.position.y, 0.0,
@@ -1401,7 +1407,7 @@ if __name__ == "__main__":
     ########################################
     # this dict MUST be kept in sync after
     # container splits/collapses because references
-    # here will stop relesed containers from being GC'd
+    # here will stop released containers from being GC'd
     ########################################
     container_views = {}
 
@@ -1462,6 +1468,8 @@ if __name__ == "__main__":
             print("  first, new child container: %s"%new_children[0].name)
             this_container : Container = new_children[0]
             container_views[ this_container ] = this_view
+
+            this_view.update_geometries( this_container )
 
             print( container_views )
 
