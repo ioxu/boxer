@@ -162,9 +162,9 @@ _MarchingLines_fragment_source = """#version 330 core
     out vec4 final_color;
 
     uniform vec4 color_one;
-    uniform float line_ratio;
-    uniform float line_width;
-    uniform float gap_alpha;
+    uniform float line_ratio; // ratio of gap-to-line
+    uniform float line_width; // width of the line in viewport pixels
+    uniform float gap_alpha; // the alpha value in the line gaps
     uniform float time;
 
     vec2 st = sposition;//gl_FragCoord.xy;///u_resolution.xy;
@@ -179,12 +179,13 @@ _MarchingLines_fragment_source = """#version 330 core
     float box = mix(box_shape, 1.0 - box_shape, step(positive, 0.5));
 
     // lines
-    float dx = fwidth( gl_FragCoord.x )/10.0;
     float _line_width = line_width * 2.0;
-    float diagonal = mod( ((gl_FragCoord.x+time) - gl_FragCoord.y)*(1.0/_line_width) , 1.0);
-    //float d1 = smoothstep( line_ratio-0.05, line_ratio, diagonal );
-    float d1 = smoothstep( line_ratio-dx, line_ratio+dx, diagonal );
-    float d2 = smoothstep( 1.0, 1.0-dx*2.0, diagonal );    
+    float diagonal = ((gl_FragCoord.x+time) - gl_FragCoord.y)*(1.0/_line_width);
+    float dx = fwidth( diagonal );
+
+    float mod_diagonal = mod( diagonal, 1.0 );
+    float d1 = smoothstep( line_ratio-dx, line_ratio+dx, mod_diagonal );
+    float d2 = smoothstep( 1.0, 1.0-dx*2.0, mod_diagonal );    
     float line = mix(gap_alpha, 1.0, d1*d2);
 
     vec4 col2 = vec4( 1.0, 1.0, 1.0, line * box  );
