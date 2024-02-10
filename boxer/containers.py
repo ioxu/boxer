@@ -89,28 +89,28 @@ class Container( pyglet.event.EventDispatcher ):
 
     def __init__(self,
             name="container",
-            window : pyglet.window.Window = None,
+            window = None,
             width : int = 128,
             height : int = 128,
             use_explicit_dimensions : bool = False,
             position : pyglet.math.Vec2 = pyglet.math.Vec2(),
             color = (255, 255, 255, 60),
-            batch : pyglet.graphics.Batch = None,
-            group : pyglet.graphics.Group = None,
-            overlay_batch : pyglet.graphics.Batch = None
+            batch = None,
+            group = None,
+            overlay_batch = None
             ):
 
         self.name = name
-        self.window = window
+        self.window : pyglet.window.Window = window or pyglet.window.Window()
         # print("self.window: %s"%str(self.window))
         self.width = width
         self.height = height
         self.position : pyglet.math.Vec2 = position
         self.use_explicit_dimensions = use_explicit_dimensions 
         self.color = color
-        self.batch = batch
-        self.overlay_batch = overlay_batch
-        self.group = group
+        self.batch : pyglet.graphics.Batch = batch or pyglet.graphics.Batch()
+        self.overlay_batch : pyglet.graphics.Batch = overlay_batch or  pyglet.graphics.Batch()
+        self.group : pyglet.graphics.Group = group or pyglet.graphics.Group()
 
         self.children = []
         self.parent = None
@@ -151,7 +151,7 @@ class Container( pyglet.event.EventDispatcher ):
 
         self.debug_label_name = pyglet.text.Label(self.name,
                         font_size=8,
-                        x=0.0, y=0.0,
+                        x=0, y=0,
                         anchor_x='left', anchor_y='top',
                         batch=batch,
                         color=( 255, 255, 255, 50),
@@ -299,7 +299,7 @@ class Container( pyglet.event.EventDispatcher ):
             return new_container
 
 
-    def get_child_size(self, this) -> tuple:
+    def get_child_size(self, this) -> pyglet.math.Vec2:
         """calculate the width and height available for a child
         ('this' is normally self!)
         subclasses should override this method for their own caclulations
@@ -368,6 +368,10 @@ class Container( pyglet.event.EventDispatcher ):
 
     def pprint_tree(self, depth : int = 0) -> None:
         """prety prints the structure, indented by depth"""
+        if depth == 0:
+            print("-----------------------------------")
+            print("Container %s tree pprint:"%(self,))
+        
         self._depth = depth
         print("    "*depth, "%s (id: %s )"%(depth, self._node_id), "'%s'"%self.name, type(self).__name__ )#, "window: %s"%self.window)
         print("    "*depth, "  > size:", self.get_available_size_from_parent(), "position:", self.get_position_from_parent() )
@@ -553,11 +557,8 @@ class Container( pyglet.event.EventDispatcher ):
         # maybe just draw a coloured outline
         # NO DRAW, ONLY BATCH.
 
+
         # ----------------------------------------------------------------------
-        # TODO: work out why this happens
-        # something about when ACTION_CLOSE_OTHERS and/or
-        # recursive .remove_children() removes a child that
-        # is stil in the list of .leaves being drawn in main loop
         if self.window is None:
             print("DRAW: %s .window is None"%self)
             return
@@ -583,6 +584,7 @@ class Container( pyglet.event.EventDispatcher ):
         imgui.set_next_window_position(\
                             pos[0],
                             self.window.height - pos[1] - self.height)
+
         imgui.set_next_window_size(\
                             self.width-1,
                             self.height)
@@ -605,18 +607,13 @@ class Container( pyglet.event.EventDispatcher ):
             imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(0.0, 0.0))
             imgui.image_button( self.textures["cog"].id, 12, 12)
             imgui.same_line()
-            # imgui.image_button( self.textures["window"].id, 12, 12)
-            # imgui.same_line()
+
             
             imgui.push_item_width(80)
 
             # viewtype combo ---------------------------------------------------
-
-            
-            # if imgui.image_button( self.textures["view-combo"].id, 12, 12, uv0=(0.0, 1.0), uv1=(1.0, 0.0) ):
             imgui.image_button( self.textures["view-combo"].id, 12, 12, uv0=(0.0, 1.0), uv1=(1.0, 0.0) )
             if imgui.is_item_clicked( 0 ):
-                # print("container view combo")
                 curr_cursor_pos = imgui.get_cursor_screen_position()
                 popup_pos = imgui.Vec2( curr_cursor_pos.x+12, curr_cursor_pos.y )
                 imgui.set_next_window_position( popup_pos.x, popup_pos.y )
@@ -634,7 +631,6 @@ class Container( pyglet.event.EventDispatcher ):
                             imgui.separator()
                         is_view_selected = (container_view_index == self.container_view_combo_selected)
                         
-                        # if imgui.selectable( container_view_item[0], is_view_selected )[0]:
                         imgui.selectable( container_view_item[0], is_view_selected )
                         if imgui.is_mouse_released(0) and imgui.is_item_hovered():
                             self.container_view_combo_selected = container_view_index
@@ -650,25 +646,7 @@ class Container( pyglet.event.EventDispatcher ):
                         
                 imgui.pop_style_var(1)
 
-                            
 
-
-            # if imgui.begin_combo(\
-            #                 "##view combo",
-            #                 Container.container_view_types[self.container_view_combo_selected],
-            #                 flags = imgui.COMBO_NO_PREVIEW | imgui.COMBO_HEIGHT_LARGE):
-            #     imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(3.0, 3.0))
-            #     for i, item in enumerate(Container.container_view_types):
-            #         if i==1:
-            #             imgui.separator()
-            #         is_selected = (i==self.container_view_combo_selected)
-            #         if imgui.selectable( item, is_selected )[0]:
-            #             self.container_view_combo_selected = i
-            #         if is_selected:
-            #             imgui.set_item_default_focus()
-            #     imgui.pop_style_var(1)
-            #     imgui.end_combo()
-                        
             # ------------------------------------------------------------------
             imgui.pop_item_width()
 
@@ -676,7 +654,6 @@ class Container( pyglet.event.EventDispatcher ):
             #imgui.text(self.name)
 
             # container action combo -------------------------------------------
-            # button image popup test
 
             do_container_action = False
             action_item_hovered = None
@@ -685,10 +662,8 @@ class Container( pyglet.event.EventDispatcher ):
 
             imgui.set_cursor_pos( (self.width - (15+3.0) , 3.0) )
 
-            #if imgui.image_button( self.textures["downarrow"].id, 12, 12, uv0=(0,1), uv1=(1,0) ):
             imgui.image_button( self.textures["downarrow"].id, 12, 12, uv0=(0,1), uv1=(1,0) )
             if imgui.is_item_clicked( 0 ):
-                # print("container action combo")
                 popup_pos = imgui.Vec2( self.position.x + self.width - (15+3.0) , self.window.height - self.position.y - self.height +19)
                 imgui.set_next_window_position( popup_pos.x, popup_pos.y )
                 imgui.open_popup("container-actions")
@@ -726,38 +701,7 @@ class Container( pyglet.event.EventDispatcher ):
                 imgui.pop_style_var(1)
 
             
-            # # container action combo -------------------------------------------
-            # # original style, imgui combo button with a solid downward triangle
-            # imgui.set_cursor_pos( (self.width - (15+3.0) , 3.0) )
-            # if imgui.begin_combo(\
-            #             "##action combo",
-            #             Container.container_action_labels[self.container_actions_combo_selected],
-            #             flags = imgui.COMBO_NO_PREVIEW | imgui.COMBO_HEIGHT_LARGE):
-            #             #flags = imgui.COMBO_NO_ARROW_BUTTON):
-            #     imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(3.0, 3.0))
-            #     for i2, item2 in enumerate(Container.container_action_labels):
 
-                    
-            #         if i2 == 2:
-            #             # add a seperator after two items
-            #             imgui.separator()
-            #         if imgui.selectable( item2, selected = False )[0]:
-            #             self.container_actions_combo_selected = i2
-            #             print("container action: '%s' (%s)"%(\
-            #                         Container.container_action_labels[self.container_actions_combo_selected],
-            #                         self.name))
-            #             do_container_action = True
-            #         if imgui.is_item_hovered():
-            #             action_item_hovered = i2
-            #             # print( "HOVERED %s:'%s' (on '%s')"%(action_item_hovered,Container.container_action_labels[action_item_hovered], self.name) )
-            #             do_draw_container_action_hint = True
-            #         else:
-            #             self.root_container.do_draw_overlay = False
-
-            #     imgui.pop_style_var(1)
-            #     imgui.end_combo()
-
-            # # ------------------------------------------------------------------
 
             imgui.pop_style_var(2)
             imgui.pop_clip_rect()
@@ -833,6 +777,11 @@ class Container( pyglet.event.EventDispatcher ):
 
     def draw(self) -> None:
         """root container draw method"""
+        
+        ##################
+        # imgui.new_frame()
+        ##################
+        
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         self.batch.draw()
@@ -849,6 +798,14 @@ class Container( pyglet.event.EventDispatcher ):
         for l in self.leaves:
             l.draw_leaf()
         # pass
+
+        ##################
+        # imgui.render()
+        # imgui.end_frame()
+        ##################
+
+
+
 
     def draw_overlay(self) -> None:
         if self.root_container.do_draw_overlay:
@@ -1637,8 +1594,8 @@ if __name__ == "__main__":
 
         win.clear( )
 
-        imgui.new_frame()
-        imgui.push_font(font_default)
+        # imgui.new_frame()
+        # imgui.push_font(font_default)
 
 
         ########################################################################
@@ -1665,13 +1622,13 @@ if __name__ == "__main__":
         ########################################################################
         ########################################################################
 
-        imgui.pop_font()
+        # imgui.pop_font()
 
-        imgui.push_font(font_default)
-        draw_container_tree_info( c )
-        imgui.pop_font()
+        # imgui.push_font(font_default)
+        # draw_container_tree_info( c )
 
-        imgui.end_frame()
+        # imgui.pop_font()
+        # imgui.end_frame()
 
         imgui.render()
         imgui_renderer.render(imgui.get_draw_data())

@@ -380,7 +380,7 @@ class Ui(pyglet.event.EventDispatcher):
     def draw(self):
         self.time += 0.1
 
-        imgui.new_frame()
+        # imgui.new_frame()
 
         imgui.push_font(self.font_default)
         if self.main_menu_bar_visible:
@@ -391,9 +391,9 @@ class Ui(pyglet.event.EventDispatcher):
             imgui.show_demo_window()
         imgui.pop_font()
 
-        imgui.render()
-        imgui.end_frame()
-        self.imgui_renderer.render(imgui.get_draw_data())
+        # imgui.render()
+        # imgui.end_frame()
+        # self.imgui_renderer.render(imgui.get_draw_data())
 
 
     def on_close(self):

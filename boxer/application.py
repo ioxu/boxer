@@ -96,11 +96,10 @@ class Application(pyglet.event.EventDispatcher):
                         position=pyglet.math.Vec2(50,50),
                         width= 615,
                         height=320,
-                        use_explicit_dimensions=False)
+                        use_explicit_dimensions=True)
         
-        #print("CONTAINER: %s"%self.container)
-        #print("CONTAINER._event_stack: %s"%str(self.container._event_stack))
         self.container.update()
+        self.container.pprint_tree()
         ########################################################################
         ########################################################################
         ########################################################################
@@ -333,7 +332,10 @@ class Application(pyglet.event.EventDispatcher):
         #     width = self.test_decal.width * decal_scale,
         #     height = self.test_decal.height * decal_scale)
         
-        self.container.draw()
+        # self.container.draw()
+        # self.container.draw()
+        # self.ui.imgui_renderer.render(imgui.get_draw_data())
+        
         # gl.glEnable(gl.GL_BLEND)
         # gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)        
         # #self.container_line_batch.draw()
@@ -348,11 +350,18 @@ class Application(pyglet.event.EventDispatcher):
         # for l in self.container.leaves:
         #     l.draw_leaf()
 
+        imgui.new_frame()
+        self.container.draw()
+        # self.ui.imgui_renderer.render(imgui.get_draw_data())
 
         #----------------------
         # ui
-        # self.ui.draw()
+        self.ui.draw()
         #----------------------
+        imgui.end_frame()
+        imgui.render()
+
+        self.ui.imgui_renderer.render(imgui.get_draw_data())
 
 
 
