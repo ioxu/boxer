@@ -481,10 +481,27 @@ class Container( pyglet.event.EventDispatcher ):
         # ----------------------------------------------------------------------
         # remove all handlers first?
         # TODO: how to parameterise functions to pop handlers from #3 @ioxu
+        # Container handlers:
+        #[{'mouse_exited': <function mouse_exited_container at 0x000001EBEFF709D0>},
+        #{'mouse_entered': <function mouse_entered_container at 0x000001EBEFF70700>},
+        #{'resized': <function on_container_resized at 0x000001EBEFF70C10>},
+        #{'collapsed': <function on_container_collapsed at 0x000001EBEFF70B80>},
+        #{'split': <function on_container_split at 0x000001EBEFF70AF0>},
+        #{'view_changed': <function on_container_view_changed at 0x000001EBEFF70A60>}]
         if self.window:
             self.window.remove_handlers(on_mouse_motion=self.on_mouse_motion)
-            self.remove_handlers( mouse_entered = mouse_entered_container )
-            self.remove_handlers( mouse_exited = mouse_exited_container )
+            
+            # # loop events on object
+            # for d in self._event_stack:
+                
+            #     # get the single key in the dict, check if in list of events
+            #     if list(d)[0] in ["mouse_entered", "mouse_exited"]:
+            #         # remove event
+            #         print("\033[38;5;45mremoving %s event from %s\033[0m"%( d, self ))
+            #         self.remove_handlers( d )
+
+            # self.remove_handlers( mouse_entered = mouse_entered_container )
+            # self.remove_handlers( mouse_exited = mouse_exited_container )
         # ----------------------------------------------------------------------
 
         if len(self.children) == 0:
@@ -494,8 +511,8 @@ class Container( pyglet.event.EventDispatcher ):
             # TODO: how to parameterise functions to push handlers to #3 @ioxu
             if self.window:
                 self.window.push_handlers(on_mouse_motion=self.on_mouse_motion)
-                self.push_handlers( mouse_entered = mouse_entered_container )
-                self.push_handlers( mouse_exited = mouse_exited_container )
+                # self.push_handlers( mouse_entered = mouse_entered_container )
+                # self.push_handlers( mouse_exited = mouse_exited_container )
             # ------------------------------------------------------------------
         else:
             self.is_leaf = False
@@ -531,8 +548,8 @@ class Container( pyglet.event.EventDispatcher ):
         # self.update_geometries()
 
 
-    def draw(self):
-        """future draw method"""
+    def draw_leaf(self):
+        """draw self as a leaf (only draws as a single leaf container)"""
         # maybe just draw a coloured outline
         # NO DRAW, ONLY BATCH.
 
@@ -814,6 +831,25 @@ class Container( pyglet.event.EventDispatcher ):
             change_container( self, self.container_actions_combo_selected )
 
 
+    def draw(self) -> None:
+        """root container draw method"""
+        gl.glEnable(gl.GL_BLEND)
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        self.batch.draw()
+
+        # gl.glEnable(gl.GL_BLEND)
+        # gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        # container_view_batch.draw()
+        
+        gl.glEnable(gl.GL_BLEND)
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        # self.root_container.draw_overlay()
+        self.draw_overlay()
+
+        for l in self.leaves:
+            l.draw_leaf()
+        # pass
+
     def draw_overlay(self) -> None:
         if self.root_container.do_draw_overlay:
             self._marchinglines_time += 1.5
@@ -832,13 +868,16 @@ class Container( pyglet.event.EventDispatcher ):
             self.mouse_inside = True
             if _prev_mouse_inside is not True:
                 self.update_display()
-                ret = self.dispatch_event( "mouse_entered", self )
+                # ret = self.dispatch_event( "mouse_entered", self )
+                ret = self.root_container.dispatch_event( "mouse_entered", self )
                 # print("dispatch event 'mouse_entered' for %s: return: %s"%(self.name, ret))
         else:
             self.mouse_inside = False
             if _prev_mouse_inside is True:
                 self.update_display()
-                ret = self.dispatch_event( "mouse_exited", self )
+                # ret = self.dispatch_event( "mouse_exited", self )
+                ret = self.root_container.dispatch_event( "mouse_exited", self )
+                # ret = self.dispatch_event( "mouse_exited", self )
                 # print("dispatch event 'mouse_exited' for %s: return: %s"%(self.name, ret))
 
 
@@ -1534,10 +1573,17 @@ if __name__ == "__main__":
     c.push_handlers( split = on_container_split )
     c.push_handlers( collapsed = on_container_collapsed )
     c.push_handlers( resized = on_container_resized )
+
+    c.push_handlers( mouse_entered = mouse_entered_container )
+    c.push_handlers( mouse_exited = mouse_exited_container )
+
     # ---------------
 
     t1_start = perf_counter()
     c.update()
+    print("Container handlers:")
+    print("  %s"%str(c._event_stack))
+
     t1_stop = perf_counter()
 
     c.pprint_tree()
@@ -1591,23 +1637,33 @@ if __name__ == "__main__":
 
         win.clear( )
 
-        gl.glEnable(gl.GL_BLEND)
-        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-
         imgui.new_frame()
         imgui.push_font(font_default)
-        line_batch.draw()
+
+
+        ########################################################################
+        ########################################################################
+        ########################################################################
+        # move to container (root) method(s)
+
+        # gl.glEnable(gl.GL_BLEND)
+        # gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        # line_batch.draw()
 
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         container_view_batch.draw()
         
-        gl.glEnable(gl.GL_BLEND)
-        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        c.root_container.draw_overlay()
+        # gl.glEnable(gl.GL_BLEND)
+        # gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        # c.root_container.draw_overlay()
 
-        for l in c.leaves:
-            l.draw()
+        # for l in c.leaves:
+        #     l.draw_leaf()
+        c.draw()
+        ########################################################################
+        ########################################################################
+        ########################################################################
 
         imgui.pop_font()
 

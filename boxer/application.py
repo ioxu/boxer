@@ -16,7 +16,7 @@ import boxer.mouse
 import boxer.camera
 import boxer.ui
 import boxer.handles
-
+import boxer.containers
 
 
 # from imgui.integrations.pyglet import create_renderer
@@ -48,9 +48,6 @@ class Application(pyglet.event.EventDispatcher):
         print("    version: %s"%glinfo.version)
 
         self.window.set_icon(
-            # pyglet.image.load("boxer/resources/icon-64.png"),
-            # pyglet.image.load("boxer/resources/icon-32.png"),
-            # pyglet.image.load("boxer/resources/icon-16.png"))
             pyglet.image.load(os.path.join("boxer","resources", "icon-64.png")),
             pyglet.image.load(os.path.join("boxer","resources", "icon-32.png")),
             pyglet.image.load(os.path.join("boxer","resources", "icon-16.png")))
@@ -62,9 +59,6 @@ class Application(pyglet.event.EventDispatcher):
         self.on_key_press = self.window.event( self.on_key_press )
         self.on_mouse_motion = self.window.event (self.on_mouse_motion )
         self.on_mouse_release = self.window.event( self.on_mouse_release )
-        # self.on_mouse_scroll = self.window.event(self.on_mouse_scroll)
-        # self.on_mouse_drag = self.window.event(self.on_mouse_drag)
-        # self.on_mouse_press = self.window.event(self.on_mouse_press)
         self.on_resize = self.window.event( self.on_resize )
 
         self.fps_display = pyglet.window.FPSDisplay(self.window)
@@ -86,6 +80,31 @@ class Application(pyglet.event.EventDispatcher):
 
         # serialisation
         self.file_path = ""
+
+        ########################################################################
+        ########################################################################
+        ########################################################################
+        # containers
+        self.container_line_batch = pyglet.graphics.Batch()
+        self.container_overlay_batch = pyglet.graphics.Batch()
+
+        self.container = boxer.containers.Container(
+                        name="root_container",
+                        window=self.window,
+                        batch=self.container_line_batch,
+                        overlay_batch=self.container_overlay_batch,
+                        position=pyglet.math.Vec2(50,50),
+                        width= 615,
+                        height=320,
+                        use_explicit_dimensions=False)
+        
+        #print("CONTAINER: %s"%self.container)
+        #print("CONTAINER._event_stack: %s"%str(self.container._event_stack))
+        self.container.update()
+        ########################################################################
+        ########################################################################
+        ########################################################################
+
 
         # imgui
         self.ui = boxer.ui.Ui( application_root=self )
@@ -271,7 +290,7 @@ class Application(pyglet.event.EventDispatcher):
         #----------------------
         # screen
         
-        gl.glLineWidth(2.0)
+        # gl.glLineWidth(2.0)
         self.test_screen_handles_batch.draw()
 
         # gl.glViewport(0,0,self.window.width, self.window.height)
@@ -314,9 +333,25 @@ class Application(pyglet.event.EventDispatcher):
         #     width = self.test_decal.width * decal_scale,
         #     height = self.test_decal.height * decal_scale)
         
+        self.container.draw()
+        # gl.glEnable(gl.GL_BLEND)
+        # gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)        
+        # #self.container_line_batch.draw()
+        # self.container.batch.draw()
+
+        # gl.glEnable(gl.GL_BLEND)
+        # gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        # # # self.root_container.draw_overlay()
+        # # self.container_overlay_batch.draw()
+        # self.container.overlay_batch.draw()
+
+        # for l in self.container.leaves:
+        #     l.draw_leaf()
+
+
         #----------------------
         # ui
-        self.ui.draw()
+        # self.ui.draw()
         #----------------------
 
 
