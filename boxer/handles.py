@@ -98,9 +98,13 @@ class Handle(pyglet.event.EventDispatcher):
 
 
     def on_mouse_press( self, x, y, buttons, modifiers ):
-        if self.hilighted and buttons & pyglet.window.mouse.LEFT:
-            self.selected = True
-            self._shapes["select"].opacity = 220 * int(self.selected_opacity)
+        # if self.hilighted and buttons & pyglet.window.mouse.LEFT:
+        if self.hilighted:
+            #print("buttons: %s"%buttons)
+            self.dispatch_event("pressed", x, y, buttons, modifiers)
+            if buttons & pyglet.window.mouse.LEFT:
+                self.selected = True
+                self._shapes["select"].opacity = 220 * int(self.selected_opacity)
         else:
             self.selected = False
             self._shapes["select"].opacity = 0 * int(self.selected_opacity)
@@ -187,6 +191,7 @@ Handle.register_event_type("mouse_entered")
 Handle.register_event_type("mouse_exited")
 Handle.register_event_type("position_updated")
 Handle.register_event_type("dragged")
+Handle.register_event_type("pressed") # for mouse presses
 Handle.register_event_type("released")
 
 # ------------------------------------------------------------------------------

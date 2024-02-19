@@ -100,6 +100,7 @@ class Application(pyglet.event.EventDispatcher):
         
         self.container.update()
         self.container.pprint_tree()
+        
         ########################################################################
         ########################################################################
         ########################################################################
@@ -350,10 +351,14 @@ class Application(pyglet.event.EventDispatcher):
         # for l in self.container.leaves:
         #     l.draw_leaf()
 
-        imgui.new_frame()
-        self.container.draw()
-        # self.ui.imgui_renderer.render(imgui.get_draw_data())
 
+        # NOTE: the imgui context is initialised in self.ui.__init__
+        imgui.new_frame()
+        #----------------------
+        # ui containers
+        imgui.push_font(self.ui.font_small)
+        self.container.draw()
+        imgui.pop_font()
         #----------------------
         # ui
         self.ui.draw()
@@ -382,6 +387,8 @@ class Application(pyglet.event.EventDispatcher):
             elif modifiers & key.MOD_CTRL:
                 print("Ctrl-S : Save")
                 self.save_file()
+
+        # force breakpoint
 
         # Alt-Enter: toggle fullscreen
         if symbol == key.ENTER:
@@ -473,6 +480,11 @@ class Application(pyglet.event.EventDispatcher):
         """window event"""
         print("applicaton.window.on_resize = (%s, %s)"%(width, height))
 
+        print("update self.container")
+        self.container.width = width
+        self.container.height = height - 26
+        self.container.position = pyglet.math.Vec2(0,0)
+        self.container.update_geometries()
 
 # ------------------------------------------------------------------------------
 # Application events

@@ -50,6 +50,7 @@ class Ui(pyglet.event.EventDispatcher):
 
         print("Ui: loading fonts ..")
         self.font_default = io.fonts.add_font_from_file_ttf("boxer/resources/fonts/DejaVuSansCondensed.ttf", 14 )
+        self.font_small = io.fonts.add_font_from_file_ttf("boxer/resources/fonts/DejaVuSansCondensed.ttf", 10.5 )
         self.font_t1 = io.fonts.add_font_from_file_ttf("boxer/resources/fonts/DejaVuSansCondensed.ttf", 23 )
         self.imgui_renderer.refresh_font_texture()
 

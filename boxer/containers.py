@@ -120,6 +120,8 @@ class Container( pyglet.event.EventDispatcher ):
         # usually update a tree with container.get_root_container().update()
         self.leaves = []
 
+        self.split_containers = []
+
         self.is_leaf = False
         self.is_root = False
         self.root_container : Container = self#None
@@ -479,8 +481,14 @@ class Container( pyglet.event.EventDispatcher ):
             self.is_root = True
             root = self
             self.root_container = self
+            self.root_container.split_containers = []
         else:
             self.root_container = root
+
+        # ----------------------------------------------------------------------
+        if isinstance(self, SplitContainer):
+            #print("IS INSTANCE %s %s"%(self, SplitContainer))
+            self.root_container.split_containers.append( self )
 
         # ----------------------------------------------------------------------
         # remove all handlers first?
@@ -765,6 +773,7 @@ class Container( pyglet.event.EventDispatcher ):
                     self.root_container._marchinglines_shader["ir_tr"] = tr                   
                     self.root_container._marchinglines_shader["positive"] = 0.0
 
+
                 case _:
                     self.root_container.do_draw_overlay = False
 
@@ -795,8 +804,15 @@ class Container( pyglet.event.EventDispatcher ):
         # self.root_container.draw_overlay()
         self.draw_overlay()
 
+        # draw things for all SplitContainers
+        # right-click context menu for splitters etc
+        for h in self.split_containers:
+            h.draw_handle_ui()
+
+        # draw leaf containers, mostly imgui ui
         for l in self.leaves:
             l.draw_leaf()
+        
         # pass
 
         ##################
@@ -867,6 +883,11 @@ Container.register_event_type("collapsed")
 
 class SplitContainer( Container ):
     """container that mannages a split view of two children"""
+
+    ratio_modes = ["ratio", "fixed"]
+    RATIO_MODE_RATIO = 0        # uses a proportional ratio (0.0 .. 1.0) that adapt to parent's geometry
+    RATIO_MODE_FIXED = 1        # uses a fixed measure in pixels
+
     def __init__(self,
             ratio : float = 0.5,
             create_default_children : bool = False,
@@ -874,6 +895,9 @@ class SplitContainer( Container ):
         Container.__init__( self, **kwargs )
         self.ratio = ratio
         self.ratio_margin = 15 # limit from hitting 0 or 1, in pixels
+
+        self.ratio_mode = SplitContainer.RATIO_MODE_RATIO
+
         self.create_default_children = create_default_children
         if self.create_default_children:
             self._default_children()
@@ -901,6 +925,10 @@ class SplitContainer( Container ):
         self.split_handle.push_handlers( position_updated = self.on_split_handle_position_updated )
         self.split_handle.push_handlers( mouse_entered = self.on_split_handle_mouse_entered )
         self.split_handle.push_handlers( mouse_exited = self.on_split_handle_mouse_exited )
+        self.split_handle.push_handlers( pressed = self.on_split_handle_mouse_pressed )
+
+        self.do_draw_handle_ui = False
+        self.draw_handle_ui_rightclick_data = {}
 
         self.ratio_line = pyglet.shapes.Line( 0.0, 0.0, 1.0, 1.0,
                                             width = 4.0,
@@ -930,6 +958,50 @@ class SplitContainer( Container ):
     def on_split_handle_position_updated(self, position) -> None:
         # print("\033[38;5;123m%s.split_handle position:\033[0m %s"%(self.name, position))
         ...
+
+    
+    def on_split_handle_mouse_pressed(self, x, y, buttons, modifiers) -> None:
+        """event handler for mouse press on SplitContainer mouse press
+        """
+        print("\033[38;5;93m-^- \033[38;5;237m[h]\033[38;5;245m on_split_handle_mouse_pressed %s \033[0m %s, %s, %s, %s"%(self.name, x, y, buttons, modifiers))
+        if buttons & pyglet.window.mouse.RIGHT:
+            # right-click control for SplitContainer splitter bars
+            # this pattern is very annoying.
+            # the right-click detection is done here, SplitConntainers are collected in
+            # Container.update_structure() and the SplitContainer.draw_handle_ui() is called 
+            # in Container.draw()
+            self.do_draw_handle_ui = True
+            self.draw_handle_ui_rightclick_data = {"x": x, "y": self.window.height - y, "buttons": buttons, "modifiers": modifiers}
+
+
+    def draw_handle_ui(self) -> None:
+        """draws SplitContainer splitter bar interface, triggered on right-click
+        """
+        # see above for pattern
+        if self.do_draw_handle_ui:
+            popup_pos = imgui.Vec2( self.draw_handle_ui_rightclick_data["x"], self.draw_handle_ui_rightclick_data["y"] )
+            imgui.set_next_window_position( popup_pos.x, popup_pos.y )
+            imgui.open_popup( "split-container-right-click-context-menu" )
+            with imgui.begin_popup( "split-container-right-click-context-menu" ) as split_handle_context_menu:
+                #print("RIGHT CLICK 4 %s"%self.draw_handle_ui_rightclick_data)
+                opened = [False, False]
+                selected = [False, False]
+                selected[self.ratio_mode] = True
+                if split_handle_context_menu.opened:
+                    opened[0], selected[0] = imgui.selectable("ratio", selected[0])
+                    opened[1], selected[1] = imgui.selectable("fixed", selected[1])
+
+                    #print(opened, selected)
+                    if True in opened:
+                        self.ratio_mode = opened.index(True)
+                        self.do_draw_handle_ui = False
+                        imgui.close_current_popup()
+
+                    if imgui.is_mouse_released(0):
+                        self.do_draw_handle_ui = False
+                        imgui.close_current_popup()
+
+
 
     def on_split_handle_mouse_entered(self):
         print("\033[38;5;10m--> \033[38;5;237m[h]\033[38;5;245m on_split_handle_mouse_entered %s \033[0m"%self.name)

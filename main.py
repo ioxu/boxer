@@ -1,3 +1,4 @@
+#! python
 """example boxer setup"""
 
 import pyglet
