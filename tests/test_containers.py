@@ -57,11 +57,13 @@ def test_Container_use_explicit_dimensions_false() -> None:
 def test_Container_get_position_from_parent() -> None:
     """test method .get_position_from_parent"""
     c_parent = containers.Container(\
-                            position=pyglet.math.Vec2(123,456))
-    c_child = containers.Container()
+                            name='parent_container',
+                            position=pyglet.math.Vec2(123,456),
+                            use_explicit_dimensions = True
+                            )
+    c_child = containers.Container(name = 'child_container',)
     c_parent.add_child( c_child )
     c_parent.update()
-    # print(c_parent.get_position_from_parent())
     assert c_child.get_position_from_parent() == pyglet.math.Vec2(123,456)
 
 

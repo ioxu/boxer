@@ -882,11 +882,12 @@ Container.register_event_type("collapsed")
 
 
 class SplitContainer( Container ):
-    """container that mannages a split view of two children"""
+    """container that mannages a split view of twohildren"""
 
-    ratio_modes = ["ratio", "fixed"]
+    ratio_modes = ["ratio", "fixed 0", "fixed 1"]
     RATIO_MODE_RATIO = 0        # uses a proportional ratio (0.0 .. 1.0) that adapt to parent's geometry
-    RATIO_MODE_FIXED = 1        # uses a fixed measure in pixels
+    RATIO_MODE_FIXED_0 = 1        # uses a fixed measure in pixels toward the child[0] side
+    RATIO_MODE_FIXED_1 = 2        # uses a fixed measure in pixels toward the child[1] side
 
     def __init__(self,
             ratio : float = 0.5,
@@ -984,20 +985,23 @@ class SplitContainer( Container ):
             imgui.open_popup( "split-container-right-click-context-menu" )
             with imgui.begin_popup( "split-container-right-click-context-menu" ) as split_handle_context_menu:
                 #print("RIGHT CLICK 4 %s"%self.draw_handle_ui_rightclick_data)
-                opened = [False, False]
-                selected = [False, False]
+                opened = [False, False, False]
+                selected = [False, False, False]
                 selected[self.ratio_mode] = True
                 if split_handle_context_menu.opened:
                     opened[0], selected[0] = imgui.selectable("ratio", selected[0])
-                    opened[1], selected[1] = imgui.selectable("fixed", selected[1])
+                    opened[1], selected[1] = imgui.selectable("fixed 0", selected[1])
+                    opened[2], selected[2] = imgui.selectable("fixed 1", selected[2])
 
-                    #print(opened, selected)
                     if True in opened:
+                        # set menu selection
+                        print(opened, selected)
                         self.ratio_mode = opened.index(True)
                         self.do_draw_handle_ui = False
                         imgui.close_current_popup()
 
                     if imgui.is_mouse_released(0):
+                        # close on left-mouse-up
                         self.do_draw_handle_ui = False
                         imgui.close_current_popup()
 
