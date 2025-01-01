@@ -17,6 +17,7 @@ import boxer.camera
 import boxer.ui
 import boxer.handles
 import boxer.containers
+import boxer.shapes
 
 
 # from imgui.integrations.pyglet import create_renderer
@@ -25,8 +26,13 @@ import boxer.containers
 #----------------
 #----------------
 
+gl.glEnable(gl.GL_DEBUG_OUTPUT)
+# print(f"GL_VERSION: {gl.glGetString(gl.GL_VERSION).decode()}")
+# print(f"GL_VERSION: {gl.glGetString(gl.GL_VERSION)}")
+print(f"gl has > 3.2: {pyglet.gl.gl_info.have_version(3, 2)}")
+
 class Application(pyglet.event.EventDispatcher):
-    """"root application object"""
+    """root application object"""
 
     application_meta = {}
 
@@ -40,12 +46,14 @@ class Application(pyglet.event.EventDispatcher):
 
         # create window before anything else
         self.window : pyglet.window.Window = _create_window(res_x, res_y)
+        print("  imgui version: %s"%imgui.__version__)
         print("  pixel ratio: %s"%self.window.get_pixel_ratio())
         print("  context: %s"%self.window.context)
         glinfo = self.window.context.get_info()
         print("  context info: %s"%glinfo)
         print("    renderer: %s"%glinfo.renderer)
         print("    version: %s"%glinfo.version)
+        print("    api: %s"%glinfo.opengl_api)
 
         self.window.set_icon(
             pyglet.image.load(os.path.join("boxer","resources", "icon-64.png")),
@@ -131,6 +139,15 @@ class Application(pyglet.event.EventDispatcher):
             font_size = 30.0,
             color = (255,255,255, 80),
             x = 10, y = 20
+        )
+
+        self.draw_stats_label: pyglet.text.Label = pyglet.text.Label(
+            str("STATS\nSTATSlineTWO"),
+            font_size = 7.5,
+            color = ( 255, 255, 255, 255),
+            x = 10, y = 250,
+            width = 1024,
+            multiline=True
         )
 
         # self.test_decal = pyglet.resource.image('boxer/resources/test_decal.png')#pyglet.image.load( 'boxer/resources/test_decal.png' )
@@ -244,6 +261,11 @@ class Application(pyglet.event.EventDispatcher):
 
     def on_draw(self):
         self.window.clear()
+
+        # drawstats
+        # num_draw_calls_before = pyglet.gl.glGetInteger(pyglet.gl.GL_DRAW_CALLS) 
+        # num_draw_calls_before = pyglet.gl.glGetIntegeri_v(pyglet.gl.GL_DRAW)
+
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
@@ -260,28 +282,30 @@ class Application(pyglet.event.EventDispatcher):
 
         self.background.draw()
 
-        line_width = 3.0 * self.camera.zoom
-        gl.glLineWidth(line_width)
-
-        c = (255, 255, 255, 50)
-        boxer.shapes.Arc( 0.0, 35.0, 35, segments=128, angle = math.tau*0.25, start_angle=math.tau*-0.25, color = c).draw()
-        pyglet.shapes.Line(  35.0, 35.0, 35.0, 135.0, color=c, width=3.0).draw()
-        boxer.shapes.Arc( 35.0*2.0, 135.0, 35, segments=128, angle = math.tau*-0.25, start_angle=math.tau*-0.5, color = c).draw()
-        boxer.shapes.Arc( -50.0, -50.0, 50, segments=64,  color=c ).draw()  
-        pyglet.shapes.BezierCurve((0,0), (0,200), (200,200), (200, 400), segments=32, color=c).draw()
-        pyglet.shapes.BezierCurve((0,0), (0,200), (300,200), (300, 400), segments=32, color=c).draw()
-
-        c = (199, 71, 71, 153)
-        gl.glLineWidth(30.0* self.camera.zoom)
-        pyglet.shapes.BezierCurve((0,0), (0,200), (-400,200), (-400, 400), segments=64, color=c).draw()
-        c = (223, 167, 1, 153)
-        gl.glLineWidth(10.0* self.camera.zoom)
-        pyglet.shapes.BezierCurve((-10,0), (-10,200-10), (-410,200-10), (-410, 400), segments=64, color=c).draw()
 
 
+        # line_width = 3.0 * self.camera.zoom
+        # gl.glLineWidth(line_width)
 
-        gl.glLineWidth(2.0* self.camera.zoom)
-        self.test_handles_batch.draw()
+        # c = (255, 255, 255, 50)
+        # boxer.shapes.Arc( 0.0, 35.0, 35, segments=128, angle = math.tau*0.25, start_angle=math.tau*-0.25, color = c).draw()
+        # pyglet.shapes.Line(  35.0, 35.0, 35.0, 135.0, color=c, width=3.0).draw()
+        # boxer.shapes.Arc( 35.0*2.0, 135.0, 35, segments=128, angle = math.tau*-0.25, start_angle=math.tau*-0.5, color = c).draw()
+        # boxer.shapes.Arc( -50.0, -50.0, 50, segments=64,  color=c ).draw()  
+        # pyglet.shapes.BezierCurve((0,0), (0,200), (200,200), (200, 400), segments=32, color=c).draw()
+        # pyglet.shapes.BezierCurve((0,0), (0,200), (300,200), (300, 400), segments=32, color=c).draw()
+
+        # c = (199, 71, 71, 153)
+        # gl.glLineWidth(30.0* self.camera.zoom)
+        # pyglet.shapes.BezierCurve((0,0), (0,200), (-400,200), (-400, 400), segments=64, color=c).draw()
+        # c = (223, 167, 1, 153)
+        # gl.glLineWidth(10.0* self.camera.zoom)
+        # pyglet.shapes.BezierCurve((-10,0), (-10,200-10), (-410,200-10), (-410, 400), segments=64, color=c).draw()
+
+
+
+        # gl.glLineWidth(2.0* self.camera.zoom)
+        # self.test_handles_batch.draw()
 
 
 
@@ -319,8 +343,7 @@ class Application(pyglet.event.EventDispatcher):
         #     line4.draw()
 
 
-        self.fps_display.draw()
-        self.graph_label.draw()
+
         
         # graphic
         # gl.glEnable(gl.GL_BLEND)
@@ -352,6 +375,8 @@ class Application(pyglet.event.EventDispatcher):
         #     l.draw_leaf()
 
 
+        #----------------------
+        # IMGUI
         # NOTE: the imgui context is initialised in self.ui.__init__
         imgui.new_frame()
         #----------------------
@@ -365,8 +390,13 @@ class Application(pyglet.event.EventDispatcher):
         #----------------------
         imgui.end_frame()
         imgui.render()
-
         self.ui.imgui_renderer.render(imgui.get_draw_data())
+        #----------------------
+
+
+        self.fps_display.draw()
+        self.graph_label.draw()
+        self.draw_stats_label.draw()
 
 
 
@@ -499,6 +529,7 @@ def _create_window(res_x, res_y):
         samples = 8,
         depth_size = 16,
         double_buffer = True,
+        # debug=True,
     )
     _window = pyglet.window.Window(
             res_x, res_y,

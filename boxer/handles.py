@@ -76,7 +76,7 @@ class Handle(pyglet.event.EventDispatcher):
 
     # @position.setter
     # def position(self, value):
-    #     """must by a two-tuple"""
+    #     """must be a two-tuple"""
     #     self.position = value
 
 

@@ -21,7 +21,7 @@ import boxer.shaders
 import boxer.handles
 import boxer.mouse
 
-import imgui
+import imgui as imgui
 
 # https://www.reddit.com/r/learnprogramming/comments/214nd9/making_a_gui_from_scratch/
 # https://developer.valvesoftware.com/wiki/VGUI_Documentation
@@ -49,6 +49,8 @@ class Container( pyglet.event.EventDispatcher ):
 
     The tree leaves are connected to the window's `on_mouse` events.
     """
+
+    CONTAINER_DEBUG_LABEL = False
 
     cog_image = pyglet.image.load("boxer/resources/cog_16.png")
     window_image = pyglet.image.load("boxer/resources/window_16.png")
@@ -151,14 +153,15 @@ class Container( pyglet.event.EventDispatcher ):
 
         self._lines_original_color = self.color
 
-        self.debug_label_name = pyglet.text.Label(self.name,
-                        font_size=8,
-                        x=0, y=0,
-                        anchor_x='left', anchor_y='top',
-                        batch=batch,
-                        color=( 255, 255, 255, 50),
-                        width = 100,
-                        multiline=True,)
+        if self.CONTAINER_DEBUG_LABEL:
+            self.debug_label_name = pyglet.text.Label(self.name,
+                            font_size=8,
+                            x=0, y=0,
+                            anchor_x='left', anchor_y='top',
+                            batch=batch,
+                            color=( 255, 255, 255, 50),
+                            width = 100,
+                            multiline=True,)
 
 
         self.do_draw_overlay = False
@@ -389,8 +392,6 @@ class Container( pyglet.event.EventDispatcher ):
 
         margin = 1#3
 
-        self.debug_label_name.x = self.position.x + 5
-        self.debug_label_name.y = self.position.y + self.height - 2 - 15
 
         if self.is_root:
             self.overlay_quad.position = (self.position.x, self.position.y + self.height, 0.0,
@@ -398,10 +399,13 @@ class Container( pyglet.event.EventDispatcher ):
                                             self.position.x + self.width, self.position.y, 0.0,
                                             self.position.x, self.position.y, 0.0)
 
-        if self.is_leaf:
-            self.debug_label_name.opacity = 0#50
-        else:
-            self.debug_label_name.opacity = 0
+        if self.CONTAINER_DEBUG_LABEL:
+            self.debug_label_name.x = self.position.x + 5
+            self.debug_label_name.y = self.position.y + self.height - 2 - 15
+            if self.is_leaf:
+                self.debug_label_name.opacity = 100#0#50
+            else:
+                self.debug_label_name.opacity = 0
 
         self.lines["left"].x = self.position.x + margin
         self.lines["left"].y = self.position.y + margin
@@ -440,15 +444,16 @@ class Container( pyglet.event.EventDispatcher ):
 
     def update_display( self, ) -> None:
         """update graphical display/feedback things
-        lables, inside/outside line colours/opacities etc
+        labels, inside/outside line colours/opacities etc
         """
-        if self.is_leaf:
-            self.debug_label_name.text =\
-                self.name + " (%s)"%(type(self).__name__) +\
-                "\n.is_leaf " +\
-                str(self.is_leaf) +\
-                "\n.mouse_inside " +\
-                str(self.mouse_inside)
+        if self.CONTAINER_DEBUG_LABEL:
+            if self.is_leaf:
+                self.debug_label_name.text =\
+                    self.name + " (%s)"%(type(self).__name__) +\
+                    "\n.is_leaf " +\
+                    str(self.is_leaf) +\
+                    "\n.mouse_inside " +\
+                    str(self.mouse_inside)
 
         if self.mouse_inside:
             for lk in self.lines.items():
@@ -968,7 +973,7 @@ class SplitContainer( Container ):
         if buttons & pyglet.window.mouse.RIGHT:
             # right-click control for SplitContainer splitter bars
             # this pattern is very annoying.
-            # the right-click detection is done here, SplitConntainers are collected in
+            # the right-click detection is done here, SplitContainers are collected in
             # Container.update_structure() and the SplitContainer.draw_handle_ui() is called 
             # in Container.draw()
             self.do_draw_handle_ui = True
@@ -995,7 +1000,7 @@ class SplitContainer( Container ):
 
                     if True in opened:
                         # set menu selection
-                        print(opened, selected)
+                        print("opened:selected", opened, selected)
                         self.ratio_mode = opened.index(True)
                         self.do_draw_handle_ui = False
                         imgui.close_current_popup()
@@ -1097,7 +1102,7 @@ class VSplitContainer( SplitContainer ):
         self.set_child( c2, 1 )
 
 
-    def get_child_size(self, this) -> tuple:
+    def get_child_size(self, this) -> pyglet.math.Vec2:
         s0 = math.floor(self.height * self.ratio) -1.0
         
         if this == self.children[0]:
@@ -1107,7 +1112,7 @@ class VSplitContainer( SplitContainer ):
         return pyglet.math.Vec2(self.width, self.height - s0 -1.0)
 
 
-    def get_child_position(self, this) -> tuple:
+    def get_child_position(self, this) -> pyglet.math.Vec2:
         if this == self.children[0]:
             x = self.position.x
             y = self.position.y
