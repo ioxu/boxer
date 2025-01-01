@@ -15,6 +15,7 @@ import pyglet.gl as gl
 import pyglet.graphics
 import pyglet.shapes
 import pyglet.math
+from pyglet.window import Window # Pylance is getting confused
 import boxer.camera
 import boxer.shapes
 import boxer.shaders
@@ -95,7 +96,7 @@ class Container( pyglet.event.EventDispatcher ):
             width : int = 128,
             height : int = 128,
             use_explicit_dimensions : bool = False,
-            position : pyglet.math.Vec2 = pyglet.math.Vec2(),
+            position : pyglet.math.Vec2 = pyglet.math.Vec2(0,0),
             color = (255, 255, 255, 60),
             batch = None,
             group = None,
@@ -103,8 +104,7 @@ class Container( pyglet.event.EventDispatcher ):
             ):
 
         self.name = name
-        self.window : pyglet.window.Window = window or pyglet.window.Window()
-        # print("self.window: %s"%str(self.window))
+        self.window : Window = window or pyglet.window.Window()
         self.width = width
         self.height = height
         self.position : pyglet.math.Vec2 = position
@@ -348,8 +348,8 @@ class Container( pyglet.event.EventDispatcher ):
         return self.position
 
 
-    def get_position_from_parent( self ) -> tuple:
-        """ask this node's parennt of a position to place self"""
+    def get_position_from_parent( self ) -> pyglet.math.Vec2:#-> tuple:
+        """ask this node's parent of a position to place self"""
         if self.use_explicit_dimensions:
             # do not modify position
             return self.position
@@ -362,7 +362,8 @@ class Container( pyglet.event.EventDispatcher ):
             if self.window and not self.use_explicit_dimensions:
                 self.position = pyglet.math.Vec2(0,0)
             return self.position
-        return (None, None)
+        # return (None, None)
+        return pyglet.math.Vec2(0,0)
 
 
     @ property
@@ -469,7 +470,7 @@ class Container( pyglet.event.EventDispatcher ):
                     lk[1].opacity = 0        
 
 
-    def update_structure( self, depth : int = 0, count : int = 0, leaves = None, root = None ) -> int:
+    def update_structure( self, depth : int = 0, count : int = 0, leaves = None, root = None ) -> tuple[int, list, 'Container']:
         """Update internal structure data, like is_leaf, unique ids, pushing and
         popping events handlers.
         Push and pop handlers to additional subscribers.
@@ -1675,7 +1676,7 @@ if __name__ == "__main__":
 
         win.clear( )
 
-        # imgui.new_frame()
+        imgui.new_frame()
         # imgui.push_font(font_default)
 
 
