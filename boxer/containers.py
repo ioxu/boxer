@@ -24,6 +24,7 @@ import boxer.mouse
 
 import imgui as imgui
 
+from typing import Optional
 # https://www.reddit.com/r/learnprogramming/comments/214nd9/making_a_gui_from_scratch/
 # https://developer.valvesoftware.com/wiki/VGUI_Documentation
 
@@ -51,7 +52,7 @@ class Container( pyglet.event.EventDispatcher ):
     The tree leaves are connected to the window's `on_mouse` events.
     """
 
-    CONTAINER_DEBUG_LABEL = False
+    CONTAINER_DEBUG_LABEL = True
 
     cog_image = pyglet.image.load("boxer/resources/cog_16.png")
     window_image = pyglet.image.load("boxer/resources/window_16.png")
@@ -126,7 +127,8 @@ class Container( pyglet.event.EventDispatcher ):
 
         self.is_leaf = False
         self.is_root = False
-        self.root_container : Container = self#None
+
+        self.root_container : Container = self # either None or a Container
 
         self.mouse_inside = False
 
@@ -219,7 +221,7 @@ class Container( pyglet.event.EventDispatcher ):
         if old_children is None:
             old_children = []
 
-        old_children = old_children + self.children
+        old_children = old_children + self.children 
         for child in self.children:
             if child is not None:
                 child.parent = None
@@ -319,7 +321,7 @@ class Container( pyglet.event.EventDispatcher ):
             return (self.width, self.height)
         if hasattr(self.parent, "get_child_size"):
             # likely a Container 
-            ps = self.parent.get_child_size( self )
+            ps = self.parent.get_child_size( self ) # type: ignore
             self.width = ps[0]
             self.height = ps[1]
             return (self.width, self.height)
@@ -355,6 +357,7 @@ class Container( pyglet.event.EventDispatcher ):
             return self.position
         if hasattr(self.parent, "get_child_position"):
             # likely a Container
+            assert self.parent is not None
             self.position = self.parent.get_child_position( self )
             return self.position
         if self.parent is None:
@@ -395,7 +398,7 @@ class Container( pyglet.event.EventDispatcher ):
 
 
         if self.is_root:
-            self.overlay_quad.position = (self.position.x, self.position.y + self.height, 0.0,
+            self.overlay_quad.position = (self.position.x, self.position.y + self.height, 0.0, # type: ignore
                                             self.position.x + self.width, self.position.y + self.height, 0.0,
                                             self.position.x + self.width, self.position.y, 0.0,
                                             self.position.x, self.position.y, 0.0)
@@ -470,6 +473,7 @@ class Container( pyglet.event.EventDispatcher ):
                     lk[1].opacity = 0        
 
 
+    # def update_structure( self, depth : int = 0, count : int = 0, leaves = None, root = None ) -> tuple[int, list, 'Container']:
     def update_structure( self, depth : int = 0, count : int = 0, leaves = None, root = None ) -> tuple[int, list, 'Container']:
         """Update internal structure data, like is_leaf, unique ids, pushing and
         popping events handlers.
@@ -489,6 +493,7 @@ class Container( pyglet.event.EventDispatcher ):
             self.root_container = self
             self.root_container.split_containers = []
         else:
+            assert root is not None
             self.root_container = root
 
         # ----------------------------------------------------------------------
@@ -573,9 +578,9 @@ class Container( pyglet.event.EventDispatcher ):
 
 
         # ----------------------------------------------------------------------
-        if self.window is None:
-            print("DRAW: %s .window is None"%self)
-            return
+        # if self.window is None:
+        #     print("DRAW: %s .window is None"%self)
+        #     return
         # ----------------------------------------------------------------------
 
         pos = self.position
@@ -603,10 +608,10 @@ class Container( pyglet.event.EventDispatcher ):
                             self.width-1,
                             self.height)
 
-        imgui.push_style_var(imgui.STYLE_WINDOW_PADDING , imgui.Vec2(3.0, 3.0))
+        imgui.push_style_var(imgui.STYLE_WINDOW_PADDING , imgui.Vec2(3.0, 3.0)) # type: ignore
 
         imgui.push_style_var(imgui.STYLE_FRAME_ROUNDING, 2.0)
-        imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(-1.0, 0.0))
+        imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(-1.0, 0.0)) # type: ignore
         imgui.push_style_color(imgui.COLOR_BUTTON, 0.0, 0.0, 0.0, 0.0)
         imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 1.0, 1.0, 1.0, 0.3)
         imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 1.0, 1.0, 1.0, 0.2)
@@ -617,8 +622,8 @@ class Container( pyglet.event.EventDispatcher ):
                             self.window.height - pos[1] - self.height,
                             pos[0] + self.width -1,
                             self.window.height - pos[1] - 1)
-            imgui.push_style_var(imgui.STYLE_FRAME_PADDING, imgui.Vec2(1.0, 1.0))
-            imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(0.0, 0.0))
+            imgui.push_style_var(imgui.STYLE_FRAME_PADDING, imgui.Vec2(1.0, 1.0)) # type: ignore
+            imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(0.0, 0.0)) # type: ignore
             imgui.image_button( self.textures["cog"].id, 12, 12)
             imgui.same_line()
 
@@ -628,12 +633,12 @@ class Container( pyglet.event.EventDispatcher ):
             # viewtype combo ---------------------------------------------------
             imgui.image_button( self.textures["view-combo"].id, 12, 12, uv0=(0.0, 1.0), uv1=(1.0, 0.0) )
             if imgui.is_item_clicked( 0 ):
-                curr_cursor_pos = imgui.get_cursor_screen_position()
-                popup_pos = imgui.Vec2( curr_cursor_pos.x+12, curr_cursor_pos.y )
+                curr_cursor_pos = imgui.get_cursor_screen_position()  # type: ignore
+                popup_pos = imgui.Vec2( curr_cursor_pos.x+12, curr_cursor_pos.y ) # type: ignore
                 imgui.set_next_window_position( popup_pos.x, popup_pos.y )
                 imgui.open_popup( "container-view-type" )
 
-            imgui.same_line()
+            imgui.same_line() 
             with imgui.begin_popup( "container-view-type" ) as container_view_popup:
                 imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(3.0, 3.0))
                 if container_view_popup.opened:
@@ -817,7 +822,8 @@ class Container( pyglet.event.EventDispatcher ):
 
         # draw leaf containers, mostly imgui ui
         for l in self.leaves:
-            l.draw_leaf()
+            if l.window:
+                l.draw_leaf()
         
         # pass
 
@@ -1349,6 +1355,27 @@ def change_container( container, action ):
             # (I think it nearly always is, if using the menu to change containers)
             root = container.get_root_container()
             root.do_draw_overlay = False
+            if container.parent is None:
+                raise RuntimeWarning("closing a root container is not allowed yet")
+            
+            parent : Container = container.parent
+
+            # move this container out of the way of being neutralised
+            idx = parent.children.index( container )
+            parent.children[idx] = None
+
+            # remove children of parent split container
+            removed_children = parent.remove_children()
+            
+            for c in removed_children:
+                if c and c.is_leaf:
+                    root.dispatch_event("collapsed", c)
+
+            # replace parent split container by this container
+            parent.replace_by( container )
+            root.update()
+            root.pprint_tree()
+
 
 
         case Container.ACTION_CLOSE_OTHERS:
@@ -1360,6 +1387,7 @@ def change_container( container, action ):
             root = container.get_root_container()
             root.do_draw_overlay = False
 
+            # move this container out of the way of being neutralised
             idx = container.parent.children.index( container )
             container.parent.children[idx] = None
 
@@ -1377,6 +1405,8 @@ def change_container( container, action ):
             root.pprint_tree()
 
 
+# ------------------------------------------------------------------------------
+# module main
 # ------------------------------------------------------------------------------
 if __name__ == "__main__":
     print("run containers.py main:")
