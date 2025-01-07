@@ -52,7 +52,7 @@ class Container( pyglet.event.EventDispatcher ):
     The tree leaves are connected to the window's `on_mouse` events.
     """
 
-    CONTAINER_DEBUG_LABEL = True
+    CONTAINER_DEBUG_LABEL = False
 
     cog_image = pyglet.image.load("boxer/resources/cog_16.png")
     window_image = pyglet.image.load("boxer/resources/window_16.png")
@@ -577,11 +577,15 @@ class Container( pyglet.event.EventDispatcher ):
         # NO DRAW, ONLY BATCH.
 
 
-        # ----------------------------------------------------------------------
-        # if self.window is None:
-        #     print("DRAW: %s .window is None"%self)
-        #     return
-        # ----------------------------------------------------------------------
+        #----------------------------------------------------------------------
+        # FIXME: Container.leaves can be modified during the loop!!
+        # because imgui is immediate mode, activating callbacks from imgui ui
+        # call updates to the container heirarchy which recalculates the tree's
+        # leaves. This is such a bad pattern by me.
+        if self.window is None:
+            print("\033[38;5;196mdraw_leaf: %s .window is None\033[0m"%self)
+            return
+        #----------------------------------------------------------------------
 
         pos = self.position
 
@@ -790,31 +794,23 @@ class Container( pyglet.event.EventDispatcher ):
 
 
         if do_container_action:
-            print(self.container_actions_combo_selected)
             self.root_container.do_draw_overlay = False
             change_container( self, self.container_actions_combo_selected )
 
 
     def draw(self) -> None:
         """root container draw method"""
-        
-        ##################
-        # imgui.new_frame()
-        ##################
-        
+  
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         self.batch.draw()
-
-        # gl.glEnable(gl.GL_BLEND)
-        # gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        # container_view_batch.draw()
         
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        # self.root_container.draw_overlay()
         self.draw_overlay()
 
+
+        
         # draw things for all SplitContainers
         # right-click context menu for splitters etc
         for h in self.split_containers:
@@ -822,18 +818,8 @@ class Container( pyglet.event.EventDispatcher ):
 
         # draw leaf containers, mostly imgui ui
         for l in self.leaves:
-            if l.window:
-                l.draw_leaf()
-        
-        # pass
-
-        ##################
-        # imgui.render()
-        # imgui.end_frame()
-        ##################
-
-
-
+            l.draw_leaf()
+ 
 
     def draw_overlay(self) -> None:
         if self.root_container.do_draw_overlay:
@@ -1377,7 +1363,6 @@ def change_container( container, action ):
             root.pprint_tree()
 
 
-
         case Container.ACTION_CLOSE_OTHERS:
             print("--- [xxO] change_container: 'close others' on '%s'"%container.name)
             # Stash this container.
@@ -1394,7 +1379,7 @@ def change_container( container, action ):
             removed_children = root.remove_children()
             
             # ONLY emit "collapsed" signal on leaf containers
-            #TODO is this the right thing to do?
+            # TODO is this the right thing to do?
             for c in removed_children:
                 if c and c.is_leaf:
                     #print("REMOVED CHILD: %s (is_leaf %s)"%(c, c.is_leaf))
@@ -1413,14 +1398,13 @@ if __name__ == "__main__":
 
     import sys
     from imgui.integrations.pyglet import create_renderer
-    # import pyglet.gl as gl
     sys.path.extend("..")
-    # import boxer.camera
     import pyglet.window
     from pyglet import app
     from pyglet.window import key
     from time import perf_counter
-    # import math
+
+    Container.CONTAINER_DEBUG_LABEL = True
 
     _window_config = gl.Config(
         sample_buffers = 1,
