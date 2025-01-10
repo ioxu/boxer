@@ -2,6 +2,14 @@
 """example boxer setup"""
 
 import pyglet
+# pyglet.options['debug_graphics_batch'] = True
+# pyglet.options['debug_gl_trace'] = True
+# pyglet.options['debug_gl_trace_args'] = True
+# pyglet.options['debug_input'] = True
+# pyglet.options['debug_trace'] = True
+# pyglet.options['debug_trace_args'] = True
+# pyglet.options['debug_trace_depth'] = 1
+
 import boxer.application
 
 def main():

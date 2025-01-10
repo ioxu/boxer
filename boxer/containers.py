@@ -192,7 +192,7 @@ class Container( pyglet.event.EventDispatcher ):
 
         # imgui
         self.container_view_combo_selected = 0
-        self.container_actions_combo_selected =0
+        self.container_actions_combo_selected = 0
 
 
     def __del__(self) -> None:
@@ -865,6 +865,10 @@ Container.register_event_type("mouse_exited")
 # self.dispatch_event( "view_changed", container : Container, view : List(view_name, class) )
 Container.register_event_type("view_changed")
 
+# a container view type removed (by menu or method)
+# self.dispatch_event( "view_removed", container : Container, view : List(view_name, class) )
+Container.register_event_type("view_removed")
+
 # self.dispatch_event( "split",
 #   container : Container, # the container that was split
 #   new_containers : List # a list of the new child containers )
@@ -913,7 +917,6 @@ class SplitContainer( Container ):
                 space = boxer.handles.Handle.SPACE_WORLD,
                 #batch = self.batch,
                 )
-
 
         if self.window:
             self.window.push_handlers( on_mouse_motion = self.split_handle.on_mouse_motion )
@@ -1004,10 +1007,10 @@ class SplitContainer( Container ):
                         imgui.close_current_popup()
 
 
-
     def on_split_handle_mouse_entered(self):
         print("\033[38;5;10m--> \033[38;5;237m[h]\033[38;5;245m on_split_handle_mouse_entered %s \033[0m"%self.name)
         self.ratio_line.color = self._ratio_line_original_color
+
 
     def on_split_handle_mouse_exited(self):
         print("\033[38;5;173mo-- \033[38;5;237m[h]\033[38;5;245m on_split_handle_mouse_exited %s \033[0m"%self.name)
@@ -1488,7 +1491,7 @@ if __name__ == "__main__":
                                         container.position.x, container.position.y, 0.0)
 
 
-    # add a container view type
+    # add a container view type to the class
     Container.container_view_types += [ ["blue view", BlueView], ]
 
     # set up container view batch
@@ -1512,18 +1515,32 @@ if __name__ == "__main__":
         """test"""
         print("--> mouse entered %s"%container.name)
 
+
     def mouse_exited_container( container ) -> None:
         """test"""
         print("o-- mouse exited %s"%container.name)
 
 
     def on_container_view_changed( container : Container, view_type : list ) -> None:
-        """callback to be connected to container view being chnaged
+        """callback to be connected to container view being changed
         controls instatiation of new views"""
         print('\033[38;5;63m[view type]\033[0m changed on \033[38;5;63m%s\033[0m to \033[38;5;153m"%s"\033[0m'%(container.name, view_type)  )
+        
+
+
+        # setting view to a None view
         if view_type[1] == None:
             #container_views[ container ] = None
             container_views.pop( container )
+
+        # setting a view to the same kind of view
+        # this can happen when:
+        #   1) splitting a view which moves a view between containers which triggers the "view_changed" event
+        elif container_views.get( container, None ):
+            if isinstance(container_views[ container ], view_type[1] ):
+                print(f"{container} is already a view {view_type[1]} ({container_views[ container ]}), NOT instancing a new view")
+                return
+
         else:
             # instance the container view!
             print("instancing BlueView into batch: %s"%container_view_batch)
@@ -1550,7 +1567,7 @@ if __name__ == "__main__":
             print( "  container IS in container_views.keys()" )
             
             # then pop the container out of the container_views dict, which returns the view it had
-            print("  popping the container %s out of 'container_views'")
+            print("  popping the container %s out of 'container_views'"%container)
             this_view = container_views.pop( container, None)
 
             # then pop the container out of the container_views dict
@@ -1569,6 +1586,7 @@ if __name__ == "__main__":
 
             # find the type index of this_view, in Container.container_view_types
             type_index = None
+            this_view_type = None
             for index, sublist in enumerate( Container.container_view_types ):
                 #if sublist[1] == BlueView :
                 this_view_type = sublist[1]
@@ -1581,9 +1599,11 @@ if __name__ == "__main__":
             # set the view type of this_container to the type index
             # TODO: need to make a Container method for setting the container view type,
             # because doing it here won't fire the view_changed event
+            # BUT maybe that's not what we want, anyway.
 
             if type_index:
                 this_container.container_view_combo_selected = type_index
+                this_container.get_root_container().dispatch_event("view_changed", this_container, this_container.get_root_container().container_view_types[type_index])
 
 
     def on_container_collapsed( container : Container ):

@@ -26,7 +26,8 @@ import boxer.shapes
 #----------------
 #----------------
 
-gl.glEnable(gl.GL_DEBUG_OUTPUT)
+#gl.glEnable(gl.GL_DEBUG_OUTPUT)
+
 # print(f"GL_VERSION: {gl.glGetString(gl.GL_VERSION).decode()}")
 # print(f"GL_VERSION: {gl.glGetString(gl.GL_VERSION)}")
 print(f"gl has > 3.2: {pyglet.gl.gl_info.have_version(3, 2)}")
@@ -105,13 +106,22 @@ class Application(pyglet.event.EventDispatcher):
                         width= 615,
                         height=320,
                         use_explicit_dimensions=True)
-        
+
         self.container.update()
         self.container.pprint_tree()
         
         ########################################################################
         ########################################################################
         ########################################################################
+        # load plugin container types
+        boxer.containers.Container.container_view_types += [\
+                ["parameters",None],
+                ["container debug",None],
+                ]
+        ########################################################################
+        ########################################################################
+        ########################################################################
+
 
 
         # imgui

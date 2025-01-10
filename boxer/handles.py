@@ -307,8 +307,6 @@ class BoxHandle( Handle):
         self._shapes["display"].height = value
 
 
-
-
     def is_inside(self, position : pyglet.math.Vec2 = pyglet.math.Vec2()) -> bool:
         """point inside test"""
         # using pyglet.shapes 'in' overloading
@@ -322,6 +320,13 @@ class BoxHandle( Handle):
         self._shapes["highlight"].anchor_position = ( self._shapes["highlight"]._width/2.0, self._shapes["highlight"]._height/2.0 )
         self._shapes["select"].anchor_position = ( self._shapes["select"]._width/2.0, self._shapes["select"]._height/2.0 )
         # self._shapes["temp"].anchor_position = ( self._shapes["temp"]._width/2.0, self._shapes["temp"]._height/2.0 )
+
+
+    def draw_debug(self):
+        # print("PointHandle draw_debug()")
+        # pyglet.shapes.Circle( self.position.x, self.position.y, radius=self.hit_radius, color=DEBUG_HIT_SHAPE_COLOR).draw()
+        pyglet.shapes.Circle( self.position.x, self.position.y, radius=self.display_radius, color=DEBUG_SHAPE_COLOR).draw()
+        ...
 
 
 class PointHandle( Handle ):
@@ -534,4 +539,5 @@ if __name__ == "__main__":
     
     
     pyglet.clock.schedule_interval(win.on_update, 1 / 60.0 )
-    app.run()        
+    app.run()
+    
