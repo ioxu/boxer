@@ -559,17 +559,6 @@ class Container( pyglet.event.EventDispatcher ):
         _, self.leaves, _ = self.update_structure()
         self.update_geometries()
 
-        # TODO: make update() support updating the downstream child-tree of THIS node.
-        # if self._node_id == None:
-        #     self._node_id = 0
-
-        # _, self.root_container.leaves, _ = self.update_structure(
-        #                             depth = self._depth,
-        #                             count = self._node_id,
-        #                             leaves = self.root_container.leaves,
-        #                             root = self.root_container)
-        # self.update_geometries()
-
 
     def draw_leaf(self):
         """draw self as a leaf (only draws as a single leaf container)"""
@@ -700,7 +689,7 @@ class Container( pyglet.event.EventDispatcher ):
     
                     for action_index, action_item in enumerate( Container.container_action_labels):
 
-                        if action_index == 2:
+                        if action_index == 2 or action_index ==5:
                             imgui.separator()
 
                         # if imgui.selectable( action_item, selected = False )[0]:
@@ -1506,7 +1495,16 @@ if __name__ == "__main__":
     ########################################
     container_views = {}
 
-
+    #---------------------------------------------------------------------------
+    # extend container actions
+    # add a new menu item
+    Container.container_action_labels += ["subdivide layout test"]
+    # stash original callback
+    change_container_original = change_container
+    # redefine callback, action is the integer of the newly added menu item
+    def change_container( container, action ):
+        print(f"change_container OVERIDDEN, action {action}")
+        change_container_original( container, action )
 
     #---------------------------------------------------------------------------
     #---------------------------------------------------------------------------
@@ -1526,7 +1524,7 @@ if __name__ == "__main__":
         controls instatiation of new views"""
         print('\033[38;5;63m[view type]\033[0m changed on \033[38;5;63m%s\033[0m to \033[38;5;153m"%s"\033[0m'%(container.name, view_type)  )
         
-
+        # TODO: if a view change results in popping a view, should event the view removal
 
         # setting view to a None view
         if view_type[1] == None:
@@ -1646,7 +1644,6 @@ if __name__ == "__main__":
     c.push_handlers( split = on_container_split )
     c.push_handlers( collapsed = on_container_collapsed )
     c.push_handlers( resized = on_container_resized )
-
     c.push_handlers( mouse_entered = mouse_entered_container )
     c.push_handlers( mouse_exited = mouse_exited_container )
 
@@ -1655,7 +1652,9 @@ if __name__ == "__main__":
     t1_start = perf_counter()
     c.update()
     print("Container handlers:")
-    print("  %s"%str(c._event_stack))
+    for e in c._event_stack:
+        # print("  %s"%str(c._event_stack))
+        print(f"  {e}")
 
     t1_stop = perf_counter()
 
@@ -1741,7 +1740,7 @@ if __name__ == "__main__":
         # imgui.pop_font()
 
         # imgui.push_font(font_default)
-        # draw_container_tree_info( c )
+        draw_container_tree_info( c )
 
         # imgui.pop_font()
         # imgui.end_frame()
