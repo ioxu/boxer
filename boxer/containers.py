@@ -116,7 +116,7 @@ class Container( pyglet.event.EventDispatcher ):
         self.group : pyglet.graphics.Group = group or pyglet.graphics.Group()
 
         self.children = []
-        self.parent = None
+        self.parent : 'Container | None' = None
 
         # usually just the root container would hold an updated list of leaves.
         # container.update() sets this on whatever container update() is called on.
@@ -124,6 +124,11 @@ class Container( pyglet.event.EventDispatcher ):
         self.leaves = []
 
         # track container views assigned to leaf containers
+        # { container_key = {view_type = view} }
+        ########################################
+        # this dict MUST be kept in sync after
+        # container splits/collapses because references
+        # here will stop released containers from being GC'd
         self.container_views : dict[ Container, ContainerView ] = {}
 
         # track split containers so handles can be drawn
@@ -218,9 +223,10 @@ class Container( pyglet.event.EventDispatcher ):
             self.children.append( child )
 
 
-    def remove_children(self, old_children = None) -> list:
+    # def remove_children(self, old_children : list | None = None) -> list:
+    def remove_children(self, old_children : list['Container'] | None = None) -> list['Container']:
         """clear all children"""
-        # WTF, argument of a static mutable, never realised it before:
+        # ⚠ WTF, argument of a static mutable, never realised it before:
         # https://stackoverflow.com/questions/1132941/least-astonishment-and-the-mutable-default-argument
 
         if old_children is None:
@@ -242,7 +248,6 @@ class Container( pyglet.event.EventDispatcher ):
   
         self.children=[]
         return old_children
-
 
     def remove_child(self, child ):
         """remove a child from children list
@@ -288,7 +293,7 @@ class Container( pyglet.event.EventDispatcher ):
         return idx
 
 
-    def replace_by( self, new_container ) -> None:
+    def replace_by( self, new_container ) -> 'Container': #None:
         """either replace self in the parents' children
         OR
         return a configured copy
@@ -401,7 +406,6 @@ class Container( pyglet.event.EventDispatcher ):
 
         margin = 1#3
 
-
         if self.is_root:
             self.overlay_quad.position = (self.position.x, self.position.y + self.height, 0.0, # type: ignore
                                             self.position.x + self.width, self.position.y + self.height, 0.0,
@@ -437,14 +441,11 @@ class Container( pyglet.event.EventDispatcher ):
         self.lines["bottom"].y2 = self.position.y + margin
 
 
-        # self.lines["top_bar"].x = self.position.x + margin #-1
-        # self.lines["top_bar"].y = self.position.y + self.height - margin - 18.0
-        # self.lines["top_bar"].x2 = self.position.x + self.width - margin
-        # self.lines["top_bar"].y2 = self.position.y + self.height - margin - 18.0
-
         self.update_display()
 
         if self.is_leaf:
+            if self in self.root_container.container_views.keys():
+                self.root_container.container_views[self].update_geometries( self )
             self.root_container.dispatch_event("resized", self)
 
         for child in [c for c in self.children if c is not None]:
@@ -457,13 +458,6 @@ class Container( pyglet.event.EventDispatcher ):
         """
         if self.CONTAINER_DEBUG_LABEL:
             if self.is_leaf:
-                # self.debug_label_name.text =\
-                #     self.name + " (%s)"%(type(self).__name__) +\
-                #     "\n.is_leaf " +\
-                #     str(self.is_leaf) +\
-                #     "\n.mouse_inside " +\
-                #     str(self.mouse_inside)
-
                 self.debug_label_name.text =\
                     self.name + " (%s)"%(type(self).__name__) +\
                     "\n.mouse_inside " + str(self.mouse_inside) +\
@@ -565,7 +559,6 @@ class Container( pyglet.event.EventDispatcher ):
         self.update_structure()
         self.update_geometries()
         """
-
         _, self.leaves, _ = self.update_structure()
         self.update_geometries()
 
@@ -574,7 +567,6 @@ class Container( pyglet.event.EventDispatcher ):
         """draw self as a leaf (only draws as a single leaf container)"""
         # maybe just draw a coloured outline
         # NO DRAW, ONLY BATCH.
-
 
         #----------------------------------------------------------------------
         # FIXME: Container.leaves can be modified during the loop!!
@@ -601,7 +593,6 @@ class Container( pyglet.event.EventDispatcher ):
         container_imwindow_flags2 = imgui.WINDOW_NO_BACKGROUND\
                             | imgui.WINDOW_NO_RESIZE\
                             | imgui.WINDOW_NO_SAVED_SETTINGS
-
 
         imgui.set_next_window_position(\
                             pos[0],
@@ -630,7 +621,6 @@ class Container( pyglet.event.EventDispatcher ):
             imgui.image_button( self.textures["cog"].id, 12, 12)
             imgui.same_line()
 
-            
             imgui.push_item_width(80)
 
             # viewtype combo ---------------------------------------------------
@@ -658,29 +648,25 @@ class Container( pyglet.event.EventDispatcher ):
                             self.container_view_combo_selected = container_view_index
                             
                             if not is_view_selected:
+                                Container.change_container_view( self, container_view_item )
                                 self.get_root_container().dispatch_event( "view_changed", self, container_view_item )
 
                             imgui.close_current_popup()
                         
                         if is_view_selected:
                             imgui.set_item_default_focus()
-
                         
                 imgui.pop_style_var(1)
-
 
             # ------------------------------------------------------------------
             imgui.pop_item_width()
 
             imgui.same_line()
-            #imgui.text(self.name)
 
             # container action combo -------------------------------------------
-
             do_container_action = False
             action_item_hovered = None
             do_draw_container_action_hint = False
-
 
             imgui.set_cursor_pos( (self.width - (15+3.0) , 3.0) )
 
@@ -721,10 +707,7 @@ class Container( pyglet.event.EventDispatcher ):
                             self.root_container.do_draw_overlay = False
 
                 imgui.pop_style_var(1)
-
             
-
-
             imgui.pop_style_var(2)
             imgui.pop_clip_rect()
         
@@ -733,7 +716,6 @@ class Container( pyglet.event.EventDispatcher ):
         imgui.pop_style_var(1) # rounded buttons
         
         imgui.pop_style_var()
-
 
         split_line_hint_width = 15.0
 
@@ -787,14 +769,12 @@ class Container( pyglet.event.EventDispatcher ):
                     self.root_container._marchinglines_shader["ir_tr"] = tr                   
                     self.root_container._marchinglines_shader["positive"] = 0.0
 
-
                 case _:
                     self.root_container.do_draw_overlay = False
 
-
         if do_container_action:
             self.root_container.do_draw_overlay = False
-            change_container( self, self.container_actions_combo_selected )
+            Container.change_container( self, self.container_actions_combo_selected )
 
 
     def draw(self) -> None:
@@ -851,6 +831,274 @@ class Container( pyglet.event.EventDispatcher ):
                 # print("dispatch event 'mouse_exited' for %s: return: %s"%(self.name, ret))
 
 
+    @staticmethod
+    def change_container( container : 'Container', action : int ):
+        """Invoked from gui option to split or close containers, or operate an action upon a container
+        This method manages reparenting `Containers`, creatig new `Container` children,
+        or disconnecting `Container`s from the `Container` heirarchy depending on the `action`.
+
+        This is a static method.
+
+        `args`:
+            `container` : `Container` -  the container to operate on
+            `action` : `int` - container action, a Container.ACTION_* constant
+        
+            
+        ### WARNING:
+        The "collapsed" and "split" events dispatched from these actions can return `Container`s that have been
+        disconnected from the `Container` heirarchy. As a consequence, their references to parents and children
+        will be null, and it will be impossible to get the root `Container` from them.
+        """
+
+        match action:
+            case Container.ACTION_SPLIT_HORIZONTAL:
+                print("\033[38;5;63m--- [ | ] change_container:\033[0m 'split horizontal' on '%s'"%container.name)
+
+                new_container = HSplitContainer(name = container.name + "_hsplit",
+                                    window = container.window,
+                                    batch = container.batch,
+                                    create_default_children = True)
+
+                original_container = container
+
+                if container.parent is None:
+                    container.set_child( new_container, 0 )
+                else:
+                    container = container.replace_by( new_container )
+
+                root = container.get_root_container()
+                root.update()
+                root.pprint_tree()
+                ##########################################################################
+                # WARNING: 'original_container' passed through event is very disconnected from the container tree by this point
+                ##########################################################################
+                Container.change_container_view_on_split(original_container, new_container.children.copy(), root)
+                root.dispatch_event( "split", original_container, new_container.children.copy(), root )
+
+
+            case Container.ACTION_SPLIT_VERTICAL:
+                print("\033[38;5;63m--- [---] change_container:\033[0m 'split vertical' on '%s'"%container.name)
+
+                new_container = VSplitContainer(name = container.name + "_vsplit",
+                                    window = container.window,
+                                    batch = container.batch,
+                                    create_default_children = True)
+                
+                original_container = container
+
+                if container.parent is None:
+                    container.set_child( new_container, 0 )
+                else:
+                    container = container.replace_by( new_container )
+
+                root = container.get_root_container()
+                root.update()
+                root.pprint_tree()
+
+                ##########################################################################
+                # WARNING: 'original_container' passed through event is very disconnected from the container tree by this point
+                ##########################################################################
+                Container.change_container_view_on_split(original_container, new_container.children.copy(), root)
+                root.dispatch_event( "split", original_container, new_container.children.copy(), root )
+
+
+            case Container.ACTION_CLOSE:
+                print("\033[38;5;63m--- [ x ] change_container:\033[0m 'close' on '%s'"%container.name)
+                
+                do_close = False
+                if container.parent is None or container.parent.parent is None:
+                    raise RuntimeError("closing a root container is not allowed yet")
+                parent : Container = container.parent
+                if isinstance(parent, SplitContainer):
+
+                    # get sibling
+                    sibling = None
+                    if parent.children[0] is not container:
+                        sibling = parent.children[0]
+                    elif parent.children[1] is not container:
+                        sibling = parent.children[1]
+
+                    do_close = True
+                    parent.remove_child( container )
+
+                    if sibling:
+                        # get the grandparent
+                        grandparent : Container = parent.parent
+                        # remove the parent (SplitContainer)
+                        idx = grandparent.remove_child( parent )
+                        # add the sibling as the new child of grandparent
+                        grandparent.set_child( sibling, idx )
+
+                root = sibling.get_root_container()
+                if do_close:
+                    ##########################################################################
+                    # WARNING: 'container' passed through event is very disconnected from the container tree by this point
+                    ##########################################################################
+                    Container.collapse_container_view( container, root )
+                    root.dispatch_event( "collapsed", container, root )
+                root.do_draw_overlay = False
+                root.update()
+                root.pprint_tree()
+
+
+            case Container.ACTION_CLOSE_SPLIT:
+                print("\033[38;5;63m--- [<-x] change_container:\033[0m 'close split' on '%s'"%container.name)
+                # close a sibling if parent is a split container
+                # (I think it nearly always is, if using the menu to change containers)
+                root = container.get_root_container()
+                root.do_draw_overlay = False
+                if container.parent is None:
+                    raise RuntimeWarning("closing a root container is not allowed yet")
+                
+                parent : Container = container.parent
+
+                # move this container out of the way of being neutralised
+                idx = parent.children.index( container )
+                parent.children[idx] = None
+
+                # remove children of parent split container
+                removed_children = parent.remove_children()
+                
+                for c in removed_children:
+                    if c and c.is_leaf:
+                        ##########################################################################
+                        # WARNING: 'container' passed through event is very disconnected from the container tree by this point
+                        ##########################################################################
+                        Container.collapse_container_view( c, root )
+                        root.dispatch_event("collapsed", c, root)
+
+                # replace parent split container by this container
+                parent.replace_by( container )
+                root.update()
+                root.pprint_tree()
+
+
+            case Container.ACTION_CLOSE_OTHERS:
+                print("\033[38;5;63m--- [xxO] change_container:\033[0m 'close others' on '%s'"%container.name)
+                # Stash this container.
+                # Find root.
+                # Remove children of root.
+                # Add stashed this-container to the root.
+                root = container.get_root_container()
+                root.do_draw_overlay = False
+
+                # move this container out of the way of being neutralised
+                idx = container.parent.children.index( container )
+                container.parent.children[idx] = None
+
+                removed_children = root.remove_children()
+                
+                # ONLY emit "collapsed" signal on leaf containers
+                # TODO is this the right thing to do?
+                for c in removed_children:
+                    if c and c.is_leaf:
+                        ##########################################################################
+                        # WARNING: 'container' passed through event is very disconnected from the container tree by this point
+                        ##########################################################################
+                        Container.collapse_container_view( c, root )
+                        root.dispatch_event("collapsed", c, root)
+
+                root.set_child( container, 0 )
+                root.update()
+                root.pprint_tree()
+
+
+    @staticmethod
+    def change_container_view( container : 'Container', view_type : list ) -> None:
+        """changes the `ContainerView` attached to a `Container`
+        
+        `args`:
+            `container` : `Container` -  the container to operate on
+            `action` : `int` - container action, a Container.ACTION_* constant
+
+        controls instatiation of new views
+        """
+        print('\033[38;5;63m[view type]\033[0m changed on \033[38;5;63m%s\033[0m to \033[38;5;153m"%s"\033[0m'%(container.name, view_type)  )
+        # TODO: move to method of Container
+        
+        # TODO: if a view change results in popping a view, should event the view removal
+
+        # setting view to a None view
+        if view_type[1] == None:
+            container.get_root_container().container_views.pop( container, None )
+
+        # setting a view to the same kind of view
+        # this can happen when:
+        #   1) splitting a view which moves a view between containers which triggers the "view_changed" event
+        # check if the container is in the views dict
+        elif container.get_root_container().container_views.get( container, None ):
+            # check if the container is set to the same view_type already (view_type[1] contains the ContainerView subclass)
+            if isinstance(container.get_root_container().container_views[ container ], view_type[1] ):
+                return
+        else:
+            # instance the container view!
+            view : ContainerView = view_type[1](
+                batch = container_view_batch
+            )
+            container.get_root_container().container_views[ container ] = view    
+            view.update_geometries( container )
+        container.update_display() # TODO: TEMP
+
+    
+    @staticmethod
+    def change_container_view_on_split( old_container: 'Container', new_children : list, root : 'Container' ):
+        """Manges an existing `ContainerView` set in `old_container`.
+        This method moves the `ContainerView` to the 0th new child `Container` that was created during the split action.
+        
+        The `old_container` passed from the event is the `Container` that was split, and replaced by a new `SplitContainer`.
+        
+        The new `SplitContainer` is available through `new_children[0].parent`.
+
+        `root` should be the root `Container` of the heirarchy.
+
+        The `old_container` is mostly disconnected from the container heirarchy and will be GC'd shortly after.
+        """
+        # TODO: move to method of Container
+
+        print("on_container_split %s %s"%( old_container, str(new_children) ))
+
+        # TODO: once these functions are methods of Container, can then just use self.root
+        root_container_views = new_children[0].get_root_container().container_views
+        if old_container in root_container_views.keys():
+            # then pop the container out of the container_views dict, which returns the view it had
+            this_view = root_container_views.pop( old_container, None)
+
+            # then pop the new container into the container_views dict
+            this_container : Container = new_children[0]
+            root_container_views[ this_container ] = this_view
+
+            this_view.update_geometries( this_container )
+
+            # set the view type on the new view-owner:
+            # find the type index of this_view, in Container.container_view_types
+            type_index = None
+            this_view_type = None
+            for index, sublist in enumerate( Container.container_view_types ):
+                this_view_type = sublist[1]
+                if this_view_type:
+                    if isinstance( this_view, this_view_type ):
+                        type_index = index
+
+            # set the view type of this_container to the type index
+            if type_index:
+                this_container.container_view_combo_selected = type_index
+                # TODO: do we really want to dispatch this event from here?
+                this_container.get_root_container().dispatch_event("view_changed", this_container, this_container.get_root_container().container_view_types[type_index])
+                this_container.update_display()
+
+
+    @staticmethod
+    def collapse_container_view( container : 'Container', root : 'Container' ):
+        """callback to be hooked up when a container is closed"""        
+        # TODO: move to method of Container
+
+        print("\033[38;5;196mon_container_collapsed:\033[0m %s"%container)
+
+        # TODO: once these functions are methods of Container, can then just use self.root
+        root.container_views.pop( container, None )
+        print(f"container_views (on_container_collapsed): {root.container_views}")
+
+
 # ------------------------------------------------------------------------------
 # Container events
 
@@ -866,7 +1114,7 @@ Container.register_event_type("view_changed")
 
 # a container view type removed (by menu or method)
 # self.dispatch_event( "view_removed", container : Container, view : List(view_name, class) )
-Container.register_event_type("view_removed")
+# Container.register_event_type("view_removed")
 
 # self.dispatch_event( "split",
 #   container : Container, # the container that was split
@@ -883,7 +1131,7 @@ Container.register_event_type("collapsed")
 
 
 class SplitContainer( Container ):
-    """container that mannages a split view of twohildren"""
+    """`Container` that manages a split view of two children `Container`s"""
 
     ratio_modes = ["ratio", "fixed 0", "fixed 1"]
     RATIO_MODE_RATIO = 0        # uses a proportional ratio (0.0 .. 1.0) that adapt to parent's geometry
@@ -1149,6 +1397,7 @@ class VSplitContainer( SplitContainer ):
         self.update_geometries()
 
 
+# ------------------------------------------------------------------------------
 class ContainerView( pyglet.event.EventDispatcher ):
     """
     Abstract 'view' object to be drawn in leaf containers
@@ -1160,53 +1409,60 @@ class ContainerView( pyglet.event.EventDispatcher ):
         raise NotImplementedError
         
 
-class ViewportContainer( Container ):
-    """ Container that holds an openGL Viewport """
-    def __init__(self,
-            name="container",
-            width : int = 128,
-            height : int = 128,
-            position : pyglet.math.Vec2 = pyglet.math.Vec2(),
-            use_explicit_dimensions : bool = False,
-            window : pyglet.window.Window = None,
-            camera : boxer.camera.Camera = None,
-            color = (255, 255, 255, 255),
-            batch : pyglet.graphics.Batch = None,
-            group : pyglet.graphics.Group = None
-            ):
-        Container.__init__(self,
-            name = name,
-            width = width,
-            height = height,
-            position = position,
-            use_explicit_dimensions = use_explicit_dimensions,
-            window = window,
-            color = color,
-            batch = batch,
-            group = group,
-        )
+# ContainerView events:
+ContainerView.register_event_type("view_removed")
 
-        # camera
-        if not camera:
-            print("if not self.camera %s"%self.window)
-            print(type(self.window))
-            camera = boxer.camera.get_default_camera( self.window )
-        self.camera = camera
+ContainerView.register_event_type("view_created")
 
 
-    def begin(self) -> None:
-        """start the viewport and push the camera's transform onto the view"""
-        gl.glViewport(0,0,self.width, self.height)
-        self.camera.push()
+# ------------------------------------------------------------------------------
+# class ViewportContainer( Container ):
+#     """ Container that holds an openGL Viewport """
+#     def __init__(self,
+#             name="container",
+#             width : int = 128,
+#             height : int = 128,
+#             position : pyglet.math.Vec2 = pyglet.math.Vec2(),
+#             use_explicit_dimensions : bool = False,
+#             window : pyglet.window.Window = None,
+#             camera : boxer.camera.Camera = None,
+#             color = (255, 255, 255, 255),
+#             batch : pyglet.graphics.Batch = None,
+#             group : pyglet.graphics.Group = None
+#             ):
+#         Container.__init__(self,
+#             name = name,
+#             width = width,
+#             height = height,
+#             position = position,
+#             use_explicit_dimensions = use_explicit_dimensions,
+#             window = window,
+#             color = color,
+#             batch = batch,
+#             group = group,
+#         )
+
+#         # camera
+#         if not camera:
+#             print("if not self.camera %s"%self.window)
+#             print(type(self.window))
+#             camera = boxer.camera.get_default_camera( self.window )
+#         self.camera = camera
 
 
-    def end(self) -> None:
-        """pop the camera from the viewport transform"""
-        self.camera.pop()
+#     def begin(self) -> None:
+#         """start the viewport and push the camera's transform onto the view"""
+#         gl.glViewport(0,0,self.width, self.height)
+#         self.camera.push()
 
 
-    def add_child(self, child) -> None:
-        raise("ViewportContainers cannot contain children")
+#     def end(self) -> None:
+#         """pop the camera from the viewport transform"""
+#         self.camera.pop()
+
+
+#     def add_child(self, child) -> None:
+#         raise("ViewportContainers cannot contain children")
 
 
     # def draw(self) -> None:
@@ -1262,170 +1518,6 @@ def _tree_info_preorder(root) -> None:
     imgui.pop_style_color(1)
 
 
-def change_container( container, action ):
-    """invoked from gui option to split or close containers, or operate an action upon a container
-    This method manages reparenting, creatig new children, or disconnecting containers depending on the `action`.
-
-    `args`:
-        `container` : `Container` -  the container to operate on
-        `action` : `int` - container action, a Container.ACTION_* constant
-    
-        
-    ### WARNING:
-    The "collapsed" and "split" events dispatched from these actions can return `Container`s that have been
-    disconnected from the `Container` heirarchy. As a consequence, their references to parents and children
-    will be null, and it will be impossible to get the root `Container` from them.
-    """
-
-    match action:
-        case Container.ACTION_SPLIT_HORIZONTAL:
-            print("--- [ | ] change_container: 'split horizontal' on '%s'"%container.name)
-
-            new_container = HSplitContainer(name = container.name + "_hsplit",
-                                window = container.window,
-                                batch = container.batch,
-                                create_default_children = True)
-
-            original_container = container
-
-            if container.parent is None:
-                container.set_child( new_container, 0 )
-            else:
-                container = container.replace_by( new_container )
-
-            root = container.get_root_container()
-            root.update()
-            root.pprint_tree()
-            ##########################################################################
-            # WARNING: 'original_container' passed through event is very disconnected from the container tree by this point
-            ##########################################################################
-            root.dispatch_event( "split", original_container, new_container.children.copy(), root )
-
-
-        case Container.ACTION_SPLIT_VERTICAL:
-            print("--- [---] change_container: 'split vertical' on '%s'"%container.name)
-
-            new_container = VSplitContainer(name = container.name + "_vsplit",
-                                window = container.window,
-                                batch = container.batch,
-                                create_default_children = True)
-            
-            original_container = container
-
-            if container.parent is None:
-                container.set_child( new_container, 0 )
-            else:
-                container = container.replace_by( new_container )
-
-            root = container.get_root_container()
-            root.update()
-            root.pprint_tree()
-
-            ##########################################################################
-            # WARNING: 'original_container' passed through event is very disconnected from the container tree by this point
-            ##########################################################################
-            root.dispatch_event( "split", original_container, new_container.children.copy(), root )
-
-
-        case Container.ACTION_CLOSE:
-            print("--- [ x ] change_container: 'close' on '%s'"%container.name)
-            # TODO: ACTION_CLOSE #4
-            
-            do_close = False
-            if container.parent is None or container.parent.parent is None:
-                raise RuntimeError("closing a root container is not allowed yet")
-            parent : Container = container.parent
-            if isinstance(parent, SplitContainer):
-
-                # get sibling
-                sibling = None
-                if parent.children[0] is not container:
-                    sibling = parent.children[0]
-                elif parent.children[1] is not container:
-                    sibling = parent.children[1]
-
-                do_close = True
-                parent.remove_child( container )
-
-                if sibling:
-                    # get the grandparent
-                    grandparent : Container = parent.parent
-                    # remove the parent (SplitContainer)
-                    idx = grandparent.remove_child( parent )
-                    # add the sibling as the new child of grandparent
-                    grandparent.set_child( sibling, idx )
-
-            root = sibling.get_root_container()
-            if do_close:
-                ##########################################################################
-                # WARNING: 'container' passed through event is very disconnected from the container tree by this point
-                ##########################################################################
-                root.dispatch_event( "collapsed", container, root )
-            root.do_draw_overlay = False
-            root.update()
-            root.pprint_tree()
-
-
-        case Container.ACTION_CLOSE_SPLIT:
-            print("--- [<-x] change_container: 'close split' on '%s'"%container.name)
-            # close a sibling if parent is a split container
-            # (I think it nearly always is, if using the menu to change containers)
-            root = container.get_root_container()
-            root.do_draw_overlay = False
-            if container.parent is None:
-                raise RuntimeWarning("closing a root container is not allowed yet")
-            
-            parent : Container = container.parent
-
-            # move this container out of the way of being neutralised
-            idx = parent.children.index( container )
-            parent.children[idx] = None
-
-            # remove children of parent split container
-            removed_children = parent.remove_children()
-            
-            for c in removed_children:
-                if c and c.is_leaf:
-                    ##########################################################################
-                    # WARNING: 'container' passed through event is very disconnected from the container tree by this point
-                    ##########################################################################
-                    root.dispatch_event("collapsed", c, root)
-
-            # replace parent split container by this container
-            parent.replace_by( container )
-            root.update()
-            root.pprint_tree()
-
-
-        case Container.ACTION_CLOSE_OTHERS:
-            print("--- [xxO] change_container: 'close others' on '%s'"%container.name)
-            # Stash this container.
-            # Find root.
-            # Remove children of root.
-            # Add stashed this-container to the root.
-            root = container.get_root_container()
-            root.do_draw_overlay = False
-
-            # move this container out of the way of being neutralised
-            idx = container.parent.children.index( container )
-            container.parent.children[idx] = None
-
-            removed_children = root.remove_children()
-            
-            # ONLY emit "collapsed" signal on leaf containers
-            # TODO is this the right thing to do?
-            for c in removed_children:
-                if c and c.is_leaf:
-                    ##########################################################################
-                    # WARNING: 'container' passed through event is very disconnected from the container tree by this point
-                    ##########################################################################
-                    root.dispatch_event("collapsed", c, root)
-
-            root.set_child( container, 0 )
-            root.update()
-            root.pprint_tree()
-
-
 # ------------------------------------------------------------------------------
 # module main
 # ------------------------------------------------------------------------------
@@ -1469,17 +1561,6 @@ if __name__ == "__main__":
     #---------------------------------------------------------------------------
     # container view types -----------------------------------------------------
     #---------------------------------------------------------------------------
-
-
-
-
-    # class ContainerView( pyglet.event.EventDispatcher ):
-    #     ...
-
-    #     def update_geometries( self, container : Container ) -> None:
-    #         raise NotImplementedError
-
-
     class BlueView( ContainerView ):
         def __init__( self,
                 color = (79, 110, 205, 128),
@@ -1528,27 +1609,32 @@ if __name__ == "__main__":
     Container.container_view_types += [ ["blue view", BlueView], ]
 
     # set up container view batch
+    ############################################################################
+    ############################################################################
+    ############################################################################
+    ############################################################################
+    ############################################################################
+    ############################################################################
+    # FIXME: how to handle creating and passing in ContainerView batches????
     container_view_batch = pyglet.graphics.Batch()
-
-    # keep a dictionary of views 
-    # { container_key = {view_type = view} }
-    ########################################
-    # this dict MUST be kept in sync after
-    # container splits/collapses because references
-    # here will stop released containers from being GC'd
-    ########################################
-    container_views = {}
+    ############################################################################
+    ############################################################################
+    ############################################################################
+    ############################################################################
+    ############################################################################
+    ############################################################################
 
     #---------------------------------------------------------------------------
     # extend container actions
     # add a new menu item
     Container.container_action_labels += ["subdivide layout test"]
     # stash original callback
-    change_container_original = change_container
+    change_container_original = Container.change_container
     # redefine callback, action is the integer of the newly added menu item
     def change_container( container, action ):
         print(f"change_container OVERIDDEN, action {action}")
         change_container_original( container, action )
+    Container.change_container = change_container
 
     #---------------------------------------------------------------------------
     #---------------------------------------------------------------------------
@@ -1561,101 +1647,6 @@ if __name__ == "__main__":
     def mouse_exited_container( container ) -> None:
         """test"""
         print("o-- mouse exited %s"%container.name)
-
-
-    def on_container_view_changed( container : Container, view_type : list ) -> None:
-        """callback to be connected to container view being changed
-        controls instatiation of new views"""
-        print('\033[38;5;63m[view type]\033[0m changed on \033[38;5;63m%s\033[0m to \033[38;5;153m"%s"\033[0m'%(container.name, view_type)  )
-        # TODO: move to method of Container
-        
-        # TODO: if a view change results in popping a view, should event the view removal
-
-        # setting view to a None view
-        if view_type[1] == None:
-            container.get_root_container().container_views.pop( container, None )
-
-        # setting a view to the same kind of view
-        # this can happen when:
-        #   1) splitting a view which moves a view between containers which triggers the "view_changed" event
-        # check if the container is in the views dict
-        elif container.get_root_container().container_views.get( container, None ):
-            # check if the container is set to the same view_type already (view_type[1] contains the ContainerView subclass)
-            if isinstance(container.get_root_container().container_views[ container ], view_type[1] ):
-                return
-        else:
-            # instance the container view!
-            view : ContainerView = view_type[1](
-                batch = container_view_batch
-            )
-            container.get_root_container().container_views[ container ] = view    
-            view.update_geometries( container )
-        container.update_display() # TODO: TEMP
-
-
-    def on_container_split( old_container: Container, new_children : list, root : Container ):
-        """Manges an existing `ContainerView` set in `old_container`.
-        This method moves the `ContainerView` to the 0th new child `Container` that was created during the split action.
-        
-        The `old_container` passed from the event is the `Container` that was split, and replaced by a new `SplitContainer`.
-        
-        The new `SplitContainer` is available through `new_children[0].parent`.
-
-        `root` should be the root `Container` of the heirarchy.
-
-        The `old_container` is mostly disconnected from the container heirarchy and will be GC'd shortly after.
-        """
-        # TODO: move to method of Container
-
-        print("on_container_split %s %s"%( old_container, str(new_children) ))
-
-        # TODO: once these functions are methods of Container, can then just use self.root
-        root_container_views = new_children[0].get_root_container().container_views
-        if old_container in root_container_views.keys():
-            # then pop the container out of the container_views dict, which returns the view it had
-            this_view = root_container_views.pop( old_container, None)
-
-            # then pop the new container into the container_views dict
-            this_container : Container = new_children[0]
-            root_container_views[ this_container ] = this_view
-
-            this_view.update_geometries( this_container )
-
-            # set the view type on the new view-owner:
-            # find the type index of this_view, in Container.container_view_types
-            type_index = None
-            this_view_type = None
-            for index, sublist in enumerate( Container.container_view_types ):
-                this_view_type = sublist[1]
-                if this_view_type:
-                    if isinstance( this_view, this_view_type ):
-                        type_index = index
-
-            # set the view type of this_container to the type index
-            if type_index:
-                this_container.container_view_combo_selected = type_index
-                # TODO: do we really want to dispatch this event from here?
-                this_container.get_root_container().dispatch_event("view_changed", this_container, this_container.get_root_container().container_view_types[type_index])
-                this_container.update_display()
-
-
-    def on_container_collapsed( container : Container, root : Container ):
-        """callback to be hooked up when a container is closed"""        
-        # TODO: move to method of Container
-
-        print("\033[38;5;196mon_container_collapsed:\033[0m %s"%container)
-
-        # TODO: once these functions are methods of Container, can then just use self.root
-        root.container_views.pop( container, None )
-        print(f"container_views (on_container_collapsed): {root.container_views}")
-
-
-    def on_container_resized( container : Container ):
-        """callback to be connected to when container is resized"""
-        # TODO: move to method of Container
-        # TODO: once these functions are methods of Container, can then just use self.root        
-        if container in container.get_root_container().container_views.keys():
-            container.get_root_container().container_views[container].update_geometries( container )
 
 
     # imgui --------------------------------------------------------------------
@@ -1679,10 +1670,10 @@ if __name__ == "__main__":
                         height=320,
                         use_explicit_dimensions=False)
 
-    c.push_handlers( view_changed = on_container_view_changed )
-    c.push_handlers( split = on_container_split )
-    c.push_handlers( collapsed = on_container_collapsed )
-    c.push_handlers( resized = on_container_resized )
+    # c.push_handlers( view_changed = on_container_view_changed )
+    # c.push_handlers( split = on_container_split )
+    # c.push_handlers( collapsed = on_container_collapsed )
+    # c.push_handlers( resized = on_container_resized )
     c.push_handlers( mouse_entered = mouse_entered_container )
     c.push_handlers( mouse_exited = mouse_exited_container )
 
