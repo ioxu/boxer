@@ -206,8 +206,8 @@ def test_Container_action_close_with_no_parent() -> None :
     raises a RuntimeWarning"""
     import pytest
     c_parent = containers.Container(name="root")
-    with pytest.raises(RuntimeWarning, match='closing a root container is not allowed yet'):
-        containers.change_container( c_parent, containers.Container.ACTION_CLOSE )
+    with pytest.raises(RuntimeError, match='closing a root container is not allowed yet'):
+        containers.Container.change_container( c_parent, containers.Container.ACTION_CLOSE )
 
 
 def test_Container_action_close() -> None:
@@ -215,7 +215,7 @@ def test_Container_action_close() -> None:
     c_parent = containers.Container(name="root")
     c_child1 = containers.HSplitContainer( name="hsplit", create_default_children=True )
     c_parent.add_child( c_child1 )
-    containers.change_container(c_parent.children[0].children[1], containers.Container.ACTION_CLOSE)
+    containers.Container.change_container(c_parent.children[0].children[1], containers.Container.ACTION_CLOSE)
     assert c_parent.child_count == 1
     assert isinstance(c_parent.children[0], containers.Container)
 
@@ -268,3 +268,46 @@ def test_VSplitContainer_create_default_children() -> None:
     assert c_parent.child_count == 2 
     assert c_parent.children[0].name == "root_cbottom"
     assert c_parent.children[1].name == "root_ctop"
+
+
+# ------------------------------------------------------------------------------
+# Container.change_container
+# ------------------------------------------------------------------------------
+# Container.change_container split returns children
+def test_change_container_split_returns_children() -> None:
+    c = containers.Container(name="root")
+    child_leaves = containers.Container.change_container( c, containers.Container.ACTION_SPLIT_HORIZONTAL )
+    assert len(child_leaves) == 2
+    assert isinstance(child_leaves[0], containers.Container)
+    assert isinstance(child_leaves[1], containers.Container)
+    child_leaves_2 = containers.Container.change_container( child_leaves[0], containers.Container.ACTION_SPLIT_VERTICAL )
+    assert len(child_leaves_2) ==2
+    assert isinstance(child_leaves_2[0], containers.Container)
+    assert isinstance(child_leaves_2[1], containers.Container)
+
+
+# ------------------------------------------------------------------------------
+# ContainerView batches
+def test_Container_view_batches() -> None:
+    class BlueView( containers.ContainerView ):
+        ...
+    blueview_instance = BlueView()
+    class RedView( containers.ContainerView ):
+        ...
+    redview_instance = RedView()
+
+    c = containers.Container(name = "root")
+    assert isinstance( blueview_instance, BlueView )
+    assert isinstance( redview_instance, RedView )
+
+    ##############################################
+    ##############################################
+    ##############################################
+    # add a vertical split container
+    # change left container to BlueView, change right container to RedView
+    # check that root container.container_view_batches two unique batches
+    ##############################################
+    ##############################################
+    ##############################################
+    containers.Container.change_container( c, containers.Container.ACTION_SPLIT_HORIZONTAL )
+    assert len(c.children[0].children) == 2

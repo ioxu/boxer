@@ -129,7 +129,13 @@ class Container( pyglet.event.EventDispatcher ):
         # this dict MUST be kept in sync after
         # container splits/collapses because references
         # here will stop released containers from being GC'd
-        self.container_views : dict[ Container, ContainerView ] = {}
+        self.container_views : dict[ Container, type[ContainerView] ] = {}
+
+        # Dictionary to hold batches for each ContainerView type
+        # All ContainerViews of the same type should use the same, single batch
+        # When a new container view is spawned, a dedicated batch for the ContainerView type
+        # is added to this dictionary for re-use.
+        self.container_view_batches : dict[ type[ContainerView], pyglet.graphics.Batch ] = {}
 
         # track split containers so handles can be drawn
         self.split_containers = []
@@ -832,7 +838,7 @@ class Container( pyglet.event.EventDispatcher ):
 
 
     @staticmethod
-    def change_container( container : 'Container', action : int ):
+    def change_container( container : 'Container', action : int ) -> list:
         """Invoked from gui option to split or close containers, or operate an action upon a container
         This method manages reparenting `Containers`, creatig new `Container` children,
         or disconnecting `Container`s from the `Container` heirarchy depending on the `action`.
@@ -842,7 +848,8 @@ class Container( pyglet.event.EventDispatcher ):
         `args`:
             `container` : `Container` -  the container to operate on
             `action` : `int` - container action, a Container.ACTION_* constant
-        
+        `returns`:
+            A list of either new leaf containers resulting from split actions, or an empy list.
             
         ### WARNING:
         The "collapsed" and "split" events dispatched from these actions can return `Container`s that have been
@@ -872,8 +879,10 @@ class Container( pyglet.event.EventDispatcher ):
                 ##########################################################################
                 # WARNING: 'original_container' passed through event is very disconnected from the container tree by this point
                 ##########################################################################
-                Container.change_container_view_on_split(original_container, new_container.children.copy(), root)
-                root.dispatch_event( "split", original_container, new_container.children.copy(), root )
+                leaves = new_container.children.copy()
+                Container.change_container_view_on_split(original_container, leaves, root)
+                root.dispatch_event( "split", original_container, leaves, root )
+                return leaves
 
 
             case Container.ACTION_SPLIT_VERTICAL:
@@ -898,8 +907,10 @@ class Container( pyglet.event.EventDispatcher ):
                 ##########################################################################
                 # WARNING: 'original_container' passed through event is very disconnected from the container tree by this point
                 ##########################################################################
-                Container.change_container_view_on_split(original_container, new_container.children.copy(), root)
-                root.dispatch_event( "split", original_container, new_container.children.copy(), root )
+                leaves = new_container.children.copy()
+                Container.change_container_view_on_split(original_container, leaves, root)
+                root.dispatch_event( "split", original_container, leaves, root )
+                return leaves
 
 
             case Container.ACTION_CLOSE:
@@ -939,6 +950,7 @@ class Container( pyglet.event.EventDispatcher ):
                 root.do_draw_overlay = False
                 root.update()
                 root.pprint_tree()
+                return []
 
 
             case Container.ACTION_CLOSE_SPLIT:
@@ -971,6 +983,7 @@ class Container( pyglet.event.EventDispatcher ):
                 parent.replace_by( container )
                 root.update()
                 root.pprint_tree()
+                return [ container ]
 
 
             case Container.ACTION_CLOSE_OTHERS:
@@ -1001,6 +1014,9 @@ class Container( pyglet.event.EventDispatcher ):
                 root.set_child( container, 0 )
                 root.update()
                 root.pprint_tree()
+                return [ container ]
+
+        return []
 
 
     @staticmethod
