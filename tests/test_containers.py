@@ -287,27 +287,84 @@ def test_change_container_split_returns_children() -> None:
 
 
 # ------------------------------------------------------------------------------
-# ContainerView batches
-def test_Container_view_batches() -> None:
+# register ContainerView type
+def test_register_ContainerView_type() -> None:
     class BlueView( containers.ContainerView ):
         ...
-    blueview_instance = BlueView()
-    class RedView( containers.ContainerView ):
+    containers.Container.register_container_view_type("blue view", BlueView)
+    view_types = containers.Container.container_view_types
+    # unroll container_vew_types to a dictionary # TODO: needs to be a Container method/property? 
+    vtd = {}
+    for v in view_types:
+        vtd[ v[0] ] = v[1]
+    assert issubclass(vtd["blue view"], containers.ContainerView)
+
+
+# ------------------------------------------------------------------------------
+# raise exception in incorrect register ContainerView type
+def test_register_ContainerView_type_exception() -> None:
+    import pytest
+    class RedHerring():
         ...
-    redview_instance = RedView()
+    with pytest.raises(RuntimeError, match='is not a subclass of ContainerView, cannot register view_type to Container'):
+        containers.Container.register_container_view_type( "red herring", RedHerring )
+
+
+# ------------------------------------------------------------------------------
+# ContainerView batches:
+#   test that the view batches for a given `ContainerView` subclass are created on first fetch
+#   from Container.container_view_batches but reused for the same subclass on subsequent fetches
+# -------
+# how I test this is to create two views of different subclasses (BlueView and RedView) and set them
+# as views on two leaf Containers. Then set the second Container (RedView) to a new BlueView view.
+# then I test that a new batch has not been created by checking the length of .container_view_batches.keys()
+# before and after creating the second BlueView view/
+def test_Container_view_batches() -> None:
+    # big one
+
+    class BlueView( containers.ContainerView ):
+        def __init__( self, batch = None ):
+            ...
+        def update_geometries(self, container):
+            ...
+
+    class RedView( containers.ContainerView ):
+        def __init__( self, batch = None ):
+            ...
+        def update_geometries(self, container):
+            ...
 
     c = containers.Container(name = "root")
-    assert isinstance( blueview_instance, BlueView )
-    assert isinstance( redview_instance, RedView )
 
-    ##############################################
-    ##############################################
-    ##############################################
+    containers.Container.register_container_view_type( "blue view", BlueView )
+    containers.Container.register_container_view_type( "red view", RedView )
     # add a vertical split container
     # change left container to BlueView, change right container to RedView
     # check that root container.container_view_batches two unique batches
-    ##############################################
-    ##############################################
-    ##############################################
-    containers.Container.change_container( c, containers.Container.ACTION_SPLIT_HORIZONTAL )
+    leaves = containers.Container.change_container( c, containers.Container.ACTION_SPLIT_VERTICAL )
     assert len(c.children[0].children) == 2
+
+    view_types = containers.Container.container_view_types
+    # unroll container_vew_types to a dictionary # TODO: needs to be a Container method/property? 
+    _vtd = {}
+    for v in view_types:
+        _vtd[ v[0] ] = v[1]
+
+    containers.Container.change_container_view( leaves[0], [ "blue view", _vtd["blue view"] ] )
+    containers.Container.change_container_view( leaves[1], [ "red view", _vtd["red view"] ] )
+    
+    # assert that pyglet Batches have been instanced into the dictionary
+    assert isinstance(c.container_view_batches[ BlueView ], pyglet.graphics.Batch)
+    assert isinstance(c.container_view_batches[ RedView ], pyglet.graphics.Batch)
+    
+    # assert tha the two instances are not the same ones
+    assert c.container_view_batches[ BlueView ] != c.container_view_batches[ RedView ]
+
+
+    len_batches_before = len(c.get_root_container().container_view_batches.keys())
+    # reuse a batch from the dict
+    containers.Container.change_container_view( leaves[1], [ "blue view", _vtd["blue view"] ] )
+    len_batches_after = len(c.get_root_container().container_view_batches.keys())
+    # not sure about the rigour of this heuristic
+    assert len_batches_before == len_batches_after
+

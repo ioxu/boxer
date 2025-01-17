@@ -129,7 +129,8 @@ class Container( pyglet.event.EventDispatcher ):
         # this dict MUST be kept in sync after
         # container splits/collapses because references
         # here will stop released containers from being GC'd
-        self.container_views : dict[ Container, type[ContainerView] ] = {}
+        # self.container_views : dict[ Container, type[ContainerView] ] = {}
+        self.container_views : dict[ Container, ContainerView ] = {}
 
         # Dictionary to hold batches for each ContainerView type
         # All ContainerViews of the same type should use the same, single batch
@@ -218,6 +219,16 @@ class Container( pyglet.event.EventDispatcher ):
 
     def __repr__(self):
         return "%s at %s name:'%s'"%(type(self), id(self),self.name)
+
+    @classmethod
+    def register_container_view_type( cls, name : str, view_type : type['ContainerView']):
+        """add a `ContainerView` type to the Container instance
+        """
+        # ["blue view", BlueView]
+        if issubclass(view_type, ContainerView):
+            cls.container_view_types += [[name, view_type],]
+        else:
+            raise RuntimeError(f"{view_type} is not a subclass of ContainerView, cannot register view_type to Container")
 
 
     def add_child(self, child) -> None:
@@ -506,53 +517,22 @@ class Container( pyglet.event.EventDispatcher ):
             assert root is not None
             self.root_container = root
 
-        # ----------------------------------------------------------------------
         if isinstance(self, SplitContainer):
-            #print("IS INSTANCE %s %s"%(self, SplitContainer))
             self.root_container.split_containers.append( self )
 
-        # ----------------------------------------------------------------------
-        # remove all handlers first?
-        # TODO: how to parameterise functions to pop handlers from #3 @ioxu
-        # Container handlers:
-        #[{'mouse_exited': <function mouse_exited_container at 0x000001EBEFF709D0>},
-        #{'mouse_entered': <function mouse_entered_container at 0x000001EBEFF70700>},
-        #{'resized': <function on_container_resized at 0x000001EBEFF70C10>},
-        #{'collapsed': <function on_container_collapsed at 0x000001EBEFF70B80>},
-        #{'split': <function on_container_split at 0x000001EBEFF70AF0>},
-        #{'view_changed': <function on_container_view_changed at 0x000001EBEFF70A60>}]
         if self.window:
             self.window.remove_handlers(on_mouse_motion=self.on_mouse_motion)
-            
-            # # loop events on object
-            # for d in self._event_stack:
-                
-            #     # get the single key in the dict, check if in list of events
-            #     if list(d)[0] in ["mouse_entered", "mouse_exited"]:
-            #         # remove event
-            #         print("\033[38;5;45mremoving %s event from %s\033[0m"%( d, self ))
-            #         self.remove_handlers( d )
-
-            # self.remove_handlers( mouse_entered = mouse_entered_container )
-            # self.remove_handlers( mouse_exited = mouse_exited_container )
-        # ----------------------------------------------------------------------
 
         if len(self.children) == 0:
             self.is_leaf = True
             leaves.append( self )
-            # add handers for leaves -------------------------------------------
-            # TODO: how to parameterise functions to push handlers to #3 @ioxu
             if self.window:
                 self.window.push_handlers(on_mouse_motion=self.on_mouse_motion)
-                # self.push_handlers( mouse_entered = mouse_entered_container )
-                # self.push_handlers( mouse_exited = mouse_exited_container )
-            # ------------------------------------------------------------------
         else:
             self.is_leaf = False
             self.mouse_inside = False
             if self in leaves:
                 leaves.remove(self)
-
             for child in self.children:
                 count, leaves, root = child.update_structure( depth+1, count, leaves, root )
         return count, leaves, root
@@ -801,6 +781,10 @@ class Container( pyglet.event.EventDispatcher ):
         for h in self.split_containers:
             h.draw_handle_ui()
 
+        # draw ContainerView batches (self.container_view_batches)
+        for b in self.container_view_batches:
+            self.container_view_batches[b].draw()
+
         # draw leaf containers, mostly imgui ui
         for l in self.leaves:
             l.draw_leaf()
@@ -839,22 +823,42 @@ class Container( pyglet.event.EventDispatcher ):
 
     @staticmethod
     def change_container( container : 'Container', action : int ) -> list:
-        """Invoked from gui option to split or close containers, or operate an action upon a container
-        This method manages reparenting `Containers`, creatig new `Container` children,
+        """
+        Static Method.
+
+        Invoked from gui option to split or close containers, or operate an action upon a container.
+
+        This method manages reparenting `Containers`, creating new `Container` children,
         or disconnecting `Container`s from the `Container` heirarchy depending on the `action`.
 
-        This is a static method.
-
-        `args`:
+        ### parameters
             `container` : `Container` -  the container to operate on
             `action` : `int` - container action, a Container.ACTION_* constant
-        `returns`:
-            A list of either new leaf containers resulting from split actions, or an empy list.
+        
+        ### returns
+            `[]` - A list of either new leaf containers resulting from split actions, or an empy list.
             
+        ### events
+        - #### (`"split"`, original_container, leaves, root )
+
+            dispatched when a container is turned into a `SplitContainer`
+
+            `original_container` : `Container` - the container that was just transformed into a `SplitContainer`
+            `leaves` : `list[]` - list of containers of the new leaf `Container` children of the `SplitContainer`
+            `root` : `Container` - the root `Container` of the newly created `Containers`
+
+        - #### (`"collapsed"`, container, root )
+
+            dispatched whenever a `Container` is "closed" either directly or indirectly.
+        
+            `container` : `Container` - the `Container` that was just collapsed (see WARNING)
+            `root` : `Container` - the root `Container` of the tree
+
         ### WARNING:
-        The "collapsed" and "split" events dispatched from these actions can return `Container`s that have been
+        The `"collapsed"` and `"split"` events dispatched from these actions can return `Container`s that have been
         disconnected from the `Container` heirarchy. As a consequence, their references to parents and children
         will be null, and it will be impossible to get the root `Container` from them.
+
         """
 
         match action:
@@ -1025,35 +1029,57 @@ class Container( pyglet.event.EventDispatcher ):
         
         `args`:
             `container` : `Container` -  the container to operate on
-            `action` : `int` - container action, a Container.ACTION_* constant
+            `view_type` : `list[ viewname : str, view_type : `ContainerView` subclass  ]`
 
         controls instatiation of new views
         """
         print('\033[38;5;63m[view type]\033[0m changed on \033[38;5;63m%s\033[0m to \033[38;5;153m"%s"\033[0m'%(container.name, view_type)  )
-        # TODO: move to method of Container
         
         # TODO: if a view change results in popping a view, should event the view removal
 
+        root = container.get_root_container()
+        
+        create_new_view = False
         # setting view to a None view
         if view_type[1] == None:
-            container.get_root_container().container_views.pop( container, None )
+            root.container_views.pop( container, None )
 
         # setting a view to the same kind of view
         # this can happen when:
         #   1) splitting a view which moves a view between containers which triggers the "view_changed" event
+        
         # check if the container is in the views dict
-        elif container.get_root_container().container_views.get( container, None ):
-            # check if the container is set to the same view_type already (view_type[1] contains the ContainerView subclass)
-            if isinstance(container.get_root_container().container_views[ container ], view_type[1] ):
+        elif root.container_views.get( container, None ):
+            # if so, check if it's the same view type it's already seat to ..
+            if isinstance(root.container_views[ container ], view_type[1] ):
+                # the container view has been set to the view that the container is already set to.
                 return
+            else:
+                # the container has changed view
+                # prepare a new view with either a new batch or an existing view batch
+                create_new_view = True
         else:
-            # instance the container view!
+            # if not, create a new view
+            create_new_view = True
+        
+        if create_new_view:
+            # does the view type already have a batch created for it?
+            if view_type[1] in root.container_view_batches:
+                # (re)use the one from the cache
+                _batch = root.container_view_batches[ view_type[1] ]
+            else:
+                # otherwise create a new batch for the view type:
+                _batch = pyglet.graphics.Batch()
+                root.container_view_batches[ view_type[1] ] = _batch
+            
+            # instance the container view, with the batch!
             view : ContainerView = view_type[1](
-                batch = container_view_batch
+                batch = _batch
             )
-            container.get_root_container().container_views[ container ] = view    
-            view.update_geometries( container )
-        container.update_display() # TODO: TEMP
+            root.container_views[ container ] = view
+            view.update_geometries( container )                
+
+        container.update_display()
 
     
     @staticmethod
@@ -1069,11 +1095,8 @@ class Container( pyglet.event.EventDispatcher ):
 
         The `old_container` is mostly disconnected from the container heirarchy and will be GC'd shortly after.
         """
-        # TODO: move to method of Container
-
         print("on_container_split %s %s"%( old_container, str(new_children) ))
 
-        # TODO: once these functions are methods of Container, can then just use self.root
         root_container_views = new_children[0].get_root_container().container_views
         if old_container in root_container_views.keys():
             # then pop the container out of the container_views dict, which returns the view it had
@@ -1624,22 +1647,6 @@ if __name__ == "__main__":
     # add a container view type to the class
     Container.container_view_types += [ ["blue view", BlueView], ]
 
-    # set up container view batch
-    ############################################################################
-    ############################################################################
-    ############################################################################
-    ############################################################################
-    ############################################################################
-    ############################################################################
-    # FIXME: how to handle creating and passing in ContainerView batches????
-    container_view_batch = pyglet.graphics.Batch()
-    ############################################################################
-    ############################################################################
-    ############################################################################
-    ############################################################################
-    ############################################################################
-    ############################################################################
-
     #---------------------------------------------------------------------------
     # extend container actions
     # add a new menu item
@@ -1647,9 +1654,10 @@ if __name__ == "__main__":
     # stash original callback
     change_container_original = Container.change_container
     # redefine callback, action is the integer of the newly added menu item
-    def change_container( container, action ):
+    def change_container( container, action ) -> list:
         print(f"change_container OVERIDDEN, action {action}")
-        change_container_original( container, action )
+        leaves = []
+        return leaves + change_container_original( container, action )
     Container.change_container = change_container
 
     #---------------------------------------------------------------------------
@@ -1686,10 +1694,6 @@ if __name__ == "__main__":
                         height=320,
                         use_explicit_dimensions=False)
 
-    # c.push_handlers( view_changed = on_container_view_changed )
-    # c.push_handlers( split = on_container_split )
-    # c.push_handlers( collapsed = on_container_collapsed )
-    # c.push_handlers( resized = on_container_resized )
     c.push_handlers( mouse_entered = mouse_entered_container )
     c.push_handlers( mouse_exited = mouse_exited_container )
 
@@ -1756,49 +1760,19 @@ if __name__ == "__main__":
         win.clear( )
 
         imgui.new_frame()
-        # imgui.push_font(font_default)
-
-
-        ########################################################################
-        ########################################################################
-        ########################################################################
-        # move to container (root) method(s)
-
-        # gl.glEnable(gl.GL_BLEND)
-        # gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        # line_batch.draw()
 
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        container_view_batch.draw()
-        
-        # gl.glEnable(gl.GL_BLEND)
-        # gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        # c.root_container.draw_overlay()
 
-        # for l in c.leaves:
-        #     l.draw_leaf()
         c.draw()
-        ########################################################################
-        ########################################################################
-        ########################################################################
 
-        # imgui.pop_font()
-
-        # imgui.push_font(font_default)
-        
         # -------------------
+        # imgui window with container tree debug info #TODO: turn this into a ContainerView
         draw_container_tree_info( c )
         # -------------------
 
-        # imgui.pop_font()
-        # imgui.end_frame()
-
         imgui.render()
         imgui_renderer.render(imgui.get_draw_data())
-
-
-
 
         fps_display.draw()
     app.run()
