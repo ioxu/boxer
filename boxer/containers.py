@@ -1042,7 +1042,8 @@ class Container( pyglet.event.EventDispatcher ):
         create_new_view = False
         # setting view to a None view
         if view_type[1] == None:
-            root.container_views.pop( container, None )
+            _view = root.container_views.pop( container, None )
+            print(f"root.container_views: popping {container}, thus {_view}")
 
         # setting a view to the same kind of view
         # this can happen when:
@@ -1443,15 +1444,30 @@ class ContainerView( pyglet.event.EventDispatcher ):
 
     Must define `self.update_geometries` to adapt to windowing/container geometry updates.
     """
+    # class events
+    event_type = pyglet.event.EventDispatcher()
+    pyglet.event.EventDispatcher.register_event_type("view_removed")
+    pyglet.event.EventDispatcher.register_event_type("view_created")
+
+    def __init__( self, batch = None ):
+        print("ContainerView.__init__()")
+        #self.dispatch_event("view_created", self)
+        ContainerView.event_type.dispatch_event( "view_created", self )
+
 
     def update_geometries( self, container : Container ) -> None:
         raise NotImplementedError
         
 
-# ContainerView events:
-ContainerView.register_event_type("view_removed")
+    def __del__( self ) -> None:
+        print("\033[38;5;52m[X]\033[0m '%s' (ContainerView) being deleted."%self)
+        self.dispatch_event( "view_removed", self )
 
-ContainerView.register_event_type("view_created")
+
+# ContainerView events:
+# ContainerView.register_event_type("view_removed")
+
+# ContainerView.register_event_type("view_created")
 
 
 # ------------------------------------------------------------------------------
@@ -1570,6 +1586,8 @@ if __name__ == "__main__":
     from pyglet import app
     from pyglet.window import key
     from time import perf_counter
+    import colorsys
+    import random
 
     Container.CONTAINER_DEBUG_LABEL = True
 
@@ -1604,12 +1622,17 @@ if __name__ == "__main__":
         def __init__( self,
                 color = (79, 110, 205, 128),
                 batch : pyglet.graphics.Batch = None):
+            
             _points = boxer.shapes.rectangle_centered_vertices( 130, 230, 200, 200 )
             _colors = (1.0, 1.0, 1.0, 1.0) * 4#color * 4
             
             self.batch = batch or pyglet.graphics.Batch()
             self._marchinglines_time = 0.0
             self._marchinglines_shader = boxer.shaders.get_marchinglines_shader()
+
+
+            #color = [ i*255 for i in colorsys.hls_to_rgb( 0.521 + (random.random()-0.5)*0.1, 0.5, 0.65 )] + [128]
+
 
             self._marchinglines_shader["color_one"] = (color[0]/255.0, color[1]/255.0, color[2]/255.0, color[3]/255.0)#(1.0, 0.1, 0.0, 0.25)
             self._marchinglines_shader["line_ratio"] = 0.1
@@ -1629,8 +1652,11 @@ if __name__ == "__main__":
                                             position = ('f', _points),
                                             colors = ('f', _colors),
                                             )
+            super(BlueView, self).__init__()
+
 
         def __del__(self) -> None:
+            super(BlueView, self).__del__()
             print("\033[38;5;52m[X]\033[0m '%s' being deleted."%self)
             self.vertex_list.delete()
 
@@ -1644,8 +1670,22 @@ if __name__ == "__main__":
                                         container.position.x, container.position.y, 0.0)
 
 
+        def set_color(self, color : tuple) -> None:
+            self._marchinglines_shader["color_one"] = (color[0]/255.0, color[1]/255.0, color[2]/255.0, color[3]/255.0)#(1.0, 0.1, 0.0, 0.25)            
+
+
     # add a container view type to the class
     Container.container_view_types += [ ["blue view", BlueView], ]
+
+    #---------------------------------------------------------------------------
+    def on_view_created( view ) -> None:
+        print(f"### on_view_created: {view}")
+        _c = [ i for i in colorsys.hls_to_rgb( 0.521 + (random.random()-0.5)*0.1, 0.5, 0.65 )] + [0.5]
+        view._marchinglines_shader["color_one"] = _c
+
+
+    BlueView.event_type.push_handlers( view_created = on_view_created )
+
 
     #---------------------------------------------------------------------------
     # extend container actions
