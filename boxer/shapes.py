@@ -100,6 +100,10 @@ class RectangleLine( pyglet.shapes.Rectangle ):
         self._vertex_list.position[:] = self._get_vertices()
 
 
+    def update_vertices( self ):
+        self._update_vertices()
+
+
     @property
     def anchor_x(self):
         """The X coordinate of the anchor point
@@ -112,7 +116,7 @@ class RectangleLine( pyglet.shapes.Rectangle ):
     @anchor_x.setter
     def anchor_x(self, value):
         self._anchor_x = value
-        self._update_vertices()
+        #self._update_vertices()
 
 
     @property
@@ -127,7 +131,7 @@ class RectangleLine( pyglet.shapes.Rectangle ):
     @anchor_y.setter
     def anchor_y(self, value):
         self._anchor_y = value
-        self._update_vertices()
+        #self._update_vertices()
 
 
     @property
@@ -146,7 +150,7 @@ class RectangleLine( pyglet.shapes.Rectangle ):
     @anchor_position.setter
     def anchor_position(self, values):
         self._anchor_x, self._anchor_y = values
-        self._update_vertices()
+        #self._update_vertices()
 
 
     @property
@@ -160,7 +164,7 @@ class RectangleLine( pyglet.shapes.Rectangle ):
     @width.setter
     def width(self, value):
         self._width = value
-        self._update_vertices()
+        #self._update_vertices()
 
     @property
     def height(self):
@@ -173,7 +177,7 @@ class RectangleLine( pyglet.shapes.Rectangle ):
     @height.setter
     def height(self, value):
         self._height = value
-        self._update_vertices()
+        #self._update_vertices()
 
 
 # ------------------------------------------------------------------------------

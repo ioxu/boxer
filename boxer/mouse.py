@@ -64,15 +64,17 @@ class Mouse(pyglet.window.MouseCursor):
 
     def update_position(self, x,y):
         #print("mouse update_position %s %s"%(x,y))
-        self.position.x = x
-        self.position.y = y
+        # self.position.x = x
+        # self.position.y = y
+        self.position = pyglet.math.Vec2( x, y )
         self.pointer.x = x
         self.pointer.y = y
 
         # calc world position
         spos = pyglet.math.Mat4.from_translation( pyglet.math.Vec3( self.position.x, self.position.y, 0.0 ) )
         wpos = ( ~self._camera_transform @ spos ).column(3)[:3]
-        self.world_position.x, self.world_position.y, self.world_position.z = wpos[0], wpos[1], wpos[2]
+        # self.world_position.x, self.world_position.y, self.world_position.z = wpos[0], wpos[1], wpos[2]
+        self.world_position = pyglet.math.Vec3( wpos[0], wpos[1], wpos[2] )
 
 
     def draw(self, x, y):

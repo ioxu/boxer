@@ -280,6 +280,9 @@ class Container( pyglet.event.EventDispatcher ):
                 self.window.remove_handlers(on_mouse_motion=child.on_mouse_motion)
                 self.remove_handlers( )
             self.children[idx] = None
+            # the pyglet shapes (Lines) need to be derleted from the batch
+            # otherwise they stay after self is disconnected.
+            child.lines={}
         return idx
 
 
@@ -318,7 +321,6 @@ class Container( pyglet.event.EventDispatcher ):
         must always get the return value, eg:
         `container = container.replace_by( new_container )`
         """
-        # TODO: adressing #2
         parent = self.parent
         this_container = self
         if parent:
@@ -437,23 +439,27 @@ class Container( pyglet.event.EventDispatcher ):
             else:
                 self.debug_label_name.opacity = 0
 
-        self.lines["left"].x = self.position.x + margin
-        self.lines["left"].y = self.position.y + margin
+        # self.lines["left"].x = self.position.x + margin
+        # self.lines["left"].y = self.position.y + margin
+        self.lines["left"].position = ( self.position.x + margin, self.position.y + margin )
         self.lines["left"].x2 = self.position.x + margin
         self.lines["left"].y2 = self.position.y + self.height - margin
 
-        self.lines["top"].x = self.position.x + margin #-1
-        self.lines["top"].y = self.position.y + self.height - margin
+        # self.lines["top"].x = self.position.x + margin #-1
+        # self.lines["top"].y = self.position.y + self.height - margin
+        self.lines["top"].position = ( self.position.x + margin, self.position.y + self.height - margin )
         self.lines["top"].x2 = self.position.x + self.width - margin
         self.lines["top"].y2 = self.position.y + self.height - margin
 
-        self.lines["right"].x = self.position.x + self.width - margin
-        self.lines["right"].y = self.position.y + self.height - margin
+        # self.lines["right"].x = self.position.x + self.width - margin
+        # self.lines["right"].y = self.position.y + self.height - margin
+        self.lines["right"].position = ( self.position.x + self.width - margin, self.position.y + self.height - margin )
         self.lines["right"].x2 = self.position.x + self.width - margin
         self.lines["right"].y2 = self.position.y + margin #+ 1
 
-        self.lines["bottom"].x = self.position.x + margin
-        self.lines["bottom"].y = self.position.y + margin
+        # self.lines["bottom"].x = self.position.x + margin
+        # self.lines["bottom"].y = self.position.y + margin
+        self.lines["bottom"].position = ( self.position.x + margin, self.position.y + margin )
         self.lines["bottom"].x2 = self.position.x + self.width -margin
         self.lines["bottom"].y2 = self.position.y + margin
 
@@ -479,6 +485,8 @@ class Container( pyglet.event.EventDispatcher ):
                     self.name + " (%s)"%(type(self).__name__) +\
                     "\n.mouse_inside " + str(self.mouse_inside) +\
                     "\n view: " + str( self.get_root_container().container_views.get(self, "null view").__class__.__name__ )
+            else:
+                self.debug_label_name.text = ""
 
         if self.mouse_inside:
             for lk in self.lines.items():
@@ -1220,7 +1228,8 @@ class SplitContainer( Container ):
         self.draw_handle_ui_rightclick_data = {}
 
         self.ratio_line = pyglet.shapes.Line( 0.0, 0.0, 1.0, 1.0,
-                                            width = 4.0,
+                                            # width = 4.0,
+                                            thickness = 4.0,
                                             color=(255,255,255,180),
                                             batch=self.batch )
 
@@ -1352,6 +1361,7 @@ class HSplitContainer( SplitContainer ):
             self.split_handle.display_width = 2.0
             self.split_handle.display_height = self.split_handle.hit_height - 2.0
             self.split_handle.set_shape_anchors()
+            self.split_handle.update_vertices()
 
             self.ratio_line.x = self.position.x + (self.width * self.ratio) -1.0
             self.ratio_line.y = self.position.y + 0.5 
@@ -1362,12 +1372,16 @@ class HSplitContainer( SplitContainer ):
 
 
     def on_split_handle_position_updated(self, position) -> None:
-        self.split_handle.position.y = self.position.x + int(self.height * 0.5 )
+        # self.split_handle.position.y = self.position.x + int(self.height * 0.5 )
+        y = self.position.x + int(self.height * 0.5 )
         x = min( self.position.x + self.width - self.ratio_margin, max( self.position.x + self.ratio_margin, self.split_handle.position.x ) )
-        self.split_handle.position.x = x
+        self.split_handle.position = pyglet.math.Vec2( x, y )
+        # self.split_handle.position.x = x
+        # self.split_handle.update_position()
         new_ratio = (x - self.position.x) / float(self.width)
         self.ratio = new_ratio
         self.update_geometries()
+        # self.root_container.update_geometries()
 
 
 class VSplitContainer( SplitContainer ):
@@ -1419,6 +1433,7 @@ class VSplitContainer( SplitContainer ):
             self.split_handle.display_width = self.split_handle.hit_width - 2.0
             self.split_handle.display_height = 2.0 
             self.split_handle.set_shape_anchors()
+            self.split_handle.update_vertices()
 
             self.ratio_line.x = self.position.x + 0.5
             self.ratio_line.y = self.position.y + (self.height * self.ratio) -1.0
@@ -1429,12 +1444,16 @@ class VSplitContainer( SplitContainer ):
 
 
     def on_split_handle_position_updated(self, position) -> None:
-        self.split_handle.position.x = self.position.x + int(self.width * 0.5 )
+        # self.split_handle.position.x = self.position.x + int(self.width * 0.5 )
+        x = self.position.x + int(self.width * 0.5 )
         y = min( self.position.y + self.height - self.ratio_margin, max( self.position.y + self.ratio_margin, self.split_handle.position.y ) )
-        self.split_handle.position.y = y
+        # self.split_handle.position.y = y
+        self.split_handle.position = pyglet.math.Vec2( x, y )
+        # self.split_handle.update_position()
         new_ratio = ( y - self.position.y) / float(self.height)
         self.ratio = new_ratio
         self.update_geometries()
+        # self.root_container.update_geometries()
 
 
 # ------------------------------------------------------------------------------
@@ -1588,8 +1607,9 @@ if __name__ == "__main__":
     from time import perf_counter
     import colorsys
     import random
+    import shaping
 
-    Container.CONTAINER_DEBUG_LABEL = True
+    Container.CONTAINER_DEBUG_LABEL = False
 
     _window_config = gl.Config(
         sample_buffers = 1,
@@ -1686,20 +1706,6 @@ if __name__ == "__main__":
 
     BlueView.event_type.push_handlers( view_created = on_view_created )
 
-
-    #---------------------------------------------------------------------------
-    # extend container actions
-    # add a new menu item
-    Container.container_action_labels += ["subdivide layout test"]
-    # stash original callback
-    change_container_original = Container.change_container
-    # redefine callback, action is the integer of the newly added menu item
-    def change_container( container, action ) -> list:
-        print(f"change_container OVERIDDEN, action {action}")
-        leaves = []
-        return leaves + change_container_original( container, action )
-    Container.change_container = change_container
-
     #---------------------------------------------------------------------------
     #---------------------------------------------------------------------------
     # test container events: ---------------------------------------------------
@@ -1758,6 +1764,71 @@ if __name__ == "__main__":
     print("time to 'update': %s"%( t1_stop - t1_start ))
 
     gtime = 0.0
+
+
+    # ---------------
+    # subdivide the containers acouple of times
+    leaves = Container.change_container( c, Container.ACTION_SPLIT_HORIZONTAL )
+    split_container : SplitContainer =  leaves[0].parent
+    split_handle = split_container.split_handle
+    split_handle.position += pyglet.math.Vec2(200.0, 0.0)
+    split_handle.update_position()
+    leaves = Container.change_container( leaves[1], Container.ACTION_SPLIT_VERTICAL )
+    split_container : SplitContainer =  leaves[1].parent
+    split_handle = split_container.split_handle
+    split_handle.position += pyglet.math.Vec2(0.0, -100.0)
+    split_handle.update_position()
+
+    #---------------------------------------------------------------------------
+    # extend container actions
+    # add a new menu item
+    Container.container_action_labels += ["subdivide layout test"]
+    # stash original callback
+    change_container_original = Container.change_container
+    # redefine callback, action is the integer of the newly added menu item
+    def change_container( container, action ) -> list:
+        print(f"change_container OVERIDDEN, action {action}")
+        leaves = []
+
+        def _subd_container(depth, container):
+            print(f"      subd {depth}")
+            if depth%2 == 0: # even
+                _leaves = change_container_original(container, Container.ACTION_SPLIT_VERTICAL)
+            else: # odd
+                _leaves = change_container_original(container, Container.ACTION_SPLIT_HORIZONTAL)
+            
+            _rr = shaping.remap(random.random(), 0.0, 1.0, -0.4, 0.4)
+            print(f"_rr {_rr} {_leaves[0].parent.width} {_leaves[0].parent.height}")
+            _rv = pyglet.math.Vec2(_leaves[0].parent.width * _rr, _leaves[0].parent.height * _rr)
+            _handle = _leaves[0].parent.split_handle
+            _handle.position += _rv
+            _handle.update_position()
+
+            depth -= 1
+            if depth ==0:
+                return
+            else:
+                for l in _leaves:
+                    _subd_container(depth, l)
+
+        view_types = Container.container_view_types
+        # unroll container_vew_types to a dictionary # TODO: needs to be a Container method/property? 
+        _vtd = {}
+        for v in view_types:
+            _vtd[ v[0] ] = v[1]
+
+
+        if action==5:
+            _root = container.root_container
+            print(f"   subdividing container {container}")
+            _subd_container(3, container)
+
+            for l in _root.leaves:
+                Container.change_container_view( l, [ "blue view", _vtd["blue view"] ] )
+        
+
+        return leaves + change_container_original( container, action )
+    Container.change_container = change_container
 
 
     # ---------------

@@ -6,9 +6,12 @@ import pyglet
 # pyglet.options['debug_gl_trace'] = True
 # pyglet.options['debug_gl_trace_args'] = True
 # pyglet.options['debug_input'] = True
-# pyglet.options['debug_trace'] = True
+pyglet.options['debug_trace'] = True
 # pyglet.options['debug_trace_args'] = True
-# pyglet.options['debug_trace_depth'] = 1
+pyglet.options['debug_trace_depth'] = 2
+
+# pyglet.options.debug_input = True
+# pyglet.options.debug_trace = True
 
 import boxer.application
 
@@ -17,7 +20,7 @@ def main():
     print("init main()")
 
     print("system information:")
-    display = pyglet.canvas.get_display()
+    display = pyglet.display.get_display() #pyglet.canvas.get_display()
     print("  display: name: %s - %s"%(display.name, display))
     print("    default_screen: %s"%display.get_default_screen())
     screens = display.get_screens()
