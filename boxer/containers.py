@@ -188,7 +188,10 @@ class Container( pyglet.event.EventDispatcher ):
         #self._marchinglines_shader = pyglet.shapes.get_default_shader()
         self._marchinglines_shader = boxer.shaders.get_marchinglines_shader()
         
-        self._marchinglines_shader["color_one"] = (1.0, 0.1, 0.0, 0.25)
+
+        self.marching_lines_collapse_color = (1.0, 0.1, 0.0, 0.5)
+        self.marching_lines_split_color = (1.0, 1.0, 1.0, 0.35)
+        self._marchinglines_shader["color_one"] = (1.0, 0.1, 0.0, 0.5) #0.25)
         #self._marchinglines_shader["line_ratio"] = 0.5
         self._marchinglines_shader["time"] = 0.0
         self._marchinglines_shader["ir_bl"] = (70.0, 70.0)    # inner rect, bottom left
@@ -722,6 +725,7 @@ class Container( pyglet.event.EventDispatcher ):
                     self.root_container._marchinglines_shader["ir_bl"] = bl
                     self.root_container._marchinglines_shader["ir_tr"] = tr
                     self.root_container._marchinglines_shader["positive"] = 1.0
+                    self.root_container._marchinglines_shader["color_one"] = self.marching_lines_split_color
 
                 case Container.ACTION_SPLIT_VERTICAL:
                     self.root_container.do_draw_overlay = True
@@ -730,6 +734,7 @@ class Container( pyglet.event.EventDispatcher ):
                     self.root_container._marchinglines_shader["ir_bl"] = bl
                     self.root_container._marchinglines_shader["ir_tr"] = tr
                     self.root_container._marchinglines_shader["positive"] = 1.0               
+                    self.root_container._marchinglines_shader["color_one"] = self.marching_lines_split_color
 
                 case Container.ACTION_CLOSE:
                     self.root_container.do_draw_overlay = True
@@ -738,6 +743,7 @@ class Container( pyglet.event.EventDispatcher ):
                     self.root_container._marchinglines_shader["ir_bl"] = bl
                     self.root_container._marchinglines_shader["ir_tr"] = tr
                     self.root_container._marchinglines_shader["positive"] = 1.0
+                    self.root_container._marchinglines_shader["color_one"] = self.marching_lines_collapse_color
 
                 case Container.ACTION_CLOSE_SPLIT:
                     # get sibling
@@ -754,6 +760,7 @@ class Container( pyglet.event.EventDispatcher ):
                         self.root_container._marchinglines_shader["ir_bl"] = bl
                         self.root_container._marchinglines_shader["ir_tr"] = tr
                         self.root_container._marchinglines_shader["positive"] = 1.0
+                        self.root_container._marchinglines_shader["color_one"] = self.marching_lines_collapse_color
 
                 case Container.ACTION_CLOSE_OTHERS:
                     self.root_container.do_draw_overlay = True
@@ -762,6 +769,7 @@ class Container( pyglet.event.EventDispatcher ):
                     self.root_container._marchinglines_shader["ir_bl"] = bl
                     self.root_container._marchinglines_shader["ir_tr"] = tr                   
                     self.root_container._marchinglines_shader["positive"] = 0.0
+                    self.root_container._marchinglines_shader["color_one"] = self.marching_lines_collapse_color
 
                 case _:
                     self.root_container.do_draw_overlay = False
@@ -780,9 +788,7 @@ class Container( pyglet.event.EventDispatcher ):
         
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        self.draw_overlay()
-
-
+        # self.draw_overlay()
         
         # draw things for all SplitContainers
         # right-click context menu for splitters etc
@@ -796,7 +802,13 @@ class Container( pyglet.event.EventDispatcher ):
         # draw leaf containers, mostly imgui ui
         for l in self.leaves:
             l.draw_leaf()
- 
+
+        gl.glEnable(gl.GL_BLEND)
+        # gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        self.draw_overlay()
+
+
 
     def draw_overlay(self) -> None:
         if self.root_container.do_draw_overlay:
@@ -1087,7 +1099,11 @@ class Container( pyglet.event.EventDispatcher ):
             )
             root.container_views[ container ] = view
             view.update_geometries( container )                
-
+        
+        # set the gui view-type combo drop-do list
+        # (otherwise imgui drop down won't update when set programatically)
+        container.container_view_combo_selected = Container.container_view_types.index( view_type )
+        
         container.update_display()
 
     
@@ -1825,7 +1841,7 @@ if __name__ == "__main__":
 
             for l in _root.leaves:
                 Container.change_container_view( l, [ "blue view", _vtd["blue view"] ] )
-        
+
 
         return leaves + change_container_original( container, action )
     Container.change_container = change_container
