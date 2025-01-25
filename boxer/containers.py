@@ -16,6 +16,7 @@ import pyglet.graphics
 import pyglet.shapes
 import pyglet.math
 from pyglet.window import Window # Pylance is getting confused
+
 import boxer.camera
 import boxer.shapes
 import boxer.shaders
@@ -27,6 +28,7 @@ import imgui as imgui
 from typing import Optional
 # https://www.reddit.com/r/learnprogramming/comments/214nd9/making_a_gui_from_scratch/
 # https://developer.valvesoftware.com/wiki/VGUI_Documentation
+
 
 class Container( pyglet.event.EventDispatcher ):
     """
@@ -217,11 +219,12 @@ class Container( pyglet.event.EventDispatcher ):
 
     def __del__(self) -> None:
         # print("\033[31m[X]\033[0m '%s' being deleted."%self.name)
-        print("\033[38;5;52m[X]\033[0m '%s' being deleted."%self.name)
+        print("\033[38;5;52m[X]\033[0m '%s' (Container) being deleted."%self.name)
 
 
     def __repr__(self):
         return "%s at %s name:'%s'"%(type(self), id(self),self.name)
+
 
     @classmethod
     def register_container_view_type( cls, name : str, view_type : type['ContainerView']):
@@ -1693,7 +1696,7 @@ if __name__ == "__main__":
 
         def __del__(self) -> None:
             super(BlueView, self).__del__()
-            print("\033[38;5;52m[X]\033[0m '%s' being deleted."%self)
+            print("\033[38;5;52m[X]\033[0m '%s' (BlueView) being deleted."%self)
             self.vertex_list.delete()
 
 
@@ -1712,6 +1715,9 @@ if __name__ == "__main__":
 
     # add a container view type to the class
     Container.container_view_types += [ ["blue view", BlueView], ]
+
+    _bv_instance = BlueView()
+    print(_bv_instance)
 
     #---------------------------------------------------------------------------
     def on_view_created( view ) -> None:
@@ -1807,6 +1813,9 @@ if __name__ == "__main__":
         leaves = []
 
         def _subd_container(depth, container):
+            # a method to subdivide a container 'depth' times
+            # randomises the split ratio
+            # can easily create many SplitContainers and leaf containers
             print(f"      subd {depth}")
             if depth%2 == 0: # even
                 _leaves = change_container_original(container, Container.ACTION_SPLIT_VERTICAL)
@@ -1827,23 +1836,28 @@ if __name__ == "__main__":
                 for l in _leaves:
                     _subd_container(depth, l)
 
-        view_types = Container.container_view_types
+        
         # unroll container_vew_types to a dictionary # TODO: needs to be a Container method/property? 
+        view_types = Container.container_view_types
         _vtd = {}
         for v in view_types:
             _vtd[ v[0] ] = v[1]
 
-
+        # change_container maps an action here:
+        # call the subdivision function defined just above
         if action==5:
             _root = container.root_container
             print(f"   subdividing container {container}")
             _subd_container(3, container)
 
+            # chnage ALL leaves to BLueView
             for l in _root.leaves:
                 Container.change_container_view( l, [ "blue view", _vtd["blue view"] ] )
 
-
         return leaves + change_container_original( container, action )
+    
+    # overwrite chnage_container in the base class
+    # TODO: there's gotta be a btter way to do this in a plugin-type-way.
     Container.change_container = change_container
 
 
@@ -1903,3 +1917,5 @@ if __name__ == "__main__":
 
         fps_display.draw()
     app.run()
+
+# %%
