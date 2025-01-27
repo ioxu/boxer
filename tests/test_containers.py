@@ -290,6 +290,7 @@ def test_change_container_split_returns_children() -> None:
 # register ContainerView type
 def test_register_ContainerView_type() -> None:
     class BlueView( containers.ContainerView ):
+        auto_register = False
         ...
     containers.Container.register_container_view_type("blue view", BlueView)
     view_types = containers.Container.container_view_types
@@ -323,12 +324,14 @@ def test_Container_view_batches() -> None:
     # big one
 
     class BlueView( containers.ContainerView ):
+        string_name="blue view"
         def __init__( self, batch = None ):
             ...
         def update_geometries(self, container):
             ...
 
     class RedView( containers.ContainerView ):
+        string_name="red view"
         def __init__( self, batch = None ):
             ...
         def update_geometries(self, container):
@@ -368,3 +371,65 @@ def test_Container_view_batches() -> None:
     # not sure about the rigour of this heuristic
     assert len_batches_before == len_batches_after
 
+
+# ------------------------------------------------------------------------------
+# subclasses of ContainerView can register themselves to Container.container_view_types
+def test_ContainerView_subclass_register_name_to_container_views() -> None:
+    class NewView( containers.ContainerView ):
+        string_name = "new view"
+        def __init__( self, batch = None ):
+            ...
+        def update_geometries(self, container):
+            ...
+    
+    view_types = containers.Container.container_view_types
+    _vtd = {}
+    for v in view_types:
+        _vtd[ v[0] ] = v[1]
+
+    assert(issubclass(_vtd["new view"], NewView))
+
+
+# ------------------------------------------------------------------------------
+# subclass of ContainerView must redefine the class attribute 'string_name' to
+# give it a pretty identifier
+def test_ContainerView_subclass_string_name_not_defined() -> None:
+    import pytest
+    with pytest.raises( RuntimeError, match='subclasses of ContainerView must redefine "string_name" variable'):
+        class NewView( containers.ContainerView ):
+            def __init__( self, batch = None ):
+                ...
+            def update_geometries(self, container):
+                ...
+
+def test_ContainerView_subclass_string_name_base() -> None:
+    import pytest
+    with pytest.raises( RuntimeError, match='subclasses of ContainerView must redefine "string_name" variable'):
+        class NewView( containers.ContainerView ):
+            string_name = "base"
+            def __init__( self, batch = None ):
+                ...
+            def update_geometries(self, container):
+                ...
+
+def test_ContainerView_subclass_string_name_None() -> None:
+    import pytest
+    with pytest.raises( RuntimeError, match='subclasses of ContainerView must redefine "string_name" variable'):
+        class NewView( containers.ContainerView ):
+            string_name = None
+            def __init__( self, batch = None ):
+                ...
+            def update_geometries(self, container):
+                ...
+
+# ------------------------------------------------------------------------------
+# subclasses of ContainerView calling super().__init__(**kwargs)
+# vanity: coverage, doesn't assert anything
+
+def test_ContainerView_subclass_super_init() -> None:
+    class NewView( containers.ContainerView ):
+        string_name = "new view"
+        def __init__(self, **kwargs):
+            super().__init__(self, **kwargs)
+
+    nv = NewView()

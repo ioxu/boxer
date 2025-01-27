@@ -1481,16 +1481,39 @@ class ContainerView( pyglet.event.EventDispatcher ):
     Abstract 'view' object to be drawn in leaf containers
 
     Must define `self.update_geometries` to adapt to windowing/container geometry updates.
+    
+    subclassing `ContainerView` registers the subclass as a view type to
+    Container.container_view_types, which is then read in the Container gui to enable switching to
+    the subclassed ContainerView.
     """
     # class events
     event_type = pyglet.event.EventDispatcher()
     pyglet.event.EventDispatcher.register_event_type("view_removed")
     pyglet.event.EventDispatcher.register_event_type("view_created")
 
+    # the pretty name used to identify this ContainerView subclass in menus etc.
+    string_name = "base"
+
+    # if auto_register, wil luse __init_subclass__ to register this view type to
+    # Container.container_view_types class variable
+    # OTHERWISE you must register the ContainerView subclass with
+    # Container.register_container_view_type( name : str, <ContainerView subcclass> )
+    auto_register = True
+
     def __init__( self, batch = None ):
-        print("ContainerView.__init__()")
+        print("\033[38;5;63m[ContainerView.__init__()]\033[0m")
         #self.dispatch_event("view_created", self)
         ContainerView.event_type.dispatch_event( "view_created", self )
+
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        print(f'\033[38;5;63m[ContainerView.__init_subclass__]\033[0m {cls}')
+        if cls.auto_register == True:
+            if cls.string_name == "base" or cls.string_name == "" or cls.string_name == None:
+                raise RuntimeError('subclasses of ContainerView must redefine "string_name" variable (cannot equal "base", "" or None)')
+            print(f'\033[38;5;63m[ContainerView]\033[0m register "{cls.string_name}" to Container view types')
+            Container.container_view_types += [ [cls.string_name, cls], ]
 
 
     def update_geometries( self, container : Container ) -> None:
@@ -1500,12 +1523,6 @@ class ContainerView( pyglet.event.EventDispatcher ):
     def __del__( self ) -> None:
         print("\033[38;5;52m[X]\033[0m '%s' (ContainerView) being deleted."%self)
         self.dispatch_event( "view_removed", self )
-
-
-# ContainerView events:
-# ContainerView.register_event_type("view_removed")
-
-# ContainerView.register_event_type("view_created")
 
 
 # ------------------------------------------------------------------------------
@@ -1658,6 +1675,8 @@ if __name__ == "__main__":
     # container view types -----------------------------------------------------
     #---------------------------------------------------------------------------
     class BlueView( ContainerView ):
+        string_name = "blue view"
+        
         def __init__( self,
                 color = (79, 110, 205, 128),
                 batch : pyglet.graphics.Batch = None):
@@ -1682,6 +1701,10 @@ if __name__ == "__main__":
             self._marchinglines_shader["ir_tr"] = (0.0, 0.0)    # inner rect, top right
             self._marchinglines_shader["positive"] = 0.0        # value of inner rect (1.0
                                                             # means black outside, 0.0 means black inside)
+
+            _c = [ i for i in colorsys.hls_to_rgb( 0.521 + (random.random()-0.5)*0.1, 0.5, 0.65 )] + [0.5]
+            self._marchinglines_shader["color_one"] = _c
+
 
             self.vertex_list : pyglet.graphics.vertexdomain.VertexList = self._marchinglines_shader.vertex_list_indexed( 4,
                                             gl.GL_TRIANGLES,
@@ -1713,20 +1736,12 @@ if __name__ == "__main__":
             self._marchinglines_shader["color_one"] = (color[0]/255.0, color[1]/255.0, color[2]/255.0, color[3]/255.0)#(1.0, 0.1, 0.0, 0.25)            
 
 
-    # add a container view type to the class
-    Container.container_view_types += [ ["blue view", BlueView], ]
-
-    _bv_instance = BlueView()
-    print(_bv_instance)
-
     #---------------------------------------------------------------------------
-    def on_view_created( view ) -> None:
-        print(f"### on_view_created: {view}")
-        _c = [ i for i in colorsys.hls_to_rgb( 0.521 + (random.random()-0.5)*0.1, 0.5, 0.65 )] + [0.5]
-        view._marchinglines_shader["color_one"] = _c
-
-
-    BlueView.event_type.push_handlers( view_created = on_view_created )
+    # def on_view_created( view ) -> None:
+    #     print(f"### on_view_created: {view}")
+    #     _c = [ i for i in colorsys.hls_to_rgb( 0.521 + (random.random()-0.5)*0.1, 0.5, 0.65 )] + [0.5]
+    #     view._marchinglines_shader["color_one"] = _c
+    # BlueView.event_type.push_handlers( view_created = on_view_created )
 
     #---------------------------------------------------------------------------
     #---------------------------------------------------------------------------
