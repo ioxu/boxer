@@ -843,7 +843,7 @@ class Container( pyglet.event.EventDispatcher ):
                 # push handlers
                 if self in self.root_container.container_views:
                     _container_view = self.root_container.container_views[self]
-                    print(f"{self} mouse_entered {_container_view}" )
+                    # print(f"{self} mouse_entered {_container_view}" )
                     # self.window.push_handlers( on_mouse_motion=_container_view.on_mouse_motion )
                     _container_view.connect_handlers( self.window )
 
@@ -859,7 +859,7 @@ class Container( pyglet.event.EventDispatcher ):
                 # print("dispatch event 'mouse_exited' for %s: return: %s"%(self.name, ret))
                 if self in self.root_container.container_views:
                     _container_view = self.root_container.container_views[self]
-                    print(f"{self} mouse_exited {_container_view}" )
+                    # print(f"{self} mouse_exited {_container_view}" )
                     # self.window.remove_handlers( on_mouse_motion=_container_view.on_mouse_motion )
                     _container_view.disconnect_handlers( self.window )
 
@@ -1128,9 +1128,10 @@ class Container( pyglet.event.EventDispatcher ):
             # push window handlers here, too
             if container.mouse_inside:
                 _container_view = container.root_container.container_views[container]
-                print(f"{container} mouse_inside {_container_view}" )
+                # print(f"{container} mouse_inside {_container_view}" )
                 if container.window:
-                    container.window.push_handlers( on_mouse_motion=_container_view.on_mouse_motion )
+                    # container.window.push_handlers( on_mouse_motion=_container_view.on_mouse_motion )
+                    _container_view.connect_handlers( container.window )
 
         # set the gui view-type combo drop-do list
         # (otherwise imgui drop down won't update when set programatically)
