@@ -20,10 +20,9 @@ import boxer.containers
 import boxer.shapes
 
 
-# from imgui.integrations.pyglet import create_renderer
-
-
 #----------------
+# plugins
+import boxer.plugins.parameter_view
 #----------------
 
 #gl.glEnable(gl.GL_DEBUG_OUTPUT)
@@ -114,10 +113,10 @@ class Application(pyglet.event.EventDispatcher):
         ########################################################################
         ########################################################################
         # load plugin container types
-        boxer.containers.Container.container_view_types += [\
-                ["parameters",None],
-                ["container debug",None],
-                ]
+        # boxer.containers.Container.container_view_types += [\
+        #         ["parameters",None],
+        #         ["container debug",None],
+        #         ]
         ########################################################################
         ########################################################################
         ########################################################################

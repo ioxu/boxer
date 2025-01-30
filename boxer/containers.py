@@ -787,20 +787,24 @@ class Container( pyglet.event.EventDispatcher ):
   
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+
+
+        # draw ContainerView batches (self.container_view_batches)
+        for b in self.container_view_batches:
+            self.container_view_batches[b].draw()
+
+        # draw Container batch (outlines)
         self.batch.draw()
-        
+
         gl.glEnable(gl.GL_BLEND)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         # self.draw_overlay()
-        
+
         # draw things for all SplitContainers
         # right-click context menu for splitters etc
         for h in self.split_containers:
             h.draw_handle_ui()
 
-        # draw ContainerView batches (self.container_view_batches)
-        for b in self.container_view_batches:
-            self.container_view_batches[b].draw()
 
         # draw leaf containers, mostly imgui ui
         for l in self.leaves:
@@ -834,6 +838,17 @@ class Container( pyglet.event.EventDispatcher ):
                 # ret = self.dispatch_event( "mouse_entered", self )
                 ret = self.root_container.dispatch_event( "mouse_entered", self )
                 # print("dispatch event 'mouse_entered' for %s: return: %s"%(self.name, ret))
+                
+                #---------------------
+                # push handlers
+                if self in self.root_container.container_views:
+                    _container_view = self.root_container.container_views[self]
+                    print(f"{self} mouse_entered {_container_view}" )
+                    # self.window.push_handlers( on_mouse_motion=_container_view.on_mouse_motion )
+                    _container_view.connect_handlers( self.window )
+
+                #self.window.push_handlers(  )   
+                #---------------------
         else:
             self.mouse_inside = False
             if _prev_mouse_inside is True:
@@ -842,7 +857,11 @@ class Container( pyglet.event.EventDispatcher ):
                 ret = self.root_container.dispatch_event( "mouse_exited", self )
                 # ret = self.dispatch_event( "mouse_exited", self )
                 # print("dispatch event 'mouse_exited' for %s: return: %s"%(self.name, ret))
-
+                if self in self.root_container.container_views:
+                    _container_view = self.root_container.container_views[self]
+                    print(f"{self} mouse_exited {_container_view}" )
+                    # self.window.remove_handlers( on_mouse_motion=_container_view.on_mouse_motion )
+                    _container_view.disconnect_handlers( self.window )
 
     @staticmethod
     def change_container( container : 'Container', action : int ) -> list:
@@ -1102,7 +1121,17 @@ class Container( pyglet.event.EventDispatcher ):
             )
             root.container_views[ container ] = view
             view.update_geometries( container )                
-        
+
+            # is the mouse already in this container?
+            # happens when then mouse is used to choose the ContainerView from the
+            # Container UI dropdown, and the view changes underneath the mouse.
+            # push window handlers here, too
+            if container.mouse_inside:
+                _container_view = container.root_container.container_views[container]
+                print(f"{container} mouse_inside {_container_view}" )
+                if container.window:
+                    container.window.push_handlers( on_mouse_motion=_container_view.on_mouse_motion )
+
         # set the gui view-type combo drop-do list
         # (otherwise imgui drop down won't update when set programatically)
         container.container_view_combo_selected = Container.container_view_types.index( view_type )
@@ -1485,6 +1514,10 @@ class ContainerView( pyglet.event.EventDispatcher ):
     subclassing `ContainerView` registers the subclass as a view type to
     Container.container_view_types, which is then read in the Container gui to enable switching to
     the subclassed ContainerView.
+    
+    connect_handlers()
+
+    disconnect_handlers()
     """
     # class events
     event_type = pyglet.event.EventDispatcher()
@@ -1524,6 +1557,13 @@ class ContainerView( pyglet.event.EventDispatcher ):
         print("\033[38;5;52m[X]\033[0m '%s' (ContainerView) being deleted."%self)
         self.dispatch_event( "view_removed", self )
 
+
+    def connect_handlers( self, target) -> None:
+        ...
+
+
+    def disconnect_handlers( self, target) -> None:
+        ...
 
 # ------------------------------------------------------------------------------
 # class ViewportContainer( Container ):
