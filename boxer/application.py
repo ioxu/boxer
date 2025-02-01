@@ -23,6 +23,7 @@ import boxer.shapes
 #----------------
 # plugins
 import boxer.plugins.parameter_view
+import boxer.plugins.graph_view
 #----------------
 
 #gl.glEnable(gl.GL_DEBUG_OUTPUT)
@@ -109,6 +110,12 @@ class Application(pyglet.event.EventDispatcher):
         self.container.update()
         self.container.pprint_tree()
         
+        self.container.push_handlers( view_changed=self.on_container_view_changed )
+        
+        self.do_parameter_connect_lines = False
+        self.parmaters_views = []
+        self.graph_views = []
+
         ########################################################################
         ########################################################################
         ########################################################################
@@ -125,7 +132,7 @@ class Application(pyglet.event.EventDispatcher):
 
         # imgui
         self.ui = boxer.ui.Ui( application_root=self )
-        self.ui.push_handlers(on_parameter_changed=self.on_parameter_change) # register to Ui events
+        self.ui.push_handlers( on_parameter_changed=self.on_parameter_change ) # register to Ui events
 
         # imgui.create_context()
         self._imgui_io = imgui.get_io()
@@ -407,9 +414,27 @@ class Application(pyglet.event.EventDispatcher):
         self.graph_label.draw()
         self.draw_stats_label.draw()
 
+        if self.do_parameter_connect_lines:
+            for p in self.parmaters_views:
+                for g in self.graph_views:
+                    pyglet.shapes.Line(
+                        p.position.x + 25, p.position.y + p.height - 25,
+                        g.position.x + (g.width/2.0), g.position.y + (g.height/2.0),
+                        5,
+                        (255,190,20, 128),
+                    ).draw()
 
 
     def on_key_press( self, symbol, modifiers ):
+
+        if symbol == key.B:
+            #####################################
+            # make sure there is a breakpoint added
+            # on the next 'print' line.
+            #####################################
+            print("break")
+            breakpoint()
+
         if symbol == key.R and not self._imgui_io.want_capture_mouse:
 			# reset camera
             print("reset camera")
@@ -485,8 +510,6 @@ class Application(pyglet.event.EventDispatcher):
     # def on_mouse_press(self, x, y, buttons, modifiers):
     #     if self._imgui_io.want_capture_mouse:
     #         return pyglet.event.EVENT_HANDLED
-
-
     def on_mouse_release(self, x, y, buttons, modifiers):
         """window mouse event"""
     #     print("on_mouse_release self._imgui_io.want_capture_mouse %s"%self._imgui_io.want_capture_mouse)
@@ -500,6 +523,40 @@ class Application(pyglet.event.EventDispatcher):
     #         self.camera.disable()
         
         pass
+
+
+    def on_container_view_changed( self, container, view ) -> None:
+        print(f"[Application] on_container_view_changed {container} {view}")
+
+        # manage connection signals from Parameters views and Graph/Editable views
+        views = self.container.container_views
+        self.parmaters_views = []
+        self.graph_views = []
+        
+        vtd = {}
+        for v in self.container.container_view_types:
+            vtd[ v[0] ] = v[1]
+
+        for v in views:
+            this_view = views[v]
+            print(f"    view: {this_view}")
+            if isinstance(this_view, vtd["Parameters"]):
+                # TODO: this will need to store ContainerView instead
+                print(f"adding {this_view} {v} to PARAMETERS list")
+                self.parmaters_views.append(v)
+            elif isinstance(this_view, vtd["Graph"]):
+                print(f"adding {this_view} {v} to GRAPHS list")
+                # TODO: this will need to store ContainerView instead
+                self.graph_views.append(v)
+
+        if len(self.graph_views) > 0 and len(self.parmaters_views) > 0:
+            print("   connecting Parameters and Editable ContainerViews ..")
+            self.do_parameter_connect_lines = True
+            for p in self.parmaters_views:
+                for g in self.graph_views:
+                    print(f"    {g} ---> {p}")
+        else:
+            self.do_parameter_connect_lines = False
 
 
     # test event ###############################################################

@@ -649,7 +649,7 @@ class Container( pyglet.event.EventDispatcher ):
                             
                             if not is_view_selected:
                                 Container.change_container_view( self, container_view_item )
-                                self.get_root_container().dispatch_event( "view_changed", self, container_view_item )
+                                # self.get_root_container().dispatch_event( "view_changed", self, container_view_item )
 
                             imgui.close_current_popup()
                         
@@ -862,6 +862,7 @@ class Container( pyglet.event.EventDispatcher ):
                     # print(f"{self} mouse_exited {_container_view}" )
                     # self.window.remove_handlers( on_mouse_motion=_container_view.on_mouse_motion )
                     _container_view.disconnect_handlers( self.window )
+
 
     @staticmethod
     def change_container( container : 'Container', action : int ) -> list:
@@ -1122,6 +1123,9 @@ class Container( pyglet.event.EventDispatcher ):
             root.container_views[ container ] = view
             view.update_geometries( container )                
 
+            # root.dispatch_event("view_changed", container, view_type[1])
+            root.dispatch_event("view_changed", container, view)
+
             # is the mouse already in this container?
             # happens when then mouse is used to choose the ContainerView from the
             # Container UI dropdown, and the view changes underneath the mouse.
@@ -1136,7 +1140,8 @@ class Container( pyglet.event.EventDispatcher ):
         # set the gui view-type combo drop-do list
         # (otherwise imgui drop down won't update when set programatically)
         container.container_view_combo_selected = Container.container_view_types.index( view_type )
-        
+
+        # finally update the container drawing
         container.update_display()
 
     
@@ -1180,7 +1185,10 @@ class Container( pyglet.event.EventDispatcher ):
             if type_index:
                 this_container.container_view_combo_selected = type_index
                 # TODO: do we really want to dispatch this event from here?
-                this_container.get_root_container().dispatch_event("view_changed", this_container, this_container.get_root_container().container_view_types[type_index])
+                # not sure. In the even that a view witha lot of state is moved because of a Container split,
+                # maybe I don't want to signal it.
+                # this_container.get_root_container().dispatch_event("view_changed", this_container, this_container.get_root_container().container_view_types[type_index])
+                this_container.get_root_container().dispatch_event("view_changed", this_container, this_view)
                 this_container.update_display()
 
 
@@ -1516,9 +1524,13 @@ class ContainerView( pyglet.event.EventDispatcher ):
     Container.container_view_types, which is then read in the Container gui to enable switching to
     the subclassed ContainerView.
     
-    connect_handlers()
-
-    disconnect_handlers()
+    ## event handlers
+    Implementations will probably want to connect to window events and/or
+    other events in the system.
+    
+    connect_handlers( container )
+    disconnect_handlers( container )
+    
     """
     # class events
     event_type = pyglet.event.EventDispatcher()
@@ -1550,13 +1562,19 @@ class ContainerView( pyglet.event.EventDispatcher ):
             Container.container_view_types += [ [cls.string_name, cls], ]
 
 
-    def update_geometries( self, container : Container ) -> None:
-        raise NotImplementedError
-        
+    def __repr__(self):
+        return "%s at %s name:'%s'"%(type(self), id(self),self.string_name)
+
 
     def __del__( self ) -> None:
         print("\033[38;5;52m[X]\033[0m '%s' (ContainerView) being deleted."%self)
         self.dispatch_event( "view_removed", self )
+
+
+    def update_geometries( self, container : Container ) -> None:
+        raise NotImplementedError
+        
+
 
 
     def connect_handlers( self, target) -> None:

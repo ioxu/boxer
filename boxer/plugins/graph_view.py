@@ -1,17 +1,16 @@
 import pyglet
 import boxer.containers
-# import boxer.plugins.parameter_view
 
-class ParameterView( boxer.containers.ContainerView ):
-        string_name = "Parameters"
+class GraphView( boxer.containers.ContainerView ):
+        string_name = "Graph"
         def __init__( self, batch = None ):
-            print("instancing 'Parameters' ContainerView")
+            print("instancing 'Graph' ContainerView")
             
             self.margin = 0
             self.bg_rect = pyglet.shapes.Rectangle(
                 50, 50, 200, 200,
                 #40, 8,
-                (30, 30, 30, 180),
+                (210, 210, 210, 90),
                 pyglet.gl.GL_SRC_ALPHA,
                 pyglet.gl.GL_ONE_MINUS_SRC_ALPHA,
                 batch
@@ -19,15 +18,15 @@ class ParameterView( boxer.containers.ContainerView ):
             self.circle = pyglet.shapes.Circle(
                  10,10,
                  10,32,
-                 (255,30,30,200),
+                 (30,255,30,200),
                 pyglet.gl.GL_SRC_ALPHA,
                 pyglet.gl.GL_ONE_MINUS_SRC_ALPHA,
                 batch
             )
             self.mouse_circle = pyglet.shapes.Circle(
                  10,10,
-                 5,32,
-                 (30,255,30,100),
+                 20,32,
+                 (255,30,30,100),
                 pyglet.gl.GL_SRC_ALPHA,
                 pyglet.gl.GL_ONE_MINUS_SRC_ALPHA,
                 batch
