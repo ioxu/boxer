@@ -5,12 +5,41 @@ import pyglet.image
 import boxer.shaders
 import boxer.shapes
 
+class BackgroundGroup( pyglet.graphics.Group ):
+    """group to activate texturing and texture mix shader"""
+    def __init__(self, texture, shaderprogram):
+        super().__init__()
+        self.texture = texture
+        self.program = shaderprogram
+        self.originx = 0
+        self.originy =0
+        self.width = 200
+        self.height= 200
+
+
+    def set_state(self):
+        # print("++")
+        # gl.glEnable(gl.GL_SCISSOR_TEST)
+        # gl.glScissor(self.originx, self.originy, self.width, self.height)
+        self.program.use()
+        gl.glEnable(self.texture.target)
+        gl.glBindTexture(self.texture.target, self.texture.id)
+
+
+    def unset_state(self):
+        # print("--")
+        # gl.glDisable(gl.GL_SCISSOR_TEST)
+        gl.glBindTexture(self.texture.target, 0)        
+        self.program.stop()
+
+
 class Background:
     """backround object for graph sheets"""
 
     def __init__(self,
-                 name="background"):
-        self.batch = pyglet.graphics.Batch()
+                 name="background",
+                 batch = None):
+        self.batch = batch or pyglet.graphics.Batch()
         self.name = name
         self.colour_one = (0.25, 0.25, 0.25)
         self.colour_two = (0.5, 0.5, 0.5)
@@ -43,15 +72,24 @@ class Background:
         _bg_height = _bg_width
         _bg_verts = boxer.shapes.rectangle_centered_vertices( -0.5, 0.5, _bg_width, _bg_width )
         _bg_tex_coords = boxer.shapes.quad_texcoords( _bg_width/self.texture.width, _bg_height/self.texture.height, 0.0, 0.0 )
-        self.background_triangles = self.shader_program.vertex_list_indexed( 4, gl.GL_TRIANGLES, (0,1,2,0,2,3), self.batch, None,
+
+        self.bg_group = BackgroundGroup( self.texture , self.shader_program)
+
+        self.background_triangles = self.shader_program.vertex_list_indexed( 4, gl.GL_TRIANGLES, (0,1,2,0,2,3),
+                                    self.batch,
+                                    self.bg_group,
                                     position = ('f', _bg_verts ),
                                     #colors = ('f', self.colour * 4 ),
                                     colors = ('f', (1.0, 1.0, 1.0, 1.0) * 4 ),
                                     tex_coords = ('f', _bg_tex_coords) )
 
-        self.centre_point = _program.vertex_list_indexed(1, gl.GL_POINTS, [0], batch = self.batch,
-                                position=('f', (0.0, 0.0, 0.0)),
-                                colors = ('f', (1.0, 0.0, 0.0, 0.5) ))
+        # self.centre_point = _program.vertex_list_indexed(1, gl.GL_POINTS, [0], batch = self.batch,
+        #                         position=('f', (0.0, 0.0, 0.0)),
+        #                         colors = ('f', (1.0, 0.0, 0.0, 0.5) ))
+
+    def __del__(self) -> None:
+        print(f"DELETING BACKGROUND {self}")
+        self.background_triangles.delete()
 
 
     def set_colour_one(self, colour) -> None:
@@ -82,6 +120,13 @@ class Background:
         self.batch.draw()
         gl.glBindTexture(self.texture.target, 0)
         # gl.glPopMatrix()
+
+
+    def set_scissor(self, ox, oy, width, height) -> None:
+        self.bg_group.originx = ox
+        self.bg_group.originy = oy
+        self.bg_group.width = width
+        self.bg_group.height = height
 
 
     def as_json(self) -> dict:

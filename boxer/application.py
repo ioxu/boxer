@@ -74,6 +74,8 @@ class Application(pyglet.event.EventDispatcher):
         self.fps_display.update_period = 0.2
         self.fps_display.label.y = 60
 
+        pyglet.gl.glClearColor(0.2,0.2,0.2,1)
+
         # app components:
         self.background = boxer.background.Background()
 
@@ -157,14 +159,14 @@ class Application(pyglet.event.EventDispatcher):
             x = 10, y = 20
         )
 
-        self.draw_stats_label: pyglet.text.Label = pyglet.text.Label(
-            str("STATS\nSTATSlineTWO"),
-            font_size = 7.5,
-            color = ( 255, 255, 255, 255),
-            x = 10, y = 250,
-            width = 1024,
-            multiline=True
-        )
+        # self.draw_stats_label: pyglet.text.Label = pyglet.text.Label(
+        #     str("STATS\nSTATSlineTWO"),
+        #     font_size = 7.5,
+        #     color = ( 255, 255, 255, 255),
+        #     x = 10, y = 250,
+        #     width = 1024,
+        #     multiline=True
+        # )
 
         # self.test_decal = pyglet.resource.image('boxer/resources/test_decal.png')#pyglet.image.load( 'boxer/resources/test_decal.png' )
         # gl.glGenerateMipmap(gl.GL_TEXTURE_2D)
@@ -296,7 +298,7 @@ class Application(pyglet.event.EventDispatcher):
         self.camera.push()
         #----------------------
 
-        self.background.draw()
+        # self.background.draw()
 
 
 
@@ -411,8 +413,8 @@ class Application(pyglet.event.EventDispatcher):
 
 
         self.fps_display.draw()
-        self.graph_label.draw()
-        self.draw_stats_label.draw()
+        # self.graph_label.draw()
+        # self.draw_stats_label.draw()
 
         if self.do_parameter_connect_lines:
             for p in self.parmaters_views:
@@ -574,13 +576,13 @@ class Application(pyglet.event.EventDispatcher):
 
     def on_resize(self, width, height) -> None:
         """window event"""
-        print("applicaton.window.on_resize = (%s, %s)"%(width, height))
-
-        print("update self.container")
+        # print("applicaton.window.on_resize = (%s, %s)"%(width, height))
+        # print("update self.container")
         self.container.width = width
         self.container.height = height - 26
         self.container.position = pyglet.math.Vec2(0,0)
         self.container.update_geometries()
+
 
 # ------------------------------------------------------------------------------
 # Application events

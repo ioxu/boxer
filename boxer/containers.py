@@ -5,7 +5,6 @@ The root container must be a Container (non-SplitContainer-type)
 """
 import math
 
-# ui containers
 if __name__ == "__main__":
     import sys
     sys.path.extend("..")
@@ -489,6 +488,7 @@ class Container( pyglet.event.EventDispatcher ):
             if self.is_leaf:
                 self.debug_label_name.text =\
                     self.name + " (%s)"%(type(self).__name__) +\
+                    "\nhash " + str( hash( self ) ) +\
                     "\n.mouse_inside " + str(self.mouse_inside) +\
                     "\n view: " + str( self.get_root_container().container_views.get(self, "null view").__class__.__name__ )
             else:
@@ -790,8 +790,31 @@ class Container( pyglet.event.EventDispatcher ):
 
 
         # draw ContainerView batches (self.container_view_batches)
-        for b in self.container_view_batches:
-            self.container_view_batches[b].draw()
+        # for b in self.container_view_batches:
+        #     print(f"b: '{b}'")
+        #     self.container_view_batches[b].draw()
+
+
+        for l in self.leaves:
+            # print(f"leaf: {l}")
+            if l in self.container_views:
+                cv = self.container_views[l]
+                # print(f"self.container_views[self] {cv}")                
+                # if isinstance(self.container_views[self], GraphView):
+                    # print(f"isinstance ..")
+                    # self.container_views[self].batch.draw()
+                    # self.container_view_batches[GraphView].draw()
+
+                # print(f"type { type(self.container_views[l]) }" )
+                gl.glEnable(gl.GL_SCISSOR_TEST)
+                gl.glScissor(int(cv.bg_rect.x), int(cv.bg_rect.y), int(cv.bg_rect.width), int(cv.bg_rect.height))
+                self.container_view_batches[type(self.container_views[l])].draw()
+                gl.glDisable(gl.GL_SCISSOR_TEST)
+
+
+                # for k in self.container_view_batches:
+                #     print(f"k {self.container_view_batches[k]}")
+                #     self.container_view_batches[k].draw()
 
         # draw Container batch (outlines)
         self.batch.draw()
@@ -1087,6 +1110,7 @@ class Container( pyglet.event.EventDispatcher ):
         if view_type[1] == None:
             _view = root.container_views.pop( container, None )
             print(f"root.container_views: popping {container}, thus {_view}")
+            root.dispatch_event("view_changed", container, _view)
 
         # setting a view to the same kind of view
         # this can happen when:
@@ -1704,7 +1728,7 @@ if __name__ == "__main__":
     import random
     import shaping
 
-    Container.CONTAINER_DEBUG_LABEL = False
+    Container.CONTAINER_DEBUG_LABEL = True
 
     _window_config = gl.Config(
         sample_buffers = 1,

@@ -6,7 +6,9 @@ class ParameterView( boxer.containers.ContainerView ):
         string_name = "Parameters"
         def __init__( self, batch = None ):
             print("instancing 'Parameters' ContainerView")
-            
+
+            self.entered = False
+
             self.margin = 0
             self.bg_rect = pyglet.shapes.Rectangle(
                 50, 50, 200, 200,
@@ -32,7 +34,14 @@ class ParameterView( boxer.containers.ContainerView ):
                 pyglet.gl.GL_ONE_MINUS_SRC_ALPHA,
                 batch
             )
-            self.entered = False
+
+            self.view_label = pyglet.text.Label(
+                "parameters",
+                font_size = 15.0,
+                color = (255,255,255, 40),
+                x = 10, y = 20,
+                batch=batch
+            )
 
 
         def __del__(self) -> None:
@@ -46,6 +55,9 @@ class ParameterView( boxer.containers.ContainerView ):
             self.bg_rect.width = container.width - (2*m)
             self.bg_rect.height = container.height - (2*m)
             self.circle.position = (container.position.x + container.width - 18.0, container.position.y + 18.0)
+
+            # label
+            self.view_label.position = pyglet.math.Vec3( container.position.x + 10, container.position.y + (self.view_label.content_height * 0.5) , 0 )
 
 
         def connect_handlers(self, target) -> None:
