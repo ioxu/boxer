@@ -16,14 +16,14 @@ class GraphView( boxer.containers.ContainerView ):
             #-----------------------------------------------------------------------------
 
             self.margin = 0
-            self.bg_rect = pyglet.shapes.Rectangle(
-                50, 50, 200, 200,
-                #40, 8,
-                (210, 210, 210, 90),
-                pyglet.gl.GL_SRC_ALPHA,
-                pyglet.gl.GL_ONE_MINUS_SRC_ALPHA,
-                batch
-            )
+            # self.bg_rect = pyglet.shapes.Rectangle(
+            #     50, 50, 200, 200,
+            #     #40, 8,
+            #     (210, 210, 210, 90),
+            #     pyglet.gl.GL_SRC_ALPHA,
+            #     pyglet.gl.GL_ONE_MINUS_SRC_ALPHA,
+            #     batch
+            # )
             self.circle = pyglet.shapes.Circle(
                  10,10,
                  10,32,
@@ -68,9 +68,9 @@ class GraphView( boxer.containers.ContainerView ):
 
         def update_geometries(self, container):
             m = self.margin
-            self.bg_rect.position = pyglet.math.Vec2( container.position.x + m, container.position.y + m )
-            self.bg_rect.width = container.width - (2*m)
-            self.bg_rect.height = container.height - (2*m)
+            # self.bg_rect.position = pyglet.math.Vec2( container.position.x + m, container.position.y + m )
+            # self.bg_rect.width = container.width - (2*m)
+            # self.bg_rect.height = container.height - (2*m)
             self.circle.position = (container.position.x + container.width - 18.0, container.position.y + 18.0)
 
             # label

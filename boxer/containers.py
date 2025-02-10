@@ -789,39 +789,27 @@ class Container( pyglet.event.EventDispatcher ):
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
 
 
-        # draw ContainerView batches (self.container_view_batches)
-        # for b in self.container_view_batches:
-        #     print(f"b: '{b}'")
-        #     self.container_view_batches[b].draw()
 
-
+        # draw leaf containers:
+        #   imgui ui
+        #   draw each container view through a scissor
         for l in self.leaves:
-            # print(f"leaf: {l}")
+
             if l in self.container_views:
                 cv = self.container_views[l]
-                # print(f"self.container_views[self] {cv}")                
-                # if isinstance(self.container_views[self], GraphView):
-                    # print(f"isinstance ..")
-                    # self.container_views[self].batch.draw()
-                    # self.container_view_batches[GraphView].draw()
-
-                # print(f"type { type(self.container_views[l]) }" )
                 gl.glEnable(gl.GL_SCISSOR_TEST)
-                gl.glScissor(int(cv.bg_rect.x), int(cv.bg_rect.y), int(cv.bg_rect.width), int(cv.bg_rect.height))
+                gl.glScissor(int(l.position.x),
+                             int(l.position.y),
+                             int(l.width),
+                             int(l.height))
                 self.container_view_batches[type(self.container_views[l])].draw()
                 gl.glDisable(gl.GL_SCISSOR_TEST)
 
-
-                # for k in self.container_view_batches:
-                #     print(f"k {self.container_view_batches[k]}")
-                #     self.container_view_batches[k].draw()
+            l.draw_leaf()
 
         # draw Container batch (outlines)
         self.batch.draw()
 
-        gl.glEnable(gl.GL_BLEND)
-        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-        # self.draw_overlay()
 
         # draw things for all SplitContainers
         # right-click context menu for splitters etc
@@ -829,15 +817,11 @@ class Container( pyglet.event.EventDispatcher ):
             h.draw_handle_ui()
 
 
-        # draw leaf containers, mostly imgui ui
-        for l in self.leaves:
-            l.draw_leaf()
 
         gl.glEnable(gl.GL_BLEND)
         # gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         self.draw_overlay()
-
 
 
     def draw_overlay(self) -> None:
@@ -1224,9 +1208,10 @@ class Container( pyglet.event.EventDispatcher ):
         print("\033[38;5;196mon_container_collapsed:\033[0m %s"%container)
 
         # TODO: once these functions are methods of Container, can then just use self.root
+        # if container in root.container_views:
+        #     root.dispatch_event("view_changed", container, root.container_views[container])
         root.container_views.pop( container, None )
         print(f"container_views (on_container_collapsed): {root.container_views}")
-
 
 # ------------------------------------------------------------------------------
 # Container events

@@ -113,6 +113,7 @@ class Application(pyglet.event.EventDispatcher):
         self.container.pprint_tree()
         
         self.container.push_handlers( view_changed=self.on_container_view_changed )
+        self.container.push_handlers( collapsed=self.on_container_view_changed )
         
         self.do_parameter_connect_lines = False
         self.parmaters_views = []
