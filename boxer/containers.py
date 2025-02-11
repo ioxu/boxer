@@ -24,6 +24,8 @@ import boxer.mouse
 
 import imgui as imgui
 
+import gc
+
 from typing import Optional
 # https://www.reddit.com/r/learnprogramming/comments/214nd9/making_a_gui_from_scratch/
 # https://developer.valvesoftware.com/wiki/VGUI_Documentation
@@ -138,6 +140,10 @@ class Container( pyglet.event.EventDispatcher ):
         # When a new container view is spawned, a dedicated batch for the ContainerView type
         # is added to this dictionary for re-use.
         self.container_view_batches : dict[ type[ContainerView], pyglet.graphics.Batch ] = {}
+
+        #
+        self.container_view_cameras : dict[ ContainerView, boxer.camera.Camera ] = {}
+
 
         # track split containers so handles can be drawn
         self.split_containers = []
@@ -1090,11 +1096,16 @@ class Container( pyglet.event.EventDispatcher ):
         root = container.get_root_container()
         
         create_new_view = False
+
         # setting view to a None view
         if view_type[1] == None:
-            _view = root.container_views.pop( container, None )
-            print(f"root.container_views: popping {container}, thus {_view}")
+            # remove ContainerView from referring lists
+            _view = root.container_views.pop( container )#, None )
+            root.container_view_cameras.pop( _view )#, None)
+            # print(f"root.container_views: popping {container}, thus {_view}")
             root.dispatch_event("view_changed", container, _view)
+            # print(f"REFERENCES {gc.get_referrers( _view )}")
+            del(_view)
 
         # setting a view to the same kind of view
         # this can happen when:
@@ -1131,7 +1142,12 @@ class Container( pyglet.event.EventDispatcher ):
             root.container_views[ container ] = view
             view.update_geometries( container )                
 
-            # root.dispatch_event("view_changed", container, view_type[1])
+            # camera
+            if view not in root.container_view_cameras:
+                print(f"\033[38;5;63m[ContainerView]\033[0m camera: {view} not in root.container_view_cameras, create new boxer.camera.Camera")
+                root.container_view_cameras[view] = boxer.camera.Camera( window=root.window )
+            else:
+                print(f"\033[38;5;63m[ContainerView]\033[0m camera: {view} reusing camera {root.container_view_cameras[view]}")
             root.dispatch_event("view_changed", container, view)
 
             # is the mouse already in this container?
@@ -1139,7 +1155,7 @@ class Container( pyglet.event.EventDispatcher ):
             # Container UI dropdown, and the view changes underneath the mouse.
             # push window handlers here, too
             if container.mouse_inside:
-                _container_view = container.root_container.container_views[container]
+                _container_view = root.container_views[container]
                 # print(f"{container} mouse_inside {_container_view}" )
                 if container.window:
                     # container.window.push_handlers( on_mouse_motion=_container_view.on_mouse_motion )
@@ -1203,15 +1219,13 @@ class Container( pyglet.event.EventDispatcher ):
     @staticmethod
     def collapse_container_view( container : 'Container', root : 'Container' ):
         """callback to be hooked up when a container is closed"""        
-        # TODO: move to method of Container
-
         print("\033[38;5;196mon_container_collapsed:\033[0m %s"%container)
+        _view = root.container_views.pop( container, None )
+        root.container_view_cameras.pop( _view, None)
+        del(_view)
+        # print(f"container_views (on_container_collapsed): {root.container_views}")
+        # Container.change_container_view( container, ["none", None] )
 
-        # TODO: once these functions are methods of Container, can then just use self.root
-        # if container in root.container_views:
-        #     root.dispatch_event("view_changed", container, root.container_views[container])
-        root.container_views.pop( container, None )
-        print(f"container_views (on_container_collapsed): {root.container_views}")
 
 # ------------------------------------------------------------------------------
 # Container events

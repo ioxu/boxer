@@ -59,11 +59,16 @@ class GraphView( boxer.containers.ContainerView ):
             )
 
 
-
         def __del__(self) -> None:
-            self.bg_rect.delete()
+            print(f"deleting GraphView {self}")
+            # self.bg_rect.delete()
             del(self.background)
+            self.circle.delete()
+            self.mouse_circle.delete()
+            self.view_label.delete()
+            self.hash_label.delete()
             # self.disconnect_handlers()
+            super().__del__()
 
 
         def update_geometries(self, container):

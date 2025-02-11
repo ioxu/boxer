@@ -46,6 +46,9 @@ class ParameterView( boxer.containers.ContainerView ):
 
         def __del__(self) -> None:
             self.bg_rect.delete()
+            self.circle.delete()
+            self.mouse_circle.delete()
+            self.view_label.delete()            
             # self.disconnect_handlers()
 
 
