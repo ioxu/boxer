@@ -1087,56 +1087,41 @@ class Container( pyglet.event.EventDispatcher ):
             `container` : `Container` -  the container to operate on
             `view_type` : `list[ viewname : str, view_type : `ContainerView` subclass  ]`
 
-        controls instatiation of new views
+        controls instatiation of new views, and deleting of switched-from views.
         """
         print('\033[38;5;63m[view type]\033[0m changed on \033[38;5;63m%s\033[0m to \033[38;5;153m"%s"\033[0m'%(container.name, view_type)  )
 
         root = container.get_root_container()
         create_new_view = False
-        
-        print(f"[ ] [ ] [ ] current view: {root.container_views.get( container, None )} to view: {view_type}")
-        if type(root.container_views.get( container, None )) != type(view_type[1]):
-            print(f"    -> SWITCHING TYPE")
-        else:
-            print(f"    -O SAME TYPE")
+        delete_current_view = False
 
-
-        # if the type oif the current view is different to the view type being switched to:
-        # switching view type, remove all references, delete view
+        # --------------------------------------------------------------------------------
+        # if switching the view to "none"
         if view_type[1] == None:
-        # # if type(root.container_views.get( container, None )) != type(view_type[1]):
-        #     # remove ContainerView from referring lists
-        #     _view = root.container_views.pop( container, None )
-        #     root.container_view_cameras.pop( _view, None)
-        #     # print(f"root.container_views: popping {container}, thus {_view}")
-        #     root.dispatch_event("view_changed", container, _view)
-        #     # print(f"REFERENCES {gc.get_referrers( _view )}")
-        #     del(_view)
-            create_new_view = True
+            create_new_view = False
+            delete_current_view = True
 
-
-        # setting a view to the same kind of view
-        # this can happen when:
-        #   1) splitting a view which moves a view between containers which triggers the "view_changed" event
-        
-        # check if the container is in the views dict
         elif root.container_views.get( container, None ):
+            # .. checking if the container is in the views dict
             # if so, check if it's the same view type it's already seat to ..
             if isinstance(root.container_views[ container ], view_type[1] ):
                 # the container view has been set to the view that the container is already set to.
                 return
             else:
                 # the container has changed view
-                # prepare a new view with either a new batch or an existing view batch
                 create_new_view = True
+                delete_current_view = True
         else:
             # if not, create a new view
             create_new_view = True
-        
-        if create_new_view:
+            delete_current_view = True
+
+        # --------------------------------------------------------------------------------
+        # delete current view
+        if delete_current_view:
             # delete the old view
-        # if type(root.container_views.get( container, None )) != type(view_type[1]):
             # remove ContainerView from referring lists
+            # (remove all references, delete view)
             _view = root.container_views.pop( container, None )
             root.container_view_cameras.pop( _view, None)
             # print(f"root.container_views: popping {container}, thus {_view}")
@@ -1144,7 +1129,9 @@ class Container( pyglet.event.EventDispatcher ):
             # print(f"REFERENCES {gc.get_referrers( _view )}")
             del(_view)
 
-
+        # --------------------------------------------------------------------------------
+        # do the switching
+        if create_new_view:
             # does the view type already have a batch created for it?
             if view_type[1] in root.container_view_batches:
                 # (re)use the one from the cache
@@ -1180,11 +1167,14 @@ class Container( pyglet.event.EventDispatcher ):
                     # container.window.push_handlers( on_mouse_motion=_container_view.on_mouse_motion )
                     _container_view.connect_handlers( container.window )
 
+        # --------------------------------------------------------------------------------
+        # post switching
+
         # set the gui view-type combo drop-do list
         # (otherwise imgui drop down won't update when set programatically)
         container.container_view_combo_selected = Container.container_view_types.index( view_type )
 
-        # finally update the container drawing
+        # finally, update the container drawing
         container.update_display()
 
     
@@ -1746,7 +1736,7 @@ if __name__ == "__main__":
     import random
     import shaping
 
-    Container.CONTAINER_DEBUG_LABEL = True
+    Container.CONTAINER_DEBUG_LABEL = False
 
     _window_config = gl.Config(
         sample_buffers = 1,
@@ -1822,6 +1812,7 @@ if __name__ == "__main__":
             super(BlueView, self).__del__()
             print("\033[38;5;52m[X]\033[0m '%s' (BlueView) being deleted."%self)
             self.vertex_list.delete()
+            super().__del__()
 
 
         def update_geometries(self, container: Container) -> None:
