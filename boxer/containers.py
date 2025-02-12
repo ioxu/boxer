@@ -1090,22 +1090,30 @@ class Container( pyglet.event.EventDispatcher ):
         controls instatiation of new views
         """
         print('\033[38;5;63m[view type]\033[0m changed on \033[38;5;63m%s\033[0m to \033[38;5;153m"%s"\033[0m'%(container.name, view_type)  )
-        
-        # TODO: if a view change results in popping a view, should event the view removal
 
         root = container.get_root_container()
-        
         create_new_view = False
+        
+        print(f"[ ] [ ] [ ] current view: {root.container_views.get( container, None )} to view: {view_type}")
+        if type(root.container_views.get( container, None )) != type(view_type[1]):
+            print(f"    -> SWITCHING TYPE")
+        else:
+            print(f"    -O SAME TYPE")
 
-        # setting view to a None view
+
+        # if the type oif the current view is different to the view type being switched to:
+        # switching view type, remove all references, delete view
         if view_type[1] == None:
-            # remove ContainerView from referring lists
-            _view = root.container_views.pop( container )#, None )
-            root.container_view_cameras.pop( _view )#, None)
-            # print(f"root.container_views: popping {container}, thus {_view}")
-            root.dispatch_event("view_changed", container, _view)
-            # print(f"REFERENCES {gc.get_referrers( _view )}")
-            del(_view)
+        # # if type(root.container_views.get( container, None )) != type(view_type[1]):
+        #     # remove ContainerView from referring lists
+        #     _view = root.container_views.pop( container, None )
+        #     root.container_view_cameras.pop( _view, None)
+        #     # print(f"root.container_views: popping {container}, thus {_view}")
+        #     root.dispatch_event("view_changed", container, _view)
+        #     # print(f"REFERENCES {gc.get_referrers( _view )}")
+        #     del(_view)
+            create_new_view = True
+
 
         # setting a view to the same kind of view
         # this can happen when:
@@ -1126,6 +1134,17 @@ class Container( pyglet.event.EventDispatcher ):
             create_new_view = True
         
         if create_new_view:
+            # delete the old view
+        # if type(root.container_views.get( container, None )) != type(view_type[1]):
+            # remove ContainerView from referring lists
+            _view = root.container_views.pop( container, None )
+            root.container_view_cameras.pop( _view, None)
+            # print(f"root.container_views: popping {container}, thus {_view}")
+            root.dispatch_event("view_changed", container, _view)
+            # print(f"REFERENCES {gc.get_referrers( _view )}")
+            del(_view)
+
+
             # does the view type already have a batch created for it?
             if view_type[1] in root.container_view_batches:
                 # (re)use the one from the cache
