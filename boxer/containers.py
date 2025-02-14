@@ -30,6 +30,7 @@ from typing import Optional
 # https://www.reddit.com/r/learnprogramming/comments/214nd9/making_a_gui_from_scratch/
 # https://developer.valvesoftware.com/wiki/VGUI_Documentation
 
+import os
 
 class Container( pyglet.event.EventDispatcher ):
     """
@@ -56,11 +57,13 @@ class Container( pyglet.event.EventDispatcher ):
     """
 
     CONTAINER_DEBUG_LABEL = False
+    # _base_path = os.path.join(os.getcwd(), "boxer", "resources")
+    _base_path = os.path.join(os.path.dirname(__file__), "resources")
+    cog_image = pyglet.image.load(os.path.join(_base_path,"cog_16.png"))
+    window_image = pyglet.image.load(os.path.join(_base_path,"window_16.png"))
+    downarrow_image = pyglet.image.load(os.path.join(_base_path,"downarrow_16.png"))
+    diamond_image = pyglet.image.load(os.path.join(_base_path,"diamond_16.png"))
 
-    cog_image = pyglet.image.load("boxer/resources/cog_16.png")
-    window_image = pyglet.image.load("boxer/resources/window_16.png")
-    downarrow_image = pyglet.image.load("boxer/resources/downarrow_16.png")
-    diamond_image = pyglet.image.load("boxer/resources/diamond_16.png")
     textures = {
         "cog" : cog_image.get_texture(),
         "window" : window_image.get_texture(),
@@ -811,6 +814,8 @@ class Container( pyglet.event.EventDispatcher ):
                 self.container_view_batches[type(self.container_views[l])].draw()
                 gl.glDisable(gl.GL_SCISSOR_TEST)
 
+                cv.draw()
+
             l.draw_leaf()
 
         # draw Container batch (outlines)
@@ -1551,8 +1556,11 @@ class ContainerView( pyglet.event.EventDispatcher ):
     Abstract 'view' object to be drawn in leaf containers
 
     Must define `self.update_geometries` to adapt to windowing/container geometry updates.
+
+    Subclasses must call `super().update_geometries( container )` if overriding `update_geometries`.
     
-    subclassing `ContainerView` registers the subclass as a view type to
+    ## subclassing as a plugin
+    Subclassing `ContainerView` automatically registers the subclass as a view type to
     Container.container_view_types, which is then read in the Container gui to enable switching to
     the subclassed ContainerView.
     
@@ -1578,8 +1586,12 @@ class ContainerView( pyglet.event.EventDispatcher ):
     # Container.register_container_view_type( name : str, <ContainerView subcclass> )
     auto_register = True
 
-    def __init__( self, batch = None ):
+    def __init__( self, batch = None, position = pyglet.math.Vec2(), width : int = 0, height : int = 0 ):
         print("\033[38;5;63m[ContainerView.__init__()]\033[0m")
+        self.position = position
+        self.width = width
+        self.height = height
+
         #self.dispatch_event("view_created", self)
         ContainerView.event_type.dispatch_event( "view_created", self )
 
@@ -1604,9 +1616,20 @@ class ContainerView( pyglet.event.EventDispatcher ):
 
 
     def update_geometries( self, container : Container ) -> None:
-        raise NotImplementedError
+        """Subclasses must `super().update_geometries( container )` in `update_geometries()`
+        """
+        # window dimensions (for imgui calcs)
+        self.window_width = container.window.width
+        self.window_height = container.window.height
+
+        # ContainerView dimensions
+        self.position = pyglet.math.Vec2( container.position.x, container.position.y )
+        self.width = container.width
+        self.height = container.height
         
 
+    def draw(self) -> None:
+        ...
 
 
     def connect_handlers( self, target) -> None:
@@ -2024,5 +2047,3 @@ if __name__ == "__main__":
 
         fps_display.draw()
     app.run()
-
-# %%

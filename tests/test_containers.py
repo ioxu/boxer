@@ -320,7 +320,7 @@ def test_register_ContainerView_type_exception() -> None:
 # as views on two leaf Containers. Then set the second Container (RedView) to a new BlueView view.
 # then I test that a new batch has not been created by checking the length of .container_view_batches.keys()
 # before and after creating the second BlueView view/
-def test_Container_view_batches() -> None:
+def test_ContainerView_batches() -> None:
     # big one
 
     class BlueView( containers.ContainerView ):
@@ -433,3 +433,35 @@ def test_ContainerView_subclass_super_init() -> None:
             super().__init__(self, **kwargs)
 
     nv = NewView()
+
+
+# ------------------------------------------------------------------------------
+# ContainerView geometric dimensions args
+# I don't think ContainerViews will ever be intsanced with dimension args?
+def test_ContainerView_dimensions_args() -> None:
+    class NewView( containers.ContainerView ):
+        string_name = "new view"
+        def __init__(self, **kwargs):
+            super().__init__(self, **kwargs)
+ 
+    cv = NewView( position=pyglet.math.Vec2(20.0, 35.5), width=25, height=66 )
+    assert(cv.position.y == 35.5)
+    assert(cv.height==66)
+
+
+# ------------------------------------------------------------------------------
+# ContainerView geometric dimensions after .update_geometries(container)
+def test_ContainerView_dimensions_update_geometries() -> None:
+    class NewView( containers.ContainerView ):
+        string_name = "new view"
+        def __init__(self, **kwargs):
+            super().__init__(self, **kwargs)
+
+    c = containers.Container(position=pyglet.math.Vec2(123, 456), width=789, height=1011)
+    cv = NewView( position=pyglet.math.Vec2(20.0, 35.5), width=25, height=66 )
+    cv.update_geometries(c)
+    assert(cv.position.x == 123)
+    assert(cv.position.y == 456)
+    assert(cv.width==789)
+    assert(cv.height==1011)
+

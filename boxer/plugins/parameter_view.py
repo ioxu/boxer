@@ -55,6 +55,8 @@ class ParameterView( boxer.containers.ContainerView ):
             
 
         def update_geometries(self, container):
+            super().update_geometries( container )
+
             m = self.margin
             self.bg_rect.position = pyglet.math.Vec2( container.position.x + m, container.position.y + m )
             self.bg_rect.width = container.width - (2*m)

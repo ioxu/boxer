@@ -1,13 +1,16 @@
 import pyglet
 import boxer.containers
 import boxer.background
+import imgui
+
 
 class GraphView( boxer.containers.ContainerView ):
         string_name = "Graph"
-        def __init__( self, batch = None ):
+        def __init__( self, batch = None, **kwargs ):
             print("instancing 'Graph' ContainerView")
-            self.batch = batch
+            super().__init__(self, **kwargs)
             
+            self.batch = batch
             self.entered = False
 
             #-----------------------------------------------------------------------------
@@ -59,6 +62,16 @@ class GraphView( boxer.containers.ContainerView ):
             )
 
 
+        def draw(self) -> None:
+            # print(f"drawing leaf ContainerView {self}")
+            imgui.set_next_window_position( self.position.x + 10,
+                                           self.window_height - self.position.y - self.height + 10 )
+            imgui.set_next_window_size(self.width -20, self.height-20)
+
+            with imgui.begin(str(self)) as imgui_window:
+                imgui.text("graph://")
+
+
         def __del__(self) -> None:
             print(f"deleting GraphView {self}")
             # self.bg_rect.delete()
@@ -72,22 +85,15 @@ class GraphView( boxer.containers.ContainerView ):
 
 
         def update_geometries(self, container):
+            super().update_geometries( container )
+
             m = self.margin
-            # self.bg_rect.position = pyglet.math.Vec2( container.position.x + m, container.position.y + m )
-            # self.bg_rect.width = container.width - (2*m)
-            # self.bg_rect.height = container.height - (2*m)
             self.circle.position = (container.position.x + container.width - 18.0, container.position.y + 18.0)
 
             # label
             self.view_label.position = pyglet.math.Vec3( container.position.x + 10, container.position.y + (self.view_label.content_height * 0.5) , 0 )
             self.hash_label.text = str(hash(self))
             self.hash_label.position = pyglet.math.Vec3( container.position.x + 10 + self.view_label.content_width + 10, container.position.y + (self.view_label.content_height * 0.5) , 0 )
-
-            # background object
-            # self.background.set_scissor( int(self.bg_rect.x),
-            #                             int(self.bg_rect.y),
-            #                             int(self.bg_rect.width),
-            #                             int(self.bg_rect.height) )
 
 
         def connect_handlers(self, target) -> None:

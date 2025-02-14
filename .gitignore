@@ -166,3 +166,5 @@ cython_debug/
 # PyImGui
 imgui.ini
 
+# Jupyter notebooks (for now)
+notebooks/
