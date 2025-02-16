@@ -170,6 +170,7 @@ class Ui(pyglet.event.EventDispatcher):
         imgui.push_style_color( imgui.COLOR_TITLE_BACKGROUND_ACTIVE, 0.02, 0.02, 0.02, 0.75 )
         imgui.push_style_color( imgui.COLOR_TITLE_BACKGROUND_COLLAPSED, 0.0, 0.0, 0.0, 0.5 )
         _parameters_expanded, _parameters_opened=imgui.begin("PARAMETERS", closable=True,
+                    #flags = imgui.WINDOW_NO_BRING_TO_FRONT_ON_FOCUS
                     #flags=imgui.WINDOW_MENU_BAR
                     #flags= imgui.WINDOW_NO_NAV
                     #imgui.WINDOW_NO_TITLE_BAR

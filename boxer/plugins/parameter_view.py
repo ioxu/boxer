@@ -1,9 +1,16 @@
 import pyglet
 import boxer.containers
+import imgui
 # import boxer.plugins.parameter_view
 
 class ParameterView( boxer.containers.ContainerView ):
         string_name = "Parameters"
+
+        imgui.create_context()
+        io = imgui.get_io()
+        font_t1 = io.fonts.add_font_from_file_ttf("boxer/resources/fonts/DejaVuSansCondensed.ttf", 12 )
+
+
         def __init__( self, batch = None ):
             print("instancing 'Parameters' ContainerView")
 
@@ -42,6 +49,29 @@ class ParameterView( boxer.containers.ContainerView ):
                 x = 10, y = 20,
                 batch=batch
             )
+
+
+        def draw_imgui(self) -> None:
+
+            # ----------------------------------------------------------------------------
+            # URI breadcrumbs imgui 
+            imgui.push_style_var(imgui.STYLE_WINDOW_PADDING , imgui.Vec2(3.0, 3.0)) # type: ignore
+            imgui.push_style_var(imgui.STYLE_FRAME_ROUNDING, 2.0)
+            imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(-2.0, 0.0)) # type: ignore
+            imgui.push_style_color(imgui.COLOR_BUTTON, 0.0, 0.0, 0.0, 0.0)
+            imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 1.0, 1.0, 1.0, 0.3)
+            imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 1.0, 1.0, 1.0, 0.2)
+            imgui.push_font(self.font_t1)
+
+            imgui.set_cursor_pos((35, 0)) # type: ignore
+            if imgui.button("graph://"):
+                print(f"CLICKED graph:// from {self}")
+
+            imgui.pop_font() # _t1
+            imgui.pop_style_color(3) # button colors
+            imgui.pop_style_var(1) # item spacing
+            imgui.pop_style_var(1) # rounded buttons            
+            imgui.pop_style_var() # window padding
 
 
         def __del__(self) -> None:

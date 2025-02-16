@@ -572,7 +572,7 @@ class Container( pyglet.event.EventDispatcher ):
         self.update_geometries()
 
 
-    def draw_leaf(self):
+    def draw_leaf(self, extras = []):
         """draw self as a leaf (only draws as a single leaf container)"""
         # maybe just draw a coloured outline
         # NO DRAW, ONLY BATCH.
@@ -719,7 +719,10 @@ class Container( pyglet.event.EventDispatcher ):
             
             imgui.pop_style_var(2)
             imgui.pop_clip_rect()
-        
+
+            for e in extras:
+                e()
+
         imgui.pop_style_color(3) # button colors
         imgui.pop_style_var(1) # item spacing
         imgui.pop_style_var(1) # rounded buttons
@@ -805,7 +808,8 @@ class Container( pyglet.event.EventDispatcher ):
         for l in self.leaves:
 
             if l in self.container_views:
-                cv = self.container_views[l]
+                gl.glEnable(gl.GL_BLEND)
+                gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
                 gl.glEnable(gl.GL_SCISSOR_TEST)
                 gl.glScissor(int(l.position.x),
                              int(l.position.y),
@@ -814,24 +818,26 @@ class Container( pyglet.event.EventDispatcher ):
                 self.container_view_batches[type(self.container_views[l])].draw()
                 gl.glDisable(gl.GL_SCISSOR_TEST)
 
-                cv.draw()
-
-            l.draw_leaf()
+            # gather extra imgui drawing from ContainerView subclasses
+            # from the self.container_views map
+            # ContainerView imgui commands are drawn INSIDE Container.draw_leaf()
+            # so that they're combined in the one imgui.window (one per Container leaf)
+            extra_imgui = []
+            if l in self.container_views:
+                extra_imgui.append( self.container_views[l].draw_imgui )
+            l.draw_leaf(extras = extra_imgui )
 
         # draw Container batch (outlines)
         self.batch.draw()
-
 
         # draw things for all SplitContainers
         # right-click context menu for splitters etc
         for h in self.split_containers:
             h.draw_handle_ui()
 
-
-
         gl.glEnable(gl.GL_BLEND)
-        # gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+
         self.draw_overlay()
 
 
@@ -1586,6 +1592,16 @@ class ContainerView( pyglet.event.EventDispatcher ):
     # Container.register_container_view_type( name : str, <ContainerView subcclass> )
     auto_register = True
 
+    # imgui ----------------------------------------------------------------
+    # no decoration / no collapsible title bar
+    containerview_imwindow_flags = imgui.WINDOW_NO_TITLE_BAR\
+                        | imgui.WINDOW_NO_RESIZE\
+                        | imgui.WINDOW_NO_SAVED_SETTINGS\
+                        | imgui.WINDOW_NO_SCROLLBAR\
+                        | imgui.WINDOW_NO_BACKGROUND\
+                        # | imgui.WINDOW_NO_BRING_TO_FRONT_ON_FOCUS
+
+
     def __init__( self, batch = None, position = pyglet.math.Vec2(), width : int = 0, height : int = 0 ):
         print("\033[38;5;63m[ContainerView.__init__()]\033[0m")
         self.position = position
@@ -1628,7 +1644,7 @@ class ContainerView( pyglet.event.EventDispatcher ):
         self.height = container.height
         
 
-    def draw(self) -> None:
+    def draw_imgui(self) -> None:
         ...
 
 
