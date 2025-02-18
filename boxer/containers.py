@@ -591,6 +591,13 @@ class Container( pyglet.event.EventDispatcher ):
 
         # imgui ----------------------------------------------------------------
         # no decoration / no collapsible title bar
+                            # imgui.WINDOW_NO_TITLE_BAR\
+                            # | imgui.WINDOW_NO_BACKGROUND\
+                            # | imgui.WINDOW_NO_RESIZE\
+                            # | imgui.WINDOW_NO_SAVED_SETTINGS\
+                            # | imgui.WINDOW_NO_SCROLLBAR\
+                            # | imgui.WINDOW_NO_BRING_TO_FRONT_ON_FOCUS
+
         container_imwindow_flags = imgui.WINDOW_NO_TITLE_BAR\
                             | imgui.WINDOW_NO_BACKGROUND\
                             | imgui.WINDOW_NO_RESIZE\
@@ -805,18 +812,38 @@ class Container( pyglet.event.EventDispatcher ):
         # draw leaf containers:
         #   imgui ui
         #   draw each container view through a scissor
-        for l in self.leaves:
 
-            if l in self.container_views:
-                gl.glEnable(gl.GL_BLEND)
-                gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
-                gl.glEnable(gl.GL_SCISSOR_TEST)
-                gl.glScissor(int(l.position.x),
-                             int(l.position.y),
-                             int(l.width),
-                             int(l.height))
-                self.container_view_batches[type(self.container_views[l])].draw()
-                gl.glDisable(gl.GL_SCISSOR_TEST)
+        
+        # for l in self.leaves:
+
+        #     if l in self.container_views:
+        #         gl.glEnable(gl.GL_BLEND)
+        #         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        #         # gl.glEnable(gl.GL_SCISSOR_TEST)
+        #         # gl.glScissor(int(l.position.x),
+        #         #              int(l.position.y),
+        #         #              int(l.width),
+        #         #              int(l.height))
+        #         print(f"  drawing batch {self.container_view_batches[type(self.container_views[l])]}")
+        #         self.container_view_batches[type(self.container_views[l])].draw()
+        #         # gl.glDisable(gl.GL_SCISSOR_TEST)
+
+        #     # gather extra imgui drawing from ContainerView subclasses
+        #     # from the self.container_views map
+        #     # ContainerView imgui commands are drawn INSIDE Container.draw_leaf()
+        #     # so that they're combined in the one imgui.window (one per Container leaf)
+        #     extra_imgui = []
+        #     if l in self.container_views:
+        #         extra_imgui.append( self.container_views[l].draw_imgui )
+        #     l.draw_leaf(extras = extra_imgui )
+
+        print(f"-- --")
+
+        for b in self.container_view_batches:
+            print(f"  drawing batch {self.container_view_batches[b]}")
+            self.container_view_batches[b].draw()
+
+        for l in self.leaves:
 
             # gather extra imgui drawing from ContainerView subclasses
             # from the self.container_views map
@@ -826,6 +853,7 @@ class Container( pyglet.event.EventDispatcher ):
             if l in self.container_views:
                 extra_imgui.append( self.container_views[l].draw_imgui )
             l.draw_leaf(extras = extra_imgui )
+
 
         # draw Container batch (outlines)
         self.batch.draw()

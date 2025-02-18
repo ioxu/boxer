@@ -1,6 +1,7 @@
 import pyglet
 import boxer.containers
 import boxer.background
+import boxer.camera
 import imgui
 import pyglet.gl as gl
 import random
@@ -23,10 +24,14 @@ class GraphView( boxer.containers.ContainerView ):
             self.batch = batch
             self.entered = False
 
+            self.camera = boxer.camera.Camera( )
+            # self.camera_group = boxer.camera.CameraGroup( self.camera )
+            # self.bg_group = boxer.background.BackgroundGroup( parent = self.camera_group )
             #-----------------------------------------------------------------------------
             # https://pyglet.readthedocs.io/en/latest/programming_guide/rendering.html#batched-rendering
-            self.background : boxer.background.Background = boxer.background.Background(batch=batch)
+            self.background : boxer.background.Background = boxer.background.Background(batch=batch) #, parent_group = self.camera_group)
             #-----------------------------------------------------------------------------
+
 
             self.margin = 0
             # self.bg_rect = pyglet.shapes.Rectangle(
@@ -84,7 +89,7 @@ class GraphView( boxer.containers.ContainerView ):
             imgui.push_style_var(imgui.STYLE_WINDOW_PADDING , imgui.Vec2(3.0, 3.0)) # type: ignore
             imgui.push_style_var(imgui.STYLE_FRAME_ROUNDING, 2.0)
             imgui.push_style_var(imgui.STYLE_ITEM_SPACING, imgui.Vec2(-2.0, 0.0)) # type: ignore
-            imgui.push_style_color(imgui.COLOR_BUTTON, 0.0, 0.0, 0.0, 0.0)
+            imgui.push_style_color(imgui.COLOR_BUTTON, 1.0, 0.675, 0, 0.15) #0.0, 0.0, 0.0, 0.3)
             imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 1.0, 1.0, 1.0, 0.3)
             imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 1.0, 1.0, 1.0, 0.2)
             imgui.push_font(self.font_t1)
@@ -133,6 +138,8 @@ class GraphView( boxer.containers.ContainerView ):
             self.view_label.position = pyglet.math.Vec3( container.position.x + 10, container.position.y + (self.view_label.content_height * 0.5) , 0 )
             self.hash_label.text = str(hash(self))
             self.hash_label.position = pyglet.math.Vec3( container.position.x + 10 + self.view_label.content_width + 10, container.position.y + (self.view_label.content_height * 0.5) , 0 )
+
+            self.background.set_scissor( self.position.x, self.position.y, self.width, self.height )
 
 
         def connect_handlers(self, target) -> None:

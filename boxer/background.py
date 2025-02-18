@@ -5,32 +5,61 @@ import pyglet.image
 import boxer.shaders
 import boxer.shapes
 
+import math, random
+import uuid
+
 class BackgroundGroup( pyglet.graphics.Group ):
     """group to activate texturing and texture mix shader"""
     def __init__(self, texture, shaderprogram):
         super().__init__()
         self.texture = texture
         self.program = shaderprogram
+        self.background_object = None #background_object
+        
+        self.id = uuid.uuid4()#random.random()
+
         self.originx = 0
         self.originy =0
         self.width = 200
         self.height= 200
 
 
+    # def set_background(self, background) -> None:
+    #     self.background_object = background
+
+
     def set_state(self):
         # print("++")
         # gl.glEnable(gl.GL_SCISSOR_TEST)
         # gl.glScissor(self.originx, self.originy, self.width, self.height)
+        # print(f"-- {self.background_object} -- {self.background_object.age}")
+        print(f"    -- {self} {self.id} {self.program}")
         self.program.use()
+        # self.background_object.shader_program['camera_matrix'] = self.background_object.camera_matrix
         gl.glEnable(self.texture.target)
         gl.glBindTexture(self.texture.target, self.texture.id)
 
+        gl.glEnable(gl.GL_SCISSOR_TEST)
+        gl.glScissor(int(self.originx),
+                     int(self.originy),
+                     int(self.width),
+                     int(self.height))
+    
 
     def unset_state(self):
         # print("--")
         # gl.glDisable(gl.GL_SCISSOR_TEST)
-        gl.glBindTexture(self.texture.target, 0)        
+        gl.glBindTexture(self.texture.target, 0)
         self.program.stop()
+        gl.glDisable(gl.GL_SCISSOR_TEST)
+
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+
+    def __hash__(self):
+        return hash(self.id)
 
 
 class Background:
@@ -38,8 +67,10 @@ class Background:
 
     def __init__(self,
                  name="background",
-                 batch = None):
+                 batch = None,
+                 ): #parent_group = None):
         self.batch = batch or pyglet.graphics.Batch()
+        # self.parent_group = parent_group or pyglet.graphics.Group()
         self.name = name
         self.colour_one = (0.25, 0.25, 0.25)
         self.colour_two = (0.5, 0.5, 0.5)
@@ -68,24 +99,48 @@ class Background:
         self.shader_program['color_one'] = (*self.colour_one, 1.0)
         self.shader_program['color_two'] = (*self.colour_two, 1.0)
 
+        pyglet.clock.schedule_interval(self.on_update, 1/60.0)
+        self.age = 0.0
+        self.speed = (random.random() - 0.5) * 10
+        self.camera_matrix = pyglet.math.Mat4()
+        self.shader_program['camera_matrix'] = pyglet.math.Mat4.from_translation( pyglet.math.Vec3( -1.0, 1.0, 0.0 ) )
+
+
         _bg_width = 2000000
         _bg_height = _bg_width
         _bg_verts = boxer.shapes.rectangle_centered_vertices( -0.5, 0.5, _bg_width, _bg_width )
         _bg_tex_coords = boxer.shapes.quad_texcoords( _bg_width/self.texture.width, _bg_height/self.texture.height, 0.0, 0.0 )
 
-        self.bg_group = BackgroundGroup( self.texture , self.shader_program)
+        self.group = BackgroundGroup( self.texture , self.shader_program)#, self) #, parent = self.parent_group)
+        print("___________________________________________________________")
+        print(f" group hash {hash(self.group)}")
+        print("___________________________________________________________")
+        # self.group.set_background( self )
 
         self.background_triangles = self.shader_program.vertex_list_indexed( 4, gl.GL_TRIANGLES, (0,1,2,0,2,3),
                                     self.batch,
-                                    self.bg_group,
+                                    self.group,
                                     position = ('f', _bg_verts ),
                                     #colors = ('f', self.colour * 4 ),
                                     colors = ('f', (1.0, 1.0, 1.0, 1.0) * 4 ),
                                     tex_coords = ('f', _bg_tex_coords) )
 
+
+
+
         # self.centre_point = _program.vertex_list_indexed(1, gl.GL_POINTS, [0], batch = self.batch,
         #                         position=('f', (0.0, 0.0, 0.0)),
         #                         colors = ('f', (1.0, 0.0, 0.0, 0.5) ))
+
+    def on_update(self, dt):
+        self.age += dt
+        m = 50.0
+        self.camera_matrix = pyglet.math.Mat4.from_translation(
+            pyglet.math.Vec3( math.sin(self.age*self.speed)*m, math.cos(self.age*self.speed)*m, 0.0 ) )        
+        self.shader_program['camera_matrix'] = self.camera_matrix
+        # print(f"-- set matrix {self.camera_matrix}")
+        # print(f"{self.speed} {hash(self.shader_program)}")
+
 
     def __del__(self) -> None:
         print(f"DELETING BACKGROUND {self}")
@@ -123,10 +178,10 @@ class Background:
 
 
     def set_scissor(self, ox, oy, width, height) -> None:
-        self.bg_group.originx = ox
-        self.bg_group.originy = oy
-        self.bg_group.width = width
-        self.bg_group.height = height
+        self.group.originx = ox
+        self.group.originy = oy
+        self.group.width = width
+        self.group.height = height
 
 
     def as_json(self) -> dict:

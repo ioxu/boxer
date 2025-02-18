@@ -192,6 +192,35 @@ Camera.register_event_type("transform_changed")
 
 
 # ------------------------------------------------------------------------------
+# class CameraGroup( pyglet.graphics.Group ):
+#     """group to push camera onto state
+
+#     set_state
+#     push
+#     gl.glPushMatrix()
+#     # gl.glTranslatef(self.position.x, self.position.y, 0) # what I did before
+#     gl.glMultMatrixf(self.transform) # self.transform is a pyglet.math.Mat4()
+    
+#     unset_state
+#     # pop
+#     gl.glPopMatrix()
+
+#     """
+#     def __init__(self, camera : Camera):
+#         super().__init__()
+#         self.camera = camera
+
+
+#     def set_state(self):
+#         gl.glPushMatrix()
+#         gl.glMultMatrixf(self.camera.transform)
+
+
+#     def unset_state(self):
+#         gl.glPopMatrix()
+
+
+# ------------------------------------------------------------------------------
 
 def get_default_camera( window ):
     print("get_default_camera: %s"%window)

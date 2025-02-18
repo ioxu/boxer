@@ -75,6 +75,7 @@ def get_default_textured_shader():
 # mix two colours based on values in a texture
 
 _TCMix_vertex_source ="""#version 330 core
+    uniform mat4 camera_matrix;
     in vec3 position;
     in vec4 colors;
     in vec3 tex_coords;
@@ -90,7 +91,7 @@ _TCMix_vertex_source ="""#version 330 core
 
     void main()
     {
-        gl_Position = window.projection * window.view * vec4(position, 1.0);
+        gl_Position = window.projection * window.view * camera_matrix * vec4(position, 1.0);
 
         vertex_colors = colors;
         texture_coords = tex_coords;

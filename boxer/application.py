@@ -77,7 +77,7 @@ class Application(pyglet.event.EventDispatcher):
         pyglet.gl.glClearColor(0.2,0.2,0.2,1)
 
         # app components:
-        self.background = boxer.background.Background()
+        # self.background = boxer.background.Background()
 
         self.mouse = boxer.mouse.Mouse()
         self.window.push_handlers( self.mouse )
@@ -251,7 +251,7 @@ class Application(pyglet.event.EventDispatcher):
             "application": self.as_json(),
             "graph":{
                 "name": self.test_graph_name,
-                "background": self.background.as_json(),
+                # "background": self.background.as_json(),
                 "camera": self.camera.as_json()
                 }
             }
