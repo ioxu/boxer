@@ -33,6 +33,7 @@ class GraphView( boxer.containers.ContainerView ):
             self.background : boxer.background.Background = boxer.background.Background(batch=batch) #, parent_group = self.camera_group)
             #-----------------------------------------------------------------------------
 
+            self.group = pyglet.graphics.Group(1)
 
             self.margin = 0
             # self.bg_rect = pyglet.shapes.Rectangle(
@@ -46,10 +47,11 @@ class GraphView( boxer.containers.ContainerView ):
             self.circle = pyglet.shapes.Circle(
                  10,10,
                  10,32,
-                 (30,255,30,200),
+                 (30,255,30,165),
                 pyglet.gl.GL_SRC_ALPHA,
                 pyglet.gl.GL_ONE_MINUS_SRC_ALPHA,
-                batch
+                batch,
+                self.group
             )
 
             self.mouse_circle = pyglet.shapes.Circle(
@@ -58,7 +60,8 @@ class GraphView( boxer.containers.ContainerView ):
                 (255,255,255,10),
                 pyglet.gl.GL_SRC_ALPHA,
                 pyglet.gl.GL_ONE_MINUS_SRC_ALPHA,
-                batch
+                batch,
+                self.group
             )
 
             self.view_label = pyglet.text.Label(
@@ -74,7 +77,8 @@ class GraphView( boxer.containers.ContainerView ):
                 font_size = 9.0,
                 color = (255,255,255, 65),
                 x = 10, y = 20,
-                batch=batch
+                batch=batch,
+                group=self.group
             )
 
             # test to make unique paths to show in each GraphView's breadcrumb

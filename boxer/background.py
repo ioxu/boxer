@@ -15,8 +15,8 @@ import weakref
 
 class BackgroundGroup( pyglet.graphics.Group ):
     """group to activate texturing and texture mix shader"""
-    def __init__(self, texture, shaderprogram):
-        super().__init__()
+    def __init__(self, order, texture, shaderprogram):
+        super().__init__(order)
         self.texture = texture
         self.program = shaderprogram
         self.background_object = None #background_object
@@ -57,7 +57,8 @@ class BackgroundGroup( pyglet.graphics.Group ):
 
 
     def __eq__(self, other):
-        return self.id == other.id
+        return (self.__class__ == other.__class__ and
+            self.id == other.id)
 
 
     def __hash__(self):
@@ -110,7 +111,7 @@ class Background:
         self.shader_program['color_one'] = (*self.colour_one, 1.0)
         self.shader_program['color_two'] = (*self.colour_two, 1.0)
 
-        pyglet.clock.schedule_interval(self.on_update, 1/60.0)
+        pyglet.clock.schedule_interval_soft(self.on_update, 1/60.0)
         self.age = 0.0
         self.speed = (random.random() - 0.5) * 10
         self.camera_matrix = pyglet.math.Mat4()
@@ -122,7 +123,7 @@ class Background:
         _bg_verts = boxer.shapes.rectangle_centered_vertices( -0.5, 0.5, _bg_width, _bg_width )
         _bg_tex_coords = boxer.shapes.quad_texcoords( _bg_width/self.texture.width, _bg_height/self.texture.height, 0.0, 0.0 )
 
-        self.group = BackgroundGroup( self.texture , self.shader_program)#, self) #, parent = self.parent_group)
+        self.group = BackgroundGroup( 0, self.texture , self.shader_program)#, self) #, parent = self.parent_group)
 
         self.background_triangles = self.shader_program.vertex_list_indexed( 4, gl.GL_TRIANGLES, (0,1,2,0,2,3),
                                     self.batch,
