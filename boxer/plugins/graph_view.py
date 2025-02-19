@@ -5,6 +5,7 @@ import boxer.camera
 import imgui
 import pyglet.gl as gl
 import random
+import gc
 
 class GraphView( boxer.containers.ContainerView ):
         string_name = "Graph"
@@ -119,7 +120,13 @@ class GraphView( boxer.containers.ContainerView ):
         def __del__(self) -> None:
             print(f"deleting GraphView {self}")
             # self.bg_rect.delete()
+            # print("------------")
+            # print(gc.get_referrers( self.background ))
+            # print("------------")
+            pyglet.clock.unschedule(self.background.on_update) # fush this is so tedious
+            # del(self.background.group)
             del(self.background)
+            self.batch.invalidate() # to update the change in Groups associated with the Batch
             self.circle.delete()
             self.mouse_circle.delete()
             self.view_label.delete()

@@ -837,14 +837,12 @@ class Container( pyglet.event.EventDispatcher ):
         #         extra_imgui.append( self.container_views[l].draw_imgui )
         #     l.draw_leaf(extras = extra_imgui )
 
-        print(f"-- --")
-
+        # print(f"-- --")
         for b in self.container_view_batches:
-            print(f"  drawing batch {self.container_view_batches[b]}")
+            # print(f"  drawing batch {self.container_view_batches[b]}")
             self.container_view_batches[b].draw()
 
         for l in self.leaves:
-
             # gather extra imgui drawing from ContainerView subclasses
             # from the self.container_views map
             # ContainerView imgui commands are drawn INSIDE Container.draw_leaf()

@@ -5,8 +5,13 @@ import pyglet.image
 import boxer.shaders
 import boxer.shapes
 
+from  colour import Color
+
 import math, random
 import uuid
+
+import gc
+import weakref
 
 class BackgroundGroup( pyglet.graphics.Group ):
     """group to activate texturing and texture mix shader"""
@@ -29,11 +34,8 @@ class BackgroundGroup( pyglet.graphics.Group ):
 
 
     def set_state(self):
-        # print("++")
-        # gl.glEnable(gl.GL_SCISSOR_TEST)
-        # gl.glScissor(self.originx, self.originy, self.width, self.height)
-        # print(f"-- {self.background_object} -- {self.background_object.age}")
-        print(f"    -- {self} {self.id} {self.program}")
+
+        # print(f"    -- {self} {self.id} {self.program}")
         self.program.use()
         # self.background_object.shader_program['camera_matrix'] = self.background_object.camera_matrix
         gl.glEnable(self.texture.target)
@@ -62,6 +64,11 @@ class BackgroundGroup( pyglet.graphics.Group ):
         return hash(self.id)
 
 
+    def __del__(self) -> None:
+        print("DELETING GROOOOOOOOOOUUUUUUUUUUUUUPPPPPPPP")
+
+
+
 class Background:
     """backround object for graph sheets"""
 
@@ -72,8 +79,12 @@ class Background:
         self.batch = batch or pyglet.graphics.Batch()
         # self.parent_group = parent_group or pyglet.graphics.Group()
         self.name = name
-        self.colour_one = (0.25, 0.25, 0.25)
-        self.colour_two = (0.5, 0.5, 0.5)
+        c1 = Color(hsl=(random.random(), 0.15, 0.3))
+        c2 = Color(hsl=(c1.hue + 0.2 , 0.15, 0.4))
+        self.colour_one = c1.rgb #(0.25, 0.25, 0.25)
+        self.colour_two = c2.rgb #(0.5, 0.5, 0.5)
+
+
 
         self.image = pyglet.image.load('boxer/resources/background_grid_map.png')
         self.texture : pyglet.image.Texture = pyglet.image.TileableTexture.create_for_image( self.image )
@@ -112,10 +123,6 @@ class Background:
         _bg_tex_coords = boxer.shapes.quad_texcoords( _bg_width/self.texture.width, _bg_height/self.texture.height, 0.0, 0.0 )
 
         self.group = BackgroundGroup( self.texture , self.shader_program)#, self) #, parent = self.parent_group)
-        print("___________________________________________________________")
-        print(f" group hash {hash(self.group)}")
-        print("___________________________________________________________")
-        # self.group.set_background( self )
 
         self.background_triangles = self.shader_program.vertex_list_indexed( 4, gl.GL_TRIANGLES, (0,1,2,0,2,3),
                                     self.batch,
@@ -143,8 +150,38 @@ class Background:
 
 
     def __del__(self) -> None:
+        print("------------")
         print(f"DELETING BACKGROUND {self}")
+        print(f" -> vertex list count {self.background_triangles.index_count}")
         self.background_triangles.delete()
+        self.background_triangles = None
+        # print(f" -> vertex list count {self.background_triangles.index_count}")
+        print("------------")
+        ref = gc.get_referrers( self.group )
+        for i in ref:
+            print(f"{type(i)} : {i}")
+            if type(i) == type([]):
+                for li in i:
+                    print(f"    {li}")
+            elif type(i)== type({}):
+                for k in i:
+                    print(f"    {k} : {i[k]}")
+        
+        # del(self.group)
+        print(f" -> {self.group}")
+        self.group = None
+        print(f" -> {self.group}")
+        print(f" -> {self.background_triangles}")
+        # print(f" -> {self.background_triangles.index_count}")
+        print("------------")
+
+
+        # ref = gc.get_referrers( self.group )
+        # for i in ref:
+        #     print(i)
+        # print("------------")
+
+
 
 
     def set_colour_one(self, colour) -> None:
