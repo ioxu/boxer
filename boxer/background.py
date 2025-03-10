@@ -19,7 +19,6 @@ class BackgroundGroup( pyglet.graphics.Group ):
         super().__init__(order)
         self.texture = texture
         self.program = shaderprogram
-        self.background_object = None #background_object
         
         self.id = uuid.uuid4()#random.random()
 
@@ -29,18 +28,18 @@ class BackgroundGroup( pyglet.graphics.Group ):
         self.height= 200
 
 
-    # def set_background(self, background) -> None:
-    #     self.background_object = background
+    def set_scissor(self, x, y, width, height) -> None:
+        self.originx = x
+        self.originy = y
+        self.width = width
+        self.height = height
 
 
     def set_state(self):
-
         # print(f"    -- {self} {self.id} {self.program}")
         self.program.use()
-        # self.background_object.shader_program['camera_matrix'] = self.background_object.camera_matrix
         gl.glEnable(self.texture.target)
         gl.glBindTexture(self.texture.target, self.texture.id)
-
         gl.glEnable(gl.GL_SCISSOR_TEST)
         gl.glScissor(int(self.originx),
                      int(self.originy),
@@ -49,11 +48,9 @@ class BackgroundGroup( pyglet.graphics.Group ):
     
 
     def unset_state(self):
-        # print("--")
-        # gl.glDisable(gl.GL_SCISSOR_TEST)
+        gl.glDisable(gl.GL_SCISSOR_TEST)
         gl.glBindTexture(self.texture.target, 0)
         self.program.stop()
-        gl.glDisable(gl.GL_SCISSOR_TEST)
 
 
     def __eq__(self, other):
@@ -66,7 +63,7 @@ class BackgroundGroup( pyglet.graphics.Group ):
 
 
     def __del__(self) -> None:
-        print("DELETING GROOOOOOOOOOUUUUUUUUUUUUUPPPPPPPP")
+        print(f"\033[38;5;52m[X]\033[0m Group {self} ({self.__class__}) being deleted.")
 
 
 
@@ -151,30 +148,31 @@ class Background:
 
 
     def __del__(self) -> None:
-        print("------------")
-        print(f"DELETING BACKGROUND {self}")
-        print(f" -> vertex list count {self.background_triangles.index_count}")
-        self.background_triangles.delete()
-        self.background_triangles = None
+        print(f"\033[38;5;52m[X]\033[0m '{self.name}' {self} ({self.__class__}) being deleted.")
+        # print("------------")
+        # print(f"DELETING BACKGROUND {self}")
         # print(f" -> vertex list count {self.background_triangles.index_count}")
-        print("------------")
-        ref = gc.get_referrers( self.group )
-        for i in ref:
-            print(f"{type(i)} : {i}")
-            if type(i) == type([]):
-                for li in i:
-                    print(f"    {li}")
-            elif type(i)== type({}):
-                for k in i:
-                    print(f"    {k} : {i[k]}")
+        self.background_triangles.delete()
+        # self.background_triangles = None
+        # print(f" -> vertex list count {self.background_triangles.index_count}")
+        # print("------------")
+        # ref = gc.get_referrers( self.group )
+        # for i in ref:
+        #     print(f"{type(i)} : {i}")
+        #     if type(i) == type([]):
+        #         for li in i:
+        #             print(f"    {li}")
+        #     elif type(i)== type({}):
+        #         for k in i:
+        #             print(f"    {k} : {i[k]}")
         
-        # del(self.group)
-        print(f" -> {self.group}")
+        # print(f" -> {self.group}")
+        del(self.group)
         self.group = None
-        print(f" -> {self.group}")
-        print(f" -> {self.background_triangles}")
+        # print(f" -> {self.group}")
+        # print(f" -> {self.background_triangles}")
         # print(f" -> {self.background_triangles.index_count}")
-        print("------------")
+        # print("------------")
 
 
         # ref = gc.get_referrers( self.group )

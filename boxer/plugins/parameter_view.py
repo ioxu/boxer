@@ -13,6 +13,8 @@ class ParameterView( boxer.containers.ContainerView ):
 
         def __init__( self, batch = None ):
             print("instancing 'Parameters' ContainerView")
+            self.batch = batch or pyglet.graphics.Batch()
+
 
             self.entered = False
 
@@ -23,7 +25,7 @@ class ParameterView( boxer.containers.ContainerView ):
                 (30, 30, 30, 180),
                 pyglet.gl.GL_SRC_ALPHA,
                 pyglet.gl.GL_ONE_MINUS_SRC_ALPHA,
-                batch
+                self.batch
             )
             self.circle = pyglet.shapes.Circle(
                  10,10,
@@ -31,7 +33,7 @@ class ParameterView( boxer.containers.ContainerView ):
                  (255,30,30,200),
                 pyglet.gl.GL_SRC_ALPHA,
                 pyglet.gl.GL_ONE_MINUS_SRC_ALPHA,
-                batch
+                self.batch
             )
             self.mouse_circle = pyglet.shapes.Circle(
                  10,10,
@@ -39,7 +41,7 @@ class ParameterView( boxer.containers.ContainerView ):
                  (30,255,30,100),
                 pyglet.gl.GL_SRC_ALPHA,
                 pyglet.gl.GL_ONE_MINUS_SRC_ALPHA,
-                batch
+                self.batch
             )
 
             self.view_label = pyglet.text.Label(
@@ -47,7 +49,7 @@ class ParameterView( boxer.containers.ContainerView ):
                 font_size = 15.0,
                 color = (255,255,255, 40),
                 x = 10, y = 20,
-                batch=batch
+                batch=self.batch
             )
 
 
@@ -82,7 +84,11 @@ class ParameterView( boxer.containers.ContainerView ):
             self.view_label.delete()            
             # self.disconnect_handlers()
             super().__del__()
-            
+
+
+        def draw(self) -> None:
+            self.batch.draw()
+
 
         def update_geometries(self, container):
             super().update_geometries( container )

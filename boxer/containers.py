@@ -26,6 +26,8 @@ import imgui as imgui
 
 import gc
 
+import weakref
+
 from typing import Optional
 # https://www.reddit.com/r/learnprogramming/comments/214nd9/making_a_gui_from_scratch/
 # https://developer.valvesoftware.com/wiki/VGUI_Documentation
@@ -144,8 +146,16 @@ class Container( pyglet.event.EventDispatcher ):
         # is added to this dictionary for re-use.
         self.container_view_batches : dict[ type[ContainerView], pyglet.graphics.Batch ] = {}
 
-        #
-        self.container_view_cameras : dict[ ContainerView, boxer.camera.Camera ] = {}
+
+        # of Container.container_view_types, which are active
+        # list to loop through to call type.draw() 
+        # self.container_view_types_active : dict[ type[ContainerView], [] ] = {}
+        self.container_view_types_active : dict[ type[ContainerView], weakref.WeakSet[Container] ] = {}
+        # self.container_view_types_active = weakref.WeakValueDictionary()
+
+
+        # self.container_view_cameras : dict[ ContainerView, boxer.camera.Camera ] = {}
+
 
 
         # track split containers so handles can be drawn
@@ -254,7 +264,6 @@ class Container( pyglet.event.EventDispatcher ):
             self.children.append( child )
 
 
-    # def remove_children(self, old_children : list | None = None) -> list:
     def remove_children(self, old_children : list['Container'] | None = None) -> list['Container']:
         """clear all children"""
         # ⚠ WTF, argument of a static mutable, never realised it before:
@@ -279,6 +288,7 @@ class Container( pyglet.event.EventDispatcher ):
   
         self.children=[]
         return old_children
+
 
     def remove_child(self, child ):
         """remove a child from children list
@@ -569,7 +579,7 @@ class Container( pyglet.event.EventDispatcher ):
         self.update_geometries()
         """
         _, self.leaves, _ = self.update_structure()
-        self.update_geometries()
+        self.update_geometries()  
 
 
     def draw_leaf(self, extras = []):
@@ -838,9 +848,21 @@ class Container( pyglet.event.EventDispatcher ):
         #     l.draw_leaf(extras = extra_imgui )
 
         # print(f"-- --")
-        for b in self.container_view_batches:
-            # print(f"  drawing batch {self.container_view_batches[b]}")
-            self.container_view_batches[b].draw()
+        # for b in self.container_view_batches:
+        #     # print(f"  drawing batch {self.container_view_batches[b]}")
+        #     self.container_view_batches[b].draw()
+
+        print("--")
+
+        for t in self.container_view_types_active:
+            print(f"  +- {t}  {self.container_view_types_active[t]}")
+            
+            for it in self.container_view_types_active[t]:
+                print(f"      - {it}")            
+            
+            if t.string_name == "Graph":
+                print(f"    : {t.views}")
+
 
         for l in self.leaves:
             # gather extra imgui drawing from ContainerView subclasses
@@ -850,6 +872,8 @@ class Container( pyglet.event.EventDispatcher ):
             extra_imgui = []
             if l in self.container_views:
                 extra_imgui.append( self.container_views[l].draw_imgui )
+                self.container_views[l].draw()
+
             l.draw_leaf(extras = extra_imgui )
 
 
@@ -1160,8 +1184,26 @@ class Container( pyglet.event.EventDispatcher ):
             # remove ContainerView from referring lists
             # (remove all references, delete view)
             _view = root.container_views.pop( container, None )
-            root.container_view_cameras.pop( _view, None)
+            # root.container_view_cameras.pop( _view, None)
             # print(f"root.container_views: popping {container}, thus {_view}")
+
+            # remove the container from view_types_active by view_type
+            _to_remove = []
+            if type(_view) in root.container_view_types_active:
+                print(f"_view.__class__ {type(_view)} IS in root.container_view_types_active {root.container_view_types_active}")
+                for c in root.container_view_types_active[ type(_view) ]: # type: ignore
+                    if c == container:
+                        print("###########################################################################")
+                        print(f"in root.container_view_types_active[ view_type[1] ] found {c} == container")
+                        print("###########################################################################")
+                        # root.container_view_types_active[type(_view) ].remove( c ) # type: ignore
+                        _to_remove.append( c )
+            else:
+                print(f"view_type[1] {view_type[1]} IS NOT in root.container_view_types_active {root.container_view_types_active}")
+
+            for c in _to_remove:
+                root.container_view_types_active[type(_view) ].remove( c ) # type: ignore
+
             root.dispatch_event("view_changed", container, _view)
             # print(f"REFERENCES {gc.get_referrers( _view )}")
             del(_view)
@@ -1170,6 +1212,10 @@ class Container( pyglet.event.EventDispatcher ):
         # do the switching
         if create_new_view:
             # does the view type already have a batch created for it?
+            
+            ##############################################################################
+            ##############################################################################
+            ##############################################################################
             if view_type[1] in root.container_view_batches:
                 # (re)use the one from the cache
                 _batch = root.container_view_batches[ view_type[1] ]
@@ -1180,17 +1226,27 @@ class Container( pyglet.event.EventDispatcher ):
             
             # instance the container view, with the batch!
             view : ContainerView = view_type[1](
-                batch = _batch
+                # batch = _batch
             )
+            
             root.container_views[ container ] = view
+            # root.container_view_types_active[ view_type[1] ] = 1 #.append( container )
+            # root.container_view_types_active.setdefault(view_type[1], []).append( container )
+            # root.container_view_types_active.setdefault(view_type[1], []).append( weakref.ref(container) )
+            root.container_view_types_active.setdefault(view_type[1], weakref.WeakSet()).add( container )
+
+            ##############################################################################
+            ##############################################################################
+            ##############################################################################
             view.update_geometries( container )                
 
-            # camera
-            if view not in root.container_view_cameras:
-                print(f"\033[38;5;63m[ContainerView]\033[0m camera: {view} not in root.container_view_cameras, create new boxer.camera.Camera")
-                root.container_view_cameras[view] = boxer.camera.Camera( window=root.window )
-            else:
-                print(f"\033[38;5;63m[ContainerView]\033[0m camera: {view} reusing camera {root.container_view_cameras[view]}")
+
+            # # camera
+            # if view not in root.container_view_cameras:
+            #     print(f"\033[38;5;63m[ContainerView]\033[0m camera: {view} not in root.container_view_cameras, create new boxer.camera.Camera")
+            #     root.container_view_cameras[view] = boxer.camera.Camera( window=root.window )
+            # else:
+            #     print(f"\033[38;5;63m[ContainerView]\033[0m camera: {view} reusing camera {root.container_view_cameras[view]}")
             root.dispatch_event("view_changed", container, view)
 
             # is the mouse already in this container?
@@ -1239,6 +1295,15 @@ class Container( pyglet.event.EventDispatcher ):
             this_container : Container = new_children[0]
             root_container_views[ this_container ] = this_view
 
+            
+            # ----------------------------------------------------------------------------
+            # update container_view_types_active
+            # root.container_view_types_active[ type(this_view) ].remove( old_container )
+            # root.container_view_types_active.setdefault( type(this_view), [] ).append( weakref.ref(this_container) )
+            root.container_view_types_active.setdefault( type(this_view), weakref.WeakSet() ).add( this_container )
+            # ----------------------------------------------------------------------------
+
+            # reflow
             this_view.update_geometries( this_container )
 
             # set the view type on the new view-owner:
@@ -1251,7 +1316,7 @@ class Container( pyglet.event.EventDispatcher ):
                     if isinstance( this_view, this_view_type ):
                         type_index = index
 
-            # set the view type of this_container to the type index
+            # UI: set the view type of this_container to the type index
             if type_index:
                 this_container.container_view_combo_selected = type_index
                 # TODO: do we really want to dispatch this event from here?
@@ -1267,7 +1332,7 @@ class Container( pyglet.event.EventDispatcher ):
         """callback to be hooked up when a container is closed"""        
         print("\033[38;5;196mon_container_collapsed:\033[0m %s"%container)
         _view = root.container_views.pop( container, None )
-        root.container_view_cameras.pop( _view, None)
+        # root.container_view_cameras.pop( _view, None)
         del(_view)
         # print(f"container_views (on_container_collapsed): {root.container_views}")
         # Container.change_container_view( container, ["none", None] )
