@@ -852,16 +852,18 @@ class Container( pyglet.event.EventDispatcher ):
         #     # print(f"  drawing batch {self.container_view_batches[b]}")
         #     self.container_view_batches[b].draw()
 
-        print("--")
+        # print("--")
+        # for t in self.container_view_types_active:
+        #     print(f"  +- {t}  {self.container_view_types_active[t]}")
+            
+        #     for it in self.container_view_types_active[t]:
+        #         print(f"      - {it}")            
+            
+        #     if t.string_name == "Graph":
+        #         print(f"    : {t.views}")
 
         for t in self.container_view_types_active:
-            print(f"  +- {t}  {self.container_view_types_active[t]}")
-            
-            for it in self.container_view_types_active[t]:
-                print(f"      - {it}")            
-            
-            if t.string_name == "Graph":
-                print(f"    : {t.views}")
+            t.draw_class()
 
 
         for l in self.leaves:
@@ -872,7 +874,15 @@ class Container( pyglet.event.EventDispatcher ):
             extra_imgui = []
             if l in self.container_views:
                 extra_imgui.append( self.container_views[l].draw_imgui )
-                self.container_views[l].draw()
+                
+                
+                ##########################################################################
+                # CONVERT: [ContainerView] convert to class method draw
+                # the idea is to replace this per-leaf ContainerView draw
+                # and replace it with per ContanerView subclass draw class method
+                # (ie in GraphView)
+                # self.container_views[l].draw_instance()
+                ##########################################################################
 
             l.draw_leaf(extras = extra_imgui )
 
@@ -1736,6 +1746,15 @@ class ContainerView( pyglet.event.EventDispatcher ):
         
 
     def draw_imgui(self) -> None:
+        ...
+
+
+    @classmethod
+    def draw_class(cls) -> None:
+        ...
+
+
+    def draw_instance(self) -> None:
         ...
 
 

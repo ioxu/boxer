@@ -11,6 +11,11 @@ class ParameterView( boxer.containers.ContainerView ):
         font_t1 = io.fonts.add_font_from_file_ttf("boxer/resources/fonts/DejaVuSansCondensed.ttf", 12 )
 
 
+        @classmethod
+        def draw_class( cls ) -> None:
+            print(f"draw_class {cls}")
+
+
         def __init__( self, batch = None ):
             print("instancing 'Parameters' ContainerView")
             self.batch = batch or pyglet.graphics.Batch()
@@ -86,7 +91,7 @@ class ParameterView( boxer.containers.ContainerView ):
             super().__del__()
 
 
-        def draw(self) -> None:
+        def draw_instance(self) -> None:
             self.batch.draw()
 
 

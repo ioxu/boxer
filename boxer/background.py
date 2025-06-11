@@ -73,7 +73,7 @@ class Background:
     def __init__(self,
                  name="background",
                  batch = None,
-                 ): #parent_group = None):
+                 group = None): #parent_group = None):
         self.batch = batch or pyglet.graphics.Batch()
         # self.parent_group = parent_group or pyglet.graphics.Group()
         self.name = name

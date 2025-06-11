@@ -9,6 +9,14 @@ import gc
 import atexit
 import weakref
 
+#-------------
+_ranodm_uris = ["root", "root/sub_one", "root/sub_long_two"]
+#-------------
+
+class CanvasGroup( pyglet.graphics.Group ):
+    ...
+
+
 class GraphView( boxer.containers.ContainerView ):
         string_name = "Graph"
 
@@ -23,8 +31,11 @@ class GraphView( boxer.containers.ContainerView ):
         # value: GraphCanvas
         canvases = {}
 
+        # canvas_views = weakref.WeakValueDictionary()
+        canvas_views : dict[ type["GraphCanvas"], weakref.WeakSet["GraphView"] ] = {}
+
         # the GraphCanvas pyglet.graphics.Group
-        canvas_group = pyglet.graphics.Group()
+        canvas_group = CanvasGroup()#pyglet.graphics.Group()
 
         # the GraphView batch
         batch = pyglet.graphics.Batch()
@@ -32,16 +43,36 @@ class GraphView( boxer.containers.ContainerView ):
         # views (instances of cls)
         views = weakref.WeakSet()
 
+        @classmethod
+        def draw_class( cls ) -> None:
+            ##############################################################################
+            # ContainerView subclass (Class, not Instance) iterates through canvas_views
+            # -- iter thru GraphViews
+            # ---- update class canvas_group (scissor and camera)
+            # ---- draw canvas
+            ##############################################################################
+            print(f"draw_class {cls}")
+            for canvas_view in cls.canvas_views:
+                print(f"  canvas_view: {canvas_view}")
+                for graph_view in cls.canvas_views[canvas_view]:
+                    print(f"    update canvas_group {cls.canvas_group}")
+                    print(f"      draw {canvas_view}")
+                    canvas_view.draw()
+
 
         @classmethod
-        def get_canvas_from_uri( cls, uri : str ):
+        def get_canvas_from_uri( cls, uri : str, graph_view_instance ):
             """fetch a cached GraphCanvas from uri, or create a new one.
             """
             print(f'{cls}.get_canvas_from_uri("{uri}")')
             if uri in GraphView.canvases:
+                GraphView.canvas_views.setdefault( GraphView.canvases[uri], weakref.WeakSet() ).add( graph_view_instance ) # type: ignore
                 pass
             else:
-                GraphView.canvases[uri] = GraphCanvas()
+                _new_gc = GraphCanvas()
+                GraphView.canvases[uri] = _new_gc
+                # GraphView.canvas_views[ GraphView.canvases[uri] ] = graph_view_instance
+                GraphView.canvas_views.setdefault( _new_gc, weakref.WeakSet() ).add( graph_view_instance ) # type: ignore
             return GraphView.canvases[uri]
 
 
@@ -65,15 +96,15 @@ class GraphView( boxer.containers.ContainerView ):
             #     del(cc)
 
 
-
         # def __init__( self, batch, **kwargs ):
         # def __init__( self, batch = None, **kwargs ):
         def __init__( self, **kwargs ):
             print("instancing 'Graph' ContainerView")
             super().__init__(self, **kwargs)
             
-            self.uri = "root"
-            self.canvas = GraphView.get_canvas_from_uri( self.uri )
+            # self.uri = "root"
+            self.uri = random.choice(_ranodm_uris)
+            self.canvas = GraphView.get_canvas_from_uri( self.uri, self )
             print(f'{self}.canvas = {self.canvas}')
 
             #self.batch = batch or pyglet.graphics.Batch()
@@ -224,7 +255,23 @@ class GraphView( boxer.containers.ContainerView ):
             self.mouse_circle.position = pyglet.math.Vec2( x, y )
 
 
-        def draw(self ) -> None:
+        def draw_instance(self ) -> None:
+            ##############################################################################
+            # CONVERT: [ContainerView] convert to class method draw
+            # I want to convert this to a class method
+            # the class method is holding class instances in .views
+            # - ContainerView subclass (Class, not Instance) iterates through canvases (GraphView.canvases)
+            # ---- iterate through views associate with canvas (GraphView.canvas_views[ canvas ])
+            # -------- update class canvas_group (scissor and camera)
+            # -------- draw canvas
+            
+            # or
+            # ContainerView subclass (Class, not Instance) iterates through canvas_views
+            # -- iter thru GraphViews
+            # ---- update class canvas_group (scissor and camera)
+            # ---- draw canvas
+            ##############################################################################
+
 
             # set scissor here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             # I don't want to set the scissor every frame
@@ -244,7 +291,7 @@ class GraphCanvas(  pyglet.event.EventDispatcher ):
     """
     def __init__(self, **kwargs):
         self.batch = pyglet.graphics.Batch()
-        self.background : boxer.background.Background = boxer.background.Background(batch=self.batch)
+        self.background : boxer.background.Background = boxer.background.Background(batch=self.batch, group=GraphView.canvas_group)
 
 
     def __del__(self) -> None:
